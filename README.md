@@ -36,7 +36,7 @@ This is a simple echo bot.
 
 ## Call simple bot APIs
 
-Every **simple bot API** has same parameter signatures with official Telegram Bot APIs. Please see the [official Telegram Bot API document](ttps://core.telegram.org/bots/api) when calling simple bot APIs.
+Every **simple bot API** has same parameter signatures with official Telegram Bot APIs. Please see [official Telegram Bot API document](ttps://core.telegram.org/bots/api) when calling simple bot APIs.
 
 ### Quick to reply
 
@@ -57,30 +57,26 @@ In my case, I use [fastapi](https://fastapi.tiangolo.com/) and [uvicron](https:/
 
 source code:
 
-  from fastapi import FastAPI, Request, status
-  from simplebot import bot_proxy
-  from simplebot.base import MessageType, ParseMode
-    # from ngrok's https url, replace it with yours
-  WEBHOOK_URL = "https://5f9d0f13b9fb.au.ngrok.io/bot/{0}"
+  	from fastapi import FastAPI, Request, status
+	from simplebot import bot_proxy
+  	from simplebot.base import MessageType, ParseMode
+    	# from ngrok's https url, replace it with yours
+  	WEBHOOK_URL = "https://5f9d0f13b9fb.au.ngrok.io/bot/{0}"
 
-    # define a default routers
-  router = bot_proxy.router()
-    # two bots have same router
+    	# define a default routers
+  	router = bot_proxy.router()
+	# two bots have same router
 	bot1 = bot_proxy.create_bot(token=<BOT_TOKEN>, router=router)
-  bot2 = bot_proxy.create_bot(token=<BOT_TOKEN>, router=router)
-	  # conveninet function to set or change the webhook url
+	bot2 = bot_proxy.create_bot(token=<BOT_TOKEN>, router=router)
+	# conveninet function to set or change the webhook url
 	bot2.setup_webhook(WEBHOOK_URL.format(<BOT_TOKEN>))
-  bot2.setup_webhook(WEBHOOK_URL.format(<BOT_TOKEN>))
+	bot2.setup_webhook(WEBHOOK_URL.format(<BOT_TOKEN>))
 
-  @router.message_handler(message_type=MessageType.TEXT)
-  def on_echo_text(bot, message):
-      bot.reply_message(
-          message,
-          text="I receive: <strong>{0}</strong>".format(message.text),
-          parse_mode=ParseMode.HTML,
-      )
+	@router.message_handler(message_type=MessageType.TEXT)
+	def on_echo_text(bot, message):
+	    bot.reply_message(message, text="I receive: <strong>{0}</strong>".format(message.text), parse_mode=ParseMode.HTML)
 
-  app = FastAPI()
+	app = FastAPI()
 	
 	# waiting for incoming updates and dispatch them
 	@app.post("/bot/{bot_token}", status_code=status.HTTP_200_OK)
