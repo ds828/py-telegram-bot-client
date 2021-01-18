@@ -69,7 +69,7 @@ source code:
 	bot1 = bot_proxy.create_bot(token=<BOT_TOKEN>, router=router)
 	bot2 = bot_proxy.create_bot(token=<BOT_TOKEN>, router=router)
 	# conveninet function to set or change the webhook url
-	bot2.setup_webhook(WEBHOOK_URL.format(<BOT_TOKEN>))
+	bot1.setup_webhook(WEBHOOK_URL.format(<BOT_TOKEN>))
 	bot2.setup_webhook(WEBHOOK_URL.format(<BOT_TOKEN>))
 
 	@router.message_handler(message_type=MessageType.TEXT)
