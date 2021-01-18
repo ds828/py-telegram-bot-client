@@ -66,11 +66,11 @@ source code:
     	# define a default routers
   	router = bot_proxy.router()
 	# two bots have same router
-	bot1 = bot_proxy.create_bot(token=<BOT_TOKEN>, router=router)
-	bot2 = bot_proxy.create_bot(token=<BOT_TOKEN>, router=router)
+	bot1 = bot_proxy.create_bot(token=<BOT1_TOKEN>, router=router)
+	bot2 = bot_proxy.create_bot(token=<BOT2_TOKEN>, router=router)
 	# conveninet function to set or change the webhook url
-	bot1.setup_webhook(WEBHOOK_URL.format(<BOT_TOKEN>))
-	bot2.setup_webhook(WEBHOOK_URL.format(<BOT_TOKEN>))
+	bot1.setup_webhook(WEBHOOK_URL.format(<BOT1_TOKEN>))
+	bot2.setup_webhook(WEBHOOK_URL.format(<BOT2_TOKEN>))
 
 	@router.message_handler(message_type=MessageType.TEXT)
 	def on_echo_text(bot, message):
