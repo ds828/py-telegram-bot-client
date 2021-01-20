@@ -103,6 +103,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env_local
 .venv
 env/
 venv/
@@ -127,3 +128,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#my app
+app/
+nginx.conf
+supervisor.conf

@@ -11,7 +11,7 @@ from simplebot.base import (
     Message,
     MessageType,
 )
-from simplebot.ui import KeyboardLayout
+from simplebot.ui import Keyboard
 from simplebot.utils import build_callback_data, parse_callback_data
 
 from example.settings import BOT_TOKEN
@@ -26,17 +26,17 @@ example_bot.delete_webhook(drop_pending_updates=True)
 
 @router.message_handler(message_type=MessageType.TEXT)
 def on_select(bot: SimpleBot, message: Message):
-    layout = KeyboardLayout(col=1)
+    keyboard = Keyboard()
     btn_0 = InlineKeyboardButton(text="static", callback_data="static")
     btn_1 = InlineKeyboardButton(text="regex", callback_data="regex-abc123")
     btn_2 = InlineKeyboardButton(
         text="callable", callback_data=build_callback_data("callable", "match")
     )
-    layout.add_buttons(btn_0, btn_1, btn_2)
+    keyboard.add_buttons(btn_0, btn_1, btn_2)
     bot.send_message(
         chat_id=message.chat.id,
         text="select one",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=layout.keyboard()),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard.layout),
     )
 
 
@@ -54,7 +54,7 @@ def on_regex_match(bot: SimpleBot, callback_query: CallbackQuery, result):
     )
 
 
-@router.callback_query_handler(callable_match=parse_callback_data, begin="callable")
+@router.callback_query_handler(callable_match=parse_callback_data, name="callable")
 def on_callable_match(bot: SimpleBot, callback_query: CallbackQuery, callback_data_args):
     bot.answer_callback_query(callback_query_id=callback_query.id)
     bot.send_message(

@@ -267,5 +267,5 @@ class SimpleBot:
             )
             if updates:
                 self.last_update_id = updates[-1].update_id
-                for update in self.get_last_updates(updates):
+                for update in updates:
                     asyncio.run(self.dispatch(update))

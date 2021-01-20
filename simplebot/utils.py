@@ -1,7 +1,12 @@
 import pprint
 from functools import wraps
 from io import StringIO
-from typing import Iterable, Optional, Pattern, Dict, Tuple
+from typing import Iterable, Any, Optional, Pattern, Dict, Tuple
+
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 from simplebot.base import CallbackQuery
 
@@ -50,16 +55,13 @@ def i18n(trans_data: Dict):
     return decorate
 
 
-def build_callback_data(*args, split_str: str = "|") -> str:
-    return split_str.join((str(arg) for arg in args))
+def build_callback_data(key: str, args: Optional[Any] = None) -> str:
+    return json.dumps((key, args))
 
 
-def parse_callback_data(
-    callback_query: CallbackQuery, begin: str, sep: str = "|"
-) -> Optional[Tuple[str]]:
-    if callback_query.data.startswith(begin):
-        return tuple(callback_query.data.split(sep)[1:])
-    return None
+def parse_callback_data(callback_query: CallbackQuery, name: str) -> Any:
+    data = json.loads(callback_query.data)
+    return data[1] if data[0] == name else None
 
 
 def build_force_reply_data(*args):

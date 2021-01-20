@@ -179,7 +179,7 @@ class SimpleObject(dict):
         if isinstance(value, dict):
             return SimpleObject(**value)
         if isinstance(value, list):
-            return tuple([cls.__recurse_init(item) for item in value])
+            return [cls.__recurse_init(item) for item in value]
         return value
 
     def __getattr__(self, name: str):
