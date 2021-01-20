@@ -133,3 +133,5 @@ dmypy.json
 app/
 nginx.conf
 supervisor.conf
+pyrightconfig.json
+.pylintrc
