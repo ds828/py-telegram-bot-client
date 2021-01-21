@@ -32,7 +32,6 @@ from simplebot.handler import (
     Interceptor,
     InterceptorType,
     MessageHandler,
-    MessageLikedHandler,
     PollAnswerHandler,
     PollHandler,
     PreCheckoutQueryHandler,
@@ -108,7 +107,7 @@ class SimpleRouter:
             self.name,
         )
 
-    def __add_message_liked_handler(self, handler: MessageLikedHandler):
+    def __add_message_handler(self, handler: MessageHandler):
         update_type_value = handler.update_type
         message_type_value = handler.message_type
         if update_type_value not in self._route_map:
@@ -123,17 +122,14 @@ class SimpleRouter:
         else:
             route[message_type_value].add(handler.name)
 
-    def __add_message_handler(self, handler: MessageHandler):
-        self.__add_message_liked_handler(handler)
-
     def __add_edited_message_handler(self, handler: EditedMessageHandler):
-        self.__add_message_liked_handler(handler)
+        self.__add_message_handler(handler)
 
     def __add_channel_post_handler(self, handler: ChannelPostHandler):
-        self.__add_message_liked_handler(handler)
+        self.__add_message_handler(handler)
 
     def __add_edited_channel_post_handler(self, handler: EditedChannelPostHandler):
-        self.__add_message_liked_handler(handler)
+        self.__add_message_handler(handler)
 
     def __add_command_handler(self, handler: CommandHandler):
         if UpdateType.COMMAND.value not in self._route_map:

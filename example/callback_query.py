@@ -51,7 +51,7 @@ def on_regex_match(bot: SimpleBot, callback_query: CallbackQuery, result):
 
 
 @router.callback_query_handler(callable_match=parse_callback_data, name="callable")
-def on_callable_match(bot: SimpleBot, callback_query: CallbackQuery, callback_data_args):
+def on_callable_match(bot: SimpleBot, callback_query: CallbackQuery, *callback_data_args):
     bot.answer_callback_query(callback_query_id=callback_query.id)
     bot.send_message(
         chat_id=callback_query.from_user.id,

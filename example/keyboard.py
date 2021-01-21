@@ -85,7 +85,7 @@ def on_select_keyboard(bot: SimpleBot, message: Message):
 
 
 @router.callback_query_handler(callable_match=parse_callback_data, name="mulit-select")
-def on_select_button_click(bot, callback_query, callback_data_args):
+def on_select_button_click(bot, callback_query, *callback_data_args):
     mulit_select = MultiSelect(
         name="mulit-select", layout=callback_query.message.reply_markup.inline_keyboard
     )
@@ -98,7 +98,7 @@ def on_select_button_click(bot, callback_query, callback_data_args):
 
 
 @router.callback_query_handler(callable_match=parse_callback_data, name="radio-select")
-def on_radio_button_click(bot, callback_query, callback_data_args):
+def on_radio_button_click(bot, callback_query, *callback_data_args):
     radio_group = RadioGroup(
         name="radio-select", layout=callback_query.message.reply_markup.inline_keyboard
     )
