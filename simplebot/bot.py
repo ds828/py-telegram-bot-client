@@ -142,7 +142,7 @@ class SimpleBot:
         self,
         user_id: int,
         callback: Callable,
-        force_reply_data: Optional[Iterable[str]] = None,
+        *force_reply_args,
         expires: int = 1800,
     ):
         """join_force_reply.
@@ -160,11 +160,11 @@ class SimpleBot:
             )
         field = self._force_reply_key_format.format(user_id)
         session = self.get_session(user_id)
-        if force_reply_data is None:
+        if not force_reply_args:
             session.set(field, build_force_reply_data(force_reply_callback_name), expires)
         else:
             session.set(
-                field, build_force_reply_data(force_reply_callback_name, *force_reply_data), expires
+                field, build_force_reply_data(force_reply_callback_name, *force_reply_args), expires
             )
 
     def force_reply_done(self, user_id: int):
@@ -200,7 +200,7 @@ class SimpleBot:
         certificate: Optional[InputFile] = None,
         max_connections: Optional[int] = None,
         allowed_updates: Optional[Iterable[str]] = None,
-        **kwargs
+        **kwargs,
     ) -> bool:
         """set a bot run in webhook model
 
@@ -222,7 +222,7 @@ class SimpleBot:
                 certificate=certificate,
                 max_connections=max_connections,
                 allowed_updates=allowed_updates,
-                **kwargs
+                **kwargs,
             )
         return True
 
@@ -245,7 +245,7 @@ class SimpleBot:
         limit: Optional[int] = None,
         timeout: Optional[int] = None,
         allowed_updates: Optional[Iterable[str]] = None,
-        **kwargs
+        **kwargs,
     ):
         """run a bot in long loop model.
 
@@ -263,7 +263,7 @@ class SimpleBot:
                 limit=limit,
                 timeout=timeout,
                 allowed_updates=allowed_updates,
-                **kwargs
+                **kwargs,
             )
             if updates:
                 self.last_update_id = updates[-1].update_id

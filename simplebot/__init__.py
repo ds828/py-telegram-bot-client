@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Iterable, Optional, Dict, overload
+from typing import Iterable, Optional, Dict
 
 from simplebot.api import SimpleRequest
 from simplebot.base import SimpleBotException, Update

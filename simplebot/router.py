@@ -514,7 +514,7 @@ class SimpleRouter:
                     "{0} is not a force reply callback".format(force_reply_handler_name)
                 )
             if force_reply_args:
-                await self.__call_handler(force_reply_handler_name, bot, message, force_reply_args)
+                await self.__call_handler(force_reply_handler_name, bot, message, *force_reply_args)
             else:
                 await self.__call_handler(force_reply_handler_name, bot, message)
             return True
