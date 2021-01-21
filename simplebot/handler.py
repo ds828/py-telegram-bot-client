@@ -38,7 +38,7 @@ class ErrorHandler(UpdateHandler):
         update_type: Union[str, UpdateType] = UpdateType.ALL,
         error_type=Exception,
     ):
-        super().__init__(callback, update_type)
+        super(ErrorHandler, self).__init__(callback, update_type)
         self._error_type = error_type
 
     async def __call__(self, bot, data, error, *args, **kwargs):
@@ -61,7 +61,7 @@ class Interceptor(UpdateHandler):
         inter_type: Union[str, InterceptorType],
         update_type: Union[str, UpdateType] = UpdateType.ALL,
     ):
-        super().__init__(callback, update_type=update_type)
+        super(Interceptor, self).__init__(callback, update_type=update_type)
         self._inter_type = inter_type.value if isinstance(inter_type, Enum) else inter_type
 
     @property
@@ -73,7 +73,7 @@ class CommandHandler(UpdateHandler):
     __slots__ = ("_cmds",)
 
     def __init__(self, callback: Callable, cmds: Iterable):
-        super().__init__(callback=callback, update_type=UpdateType.COMMAND)
+        super(CommandHandler, self).__init__(callback=callback, update_type=UpdateType.COMMAND)
         self._cmds = cmds
 
     @property
@@ -81,7 +81,14 @@ class CommandHandler(UpdateHandler):
         return self._cmds
 
 
-class MessageLikedHandler(UpdateHandler):
+class ForceReplyHandler(UpdateHandler):
+    def __init__(self, callback: Callable):
+        super(ForceReplyHandler, self).__init__(
+            callback=callback, update_type=UpdateType.FORCE_REPLY
+        )
+
+
+class _MessageHandler(UpdateHandler):
     __slots__ = ("_message_type",)
 
     def __init__(
@@ -90,7 +97,7 @@ class MessageLikedHandler(UpdateHandler):
         update_type: Union[str, UpdateType],
         message_type: Union[str, MessageType],
     ):
-        super().__init__(callback=callback, update_type=update_type)
+        super(_MessageHandler, self).__init__(callback=callback, update_type=update_type)
         self._message_type = message_type.value if isinstance(message_type, Enum) else message_type
 
     @property
@@ -98,35 +105,30 @@ class MessageLikedHandler(UpdateHandler):
         return self._message_type
 
 
-class MessageHandler(MessageLikedHandler):
+class MessageHandler(_MessageHandler):
     def __init__(self, callback: Callable, message_type: MessageType = MessageType.ALL):
-        super().__init__(
+        super(MessageHandler, self).__init__(
             callback=callback, update_type=UpdateType.MESSAGE, message_type=message_type
         )
 
 
-class ForceReplyHandler(UpdateHandler):
-    def __init__(self, callback: Callable):
-        super().__init__(callback=callback, update_type=UpdateType.FORCE_REPLY)
-
-
-class EditedMessageHandler(MessageLikedHandler):
+class EditedMessageHandler(_MessageHandler):
     def __init__(self, callback: Callable, message_type: MessageType = MessageType.ALL):
-        super().__init__(
+        super(EditedMessageHandler, self).__init__(
             callback=callback, update_type=UpdateType.EDITED_MESSAGE, message_type=message_type
         )
 
 
-class ChannelPostHandler(MessageLikedHandler):
+class ChannelPostHandler(_MessageHandler):
     def __init__(self, callback: Callable, message_type: MessageType = MessageType.ALL):
-        super().__init__(
+        super(ChannelPostHandler, self).__init__(
             callback=callback, update_type=UpdateType.CHANNEL_POST, message_type=message_type
         )
 
 
-class EditedChannelPostHandler(MessageLikedHandler):
+class EditedChannelPostHandler(_MessageHandler):
     def __init__(self, callback: Callable, message_type: MessageType = MessageType.ALL):
-        super().__init__(
+        super(EditedChannelPostHandler, self).__init__(
             callback=callback, update_type=UpdateType.EDITED_CHANNEL_POST, message_type=message_type
         )
 
@@ -141,7 +143,9 @@ class InlineQueryHandler(UpdateHandler):
         callable_match: Optional[Callable] = None,
         **kwargs
     ):
-        super().__init__(callback=callback, update_type=UpdateType.INLINE_QUERY)
+        super(InlineQueryHandler, self).__init__(
+            callback=callback, update_type=UpdateType.INLINE_QUERY
+        )
         self._regex_patterns = None
         if regex_match:
             self._regex_patterns = tuple([re.compile(regex_str) for regex_str in regex_match])
@@ -181,7 +185,9 @@ class CallbackQueryHandler(UpdateHandler):
         callable_match: Optional[Callable] = None,
         **kwargs
     ):
-        super().__init__(callback=callback, update_type=UpdateType.CALLBACK_QUERY)
+        super(CallbackQueryHandler, self).__init__(
+            callback=callback, update_type=UpdateType.CALLBACK_QUERY
+        )
         self._static_match = static_match
         self._regex_patterns = None
         if regex_match:
@@ -208,25 +214,27 @@ class CallbackQueryHandler(UpdateHandler):
 
     def callable_match(self, callback_query: CallbackQuery):
         if self._callable_match:
-            return self._callable_match(callback_query, **self._kwargs)
+            return self._callable_match(callback_query.data, **self._kwargs)
         return False
 
 
 class ShippingQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_type=UpdateType.SHIPPING_QUERY)
+        super(ShippingQueryHandler, self).__init__(callback, update_type=UpdateType.SHIPPING_QUERY)
 
 
 class PreCheckoutQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_type=UpdateType.PRE_CHECKOUT_QUERY)
+        super(PreCheckoutQueryHandler, self).__init__(
+            callback, update_type=UpdateType.PRE_CHECKOUT_QUERY
+        )
 
 
 class PollHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_type=UpdateType.POLL)
+        super(PollHandler, self).__init__(callback, update_type=UpdateType.POLL)
 
 
 class PollAnswerHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_type=UpdateType.POLL_ANSWER)
+        super(PollAnswerHandler, self).__init__(callback, update_type=UpdateType.POLL_ANSWER)

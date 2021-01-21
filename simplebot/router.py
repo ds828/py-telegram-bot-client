@@ -616,6 +616,10 @@ class SimpleRouter:
             if result:
                 if isinstance(result, bool):
                     await handler(bot, callback_query)
+                    return
+                if isinstance(result, (list, tuple)):
+                    await handler(bot, callback_query, *result)
+                    return
                 else:
                     await handler(bot, callback_query, result)
 

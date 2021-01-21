@@ -1,8 +1,6 @@
 """
 run in terminal: python -m example.callback_query.py
 """
-import logging
-
 from simplebot import bot_proxy, SimpleBot
 from simplebot.base import (
     CallbackQuery,
@@ -16,8 +14,6 @@ from simplebot.utils import build_callback_data, parse_callback_data
 
 from example.settings import BOT_TOKEN
 
-logger = logging.getLogger("simple-bot")
-logger.setLevel(logging.DEBUG)
 
 router = bot_proxy.router()
 example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)

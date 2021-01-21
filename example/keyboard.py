@@ -68,10 +68,10 @@ def on_reply_button_click(bot: SimpleBot, message: Message):
 @router.command_handler(cmds=("/select",))
 def on_select_keyboard(bot: SimpleBot, message: Message):
     radio_group = RadioGroup(name="radio-select")
-    radio_group.add_options(("key1", "value1"), ("key2", "value2", True), ("key3", "value3"))
+    radio_group.add_options((True, "key1", "value1"), ("key2", "value2", True), ("key3", "value3"))
     multi_select = MultiSelect(name="mulit-select")
     multi_select.add_options(
-        ("select1", "select-value1", True),
+        (True, "select1", "select-value1"),
         ("select2", "select-value2"),
         ("select3", "select-value3"),
     )

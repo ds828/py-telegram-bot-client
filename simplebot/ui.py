@@ -1,17 +1,14 @@
-try:
-    import ujson as json
-except ImportError:
-    import json
 from typing import Iterable, Tuple, Optional, List
-from simplebot.utils import build_callback_data
+from simplebot.utils import build_callback_data, parse_callback_data
 from simplebot.base import InlineKeyboardButton
 
 
 class Keyboard:
-    __slots__ = ("_layout",)
+    __slots__ = ("_layout", "_buttons")
 
     def __init__(self, layout: Optional[List] = None):
         self._layout = layout or []
+        self._buttons = []
 
     def add_buttons(self, *buttons, col: int = 1):
         for idx in range(0, len(buttons), col):
@@ -32,7 +29,7 @@ class RadioGroup(Keyboard):
     __slots__ = ("_name", "_emoji")
 
     def __init__(self, name: str, layout: Optional[List] = None, emoji=("🔘", "⚪")):
-        super().__init__(layout=layout)
+        super(RadioGroup, self).__init__(layout=layout)
         self._name = name
         self._emoji = emoji
 
@@ -42,30 +39,26 @@ class RadioGroup(Keyboard):
                 [
                     InlineKeyboardButton(
                         text="{0}{1}".format(
-                            self._emoji[0]
-                            if len(option) == 3 and option[2] is True
-                            else self._emoji[1],
-                            option[0],
+                            self._emoji[0] if option[0] is True else self._emoji[1],
+                            option[1] if option[0] is True else option[0],
                         ),
                         callback_data=build_callback_data(
-                            self._name,
-                            option[1],
+                            self._name, *(option[2:] if option[0] is True else option[1:])
                         ),
                     )
                     for option in options[idx : idx + col]
                 ]
             )
 
-    def toggle(self, option: Tuple) -> bool:
+    def toggle(self, option_value: tuple) -> bool:
         toggled = False
-        toggled_option = build_callback_data(self._name, option)
+        toggled_option = build_callback_data(self._name, *option_value)
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
                     if button["text"][0] not in self._emoji:
                         continue
-                    name, _ = json.loads(button["callback_data"])
-                    if name != self._name:
+                    if not button["callback_data"].startswith(self._name):
                         continue
                     if button["callback_data"] == toggled_option:
                         if button["text"][0] == self._emoji[1]:  # unselected
@@ -87,24 +80,23 @@ class RadioGroup(Keyboard):
         for line in self._layout:
             for button in line:
                 if "callback_data" in button and button["text"][0] == self._emoji[0]:
-                    name, option = json.loads(button["callback_data"])
-                    if name == self._name:
-                        return option
+                    if button["callback_data"].startswith(self._name):
+                        return parse_callback_data(button["callback_data"], self._name)
         return None
 
 
 class MultiSelect(RadioGroup):
     def __init__(self, name: str, layout: Optional[List] = None, emoji=("✔", "")):
-        super().__init__(name, layout=layout, emoji=emoji)
+        super(MultiSelect, self).__init__(name, layout=layout, emoji=emoji)
 
-    def toggle(self, option: Tuple) -> bool:
-        target_option = build_callback_data(self._name, option)
+    def toggle(self, option_value: Tuple) -> bool:
+        target_option = build_callback_data(self._name, *option_value)
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
                     if button["callback_data"] == target_option:
                         if button["text"][0] == self._emoji[0]:
-                            button["text"] = option[0]
+                            button["text"] = button["text"][1:]
                         else:
                             button["text"] = "{0}{1}".format(self._emoji[0], button["text"])
         return True
@@ -115,7 +107,8 @@ class MultiSelect(RadioGroup):
         for line in self._layout:
             for button in line:
                 if "callback_data" in button and button["text"][0] == self._emoji[0]:
-                    name, option = json.loads(button["callback_data"])
-                    if name == self._name:
-                        selected.append(option)
+                    if button["callback_data"].startswith(self._name):
+                        selected.append(
+                            parse_callback_data(button["callback_data"], name=self._name)
+                        )
         return tuple(selected)

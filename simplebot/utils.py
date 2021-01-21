@@ -1,14 +1,12 @@
 import pprint
 from functools import wraps
 from io import StringIO
-from typing import Iterable, Any, Optional, Pattern, Dict, Tuple
+from typing import Iterable, Pattern, Dict, Tuple
 
 try:
     import ujson as json
 except ImportError:
     import json
-
-from simplebot.base import CallbackQuery
 
 
 def exclude_none(**kwargs) -> Dict:
@@ -55,13 +53,14 @@ def i18n(trans_data: Dict):
     return decorate
 
 
-def build_callback_data(key: str, args: Optional[Any] = None) -> str:
-    return json.dumps((key, args))
+def build_callback_data(name: str, *args) -> str:
+    return "{0}|{1}".format(name, json.dumps(args))
 
 
-def parse_callback_data(callback_query: CallbackQuery, name: str) -> Any:
-    data = json.loads(callback_query.data)
-    return data[1] if data[0] == name else None
+def parse_callback_data(callback_data: str, name: str):
+    if callback_data.startswith(name):
+        return tuple(json.loads(callback_data.split("|")[1]))
+    return None
 
 
 def build_force_reply_data(*args):
