@@ -125,9 +125,7 @@ def on_submit(bot, callback_query):
     )
     bot.send_message(
         chat_id=callback_query.from_user.id,
-        text="you select: {0} {1}".format(
-            radio_group.selected_option, multi_select.selected_options
-        ),
+        text="you select: {0} {1}".format(radio_group.get_selected(), multi_select.get_selected()),
     )
 
 

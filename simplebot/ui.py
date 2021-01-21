@@ -75,8 +75,7 @@ class RadioGroup(Keyboard):
 
         return toggled
 
-    @property
-    def selected_option(self) -> Optional[Tuple]:
+    def get_selected(self) -> Optional[Tuple]:
         for line in self._layout:
             for button in line:
                 if "callback_data" in button and button["text"][0] == self._emoji[0]:
@@ -101,8 +100,7 @@ class MultiSelect(RadioGroup):
                             button["text"] = "{0}{1}".format(self._emoji[0], button["text"])
         return True
 
-    @property
-    def selected_options(self) -> Tuple:
+    def get_selected(self) -> Tuple:
         selected = []
         for line in self._layout:
             for button in line:

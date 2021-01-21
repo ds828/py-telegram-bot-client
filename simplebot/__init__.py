@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Iterable, Optional, Dict
+from typing import Iterable, Optional, Dict, overload
 
 from simplebot.api import SimpleRequest
 from simplebot.base import SimpleBotException, Update
@@ -77,20 +77,7 @@ class BotProxy:
         storage: Optional[SimpleStorage] = None,
         api_host: Optional[str] = None,
         **urllib3_pool_kwargs
-    ) -> SimpleBot:
-        """create a bot
-
-        Args:
-            token: bot's token
-            router: router that will put in this bot. If router is None, handlers will be used for creating a router
-            handlers: if router is None, handlers will add onto this bot
-            storage: a persisted storage backend
-            api_host: new telegram bot api host if not use the official api host: https://api.telegram.org
-            urllib3_pool_kwargs: https connection pool kwargs of urllib3
-        Returns:
-            A SimpleBot object
-
-        """
+    ):
         if token in self._bot_data:
             del self._bot_data[token]
         router = router or self.router(handlers=handlers)
