@@ -178,6 +178,15 @@ good way to register one callback on multi routers
 ## Handlers define
 |handler         |decorator                      |function                     |
 |----------------|-------------------------------|-----------------------------|
+|CallbackQueryHandler(callback: Callable, static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|@router.callback_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|router.register_callback_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|
+|ChannelPostHandler(callback: Callable, message_type: MessageType = MessageType.ALL)|@router.channel_post_handler(message_type: MessageType = MessageType.ALL)|router.register(callback: Callable, message_type: MessageType = MessageType.ALL)|
 |CommandHandler(callback: Callable, cmds: Iterable[str])|@router.command_handler(cmds: Iterable[str])|router.register_command_handler(callback: Callable, cmds: Iterable[str]) |
 |MessageHandler(callback: Callable, message_type: MessageType = MessageType.ALL)|@router.message_handler(message_type: MessageType = MessageType.ALL)         |router.register_message_handler(callback: Callable, message_type: MessageType = MessageType.ALL)|
 |ForceReplyHandler(callback: Callable)|@router.force_reply_handler()|router.register_force_reply_handler(callback: Callable)|
+|EditedMessageHandler(callback: Callable, message_type: MessageType = Message.ALL)|@router.edited_message_handler(message_type: MessageType = Message.ALL)|router.register_edited_message_handler(callback: Callable, message_type: MessageType = Message.ALL)|
+|EditedChannelPostHandler(callback: Callable, message_type: MessageType = Message.ALL)|@router.edited_channel_post_handler(message_type: MessageType = Message.ALL)|router.register_edited_channel_post_handler(callback: Callable, message_type: MessageType = Message.ALL)|
+|ErrorHandler(callback: Callable, update_type: UpdateType = UpdateType.ALL, error_type = Exception)|@router.error_handler(update_type: UpdateType = UpdateType.ALL, error_type = Exception)|router.register_error_handler(callback: Callable, update_type: UpdateType = UpdateType.ALL, error_type = Exception)|
+|ForceReplyHandler(callback: Callable)|@router.force_reply_handler()|router.register_force_reply_handler(callback: Callable)|
+|InlineQueryHandler(callback: Callable, static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|@router.inline_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|router.register_inline_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|
+
+
