@@ -2,7 +2,7 @@ import re
 import asyncio
 from typing import Iterable, Optional, Callable, Tuple, Union
 from enum import Enum
-from simplebot.base import CallbackQuery, InlineQuery, UpdateType, MessageType
+from simplebot.base import CallbackQuery, UpdateType, MessageType
 
 
 class UpdateHandler:
@@ -133,47 +133,6 @@ class EditedChannelPostHandler(_MessageHandler):
         )
 
 
-class InlineQueryHandler(UpdateHandler):
-    __slots__ = ("_regex_patterns", "_callable_match", "_kwargs")
-
-    def __init__(
-        self,
-        callback: Callable,
-        regex_match: Optional[Iterable[str]] = None,
-        callable_match: Optional[Callable] = None,
-        **kwargs
-    ):
-        super(InlineQueryHandler, self).__init__(
-            callback=callback, update_type=UpdateType.INLINE_QUERY
-        )
-        self._regex_patterns = None
-        if regex_match:
-            self._regex_patterns = tuple([re.compile(regex_str) for regex_str in regex_match])
-        self._callable_match = callable_match
-        self._kwargs = kwargs
-
-    @property
-    def have_matches(self) -> Tuple[bool, bool]:
-        return bool(self._regex_patterns), bool(self._callable_match)
-
-    def regex_match(self, inline_query: InlineQuery):
-        if not self._regex_patterns:
-            return None
-        for pattern in self._regex_patterns:
-            result = pattern.match(inline_query.query)
-            if result:
-                return result
-        return None
-
-    def callable_match(self, inline_query: InlineQuery):
-        if self._callable_match:
-            return self._callable_match(inline_query, **self._kwargs)
-        return False
-
-
-ChosenInlineResultHandler = InlineQueryHandler
-
-
 class CallbackQueryHandler(UpdateHandler):
     __slots__ = ("_static_match", "_regex_patterns", "_callable_match", "_kwargs")
 
@@ -216,6 +175,23 @@ class CallbackQueryHandler(UpdateHandler):
         if self._callable_match:
             return self._callable_match(callback_query.data, **self._kwargs)
         return False
+
+
+class InlineQueryHandler(UpdateHandler):
+    def __init__(
+        self,
+        callback: Callable,
+    ):
+        super(InlineQueryHandler, self).__init__(
+            callback=callback, update_type=UpdateType.INLINE_QUERY
+        )
+
+
+class ChosenInlineResultHandler(UpdateHandler):
+    def __init__(self, callback: Callable):
+        super(ChosenInlineResultHandler, self).__init__(
+            callback, update_type=UpdateType.CHOSEN_INLINE_RESULT
+        )
 
 
 class ShippingQueryHandler(UpdateHandler):

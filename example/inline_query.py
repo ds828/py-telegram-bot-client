@@ -1,11 +1,13 @@
 """
 run in terminal: python -m example.callback_query.py
 To enable inline mode, send the /setinline command to @BotFather
+and /setinlinefeedback to enable chosen_inline_result
 """
 from simplebot.ui import Keyboard
 from simplebot import bot_proxy, SimpleBot
 from simplebot.base import (
     CallbackQuery,
+    ChosenInlineResult,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InlineQuery,
@@ -43,8 +45,17 @@ def on_query(bot: SimpleBot, inline_query: InlineQuery):
     bot.answer_inline_query(inline_query_id=inline_query.id, results=results)
 
 
+@router.chosen_inline_result_handler()
+def on_chosen_inline_result(bot: SimpleBot, chosen_inline_result: ChosenInlineResult):
+    bot.send_message(
+        chat_id=chosen_inline_result.from_user.id,
+        text="you select: {0}".format(chosen_inline_result.result_id),
+    )
+
+
 @router.callback_query_handler(callable_match=parse_callback_data, name="show-url")
 def on_show_url(bot: SimpleBot, callback_query: CallbackQuery, query_result_id: str):
+    print(query_result_id)
     bot.send_message(
         chat_id=callback_query.from_user.id,
         text="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1200px-Telegram_logo.svg.png",

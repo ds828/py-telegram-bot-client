@@ -142,25 +142,6 @@ class SimpleRouter:
             self._route_map[UpdateType.FORCE_REPLY.value] = set()
         self._route_map[UpdateType.FORCE_REPLY.value].add(handler.name)
 
-    def __add_inline_query_handler(self, handler: InlineQueryHandler):
-        if UpdateType.INLINE_QUERY.value not in self._route_map:
-            self._route_map[UpdateType.INLINE_QUERY.value] = {}
-        route = self._route_map[UpdateType.INLINE_QUERY.value]
-        has_regex_match, has_callable_match = handler.have_matches
-        if has_regex_match:
-            if "regex" not in route:
-                route["regex"] = set()
-            route["regex"].add(handler.name)
-        if has_callable_match:
-            if "callable" not in route:
-                route["callable"] = set()
-            route["callable"].add(handler.name)
-        if not has_regex_match and not has_callable_match:
-            route["all"] = handler.name
-
-    def __add_chosen_inline_result_handler(self, handler: ChosenInlineResultHandler):
-        self.__add_inline_query_handler(handler)
-
     def __add_callback_query_handler(self, handler: CallbackQueryHandler):
         if UpdateType.CALLBACK_QUERY.value not in self._route_map:
             self._route_map[UpdateType.CALLBACK_QUERY.value] = {}
@@ -208,13 +189,7 @@ class SimpleRouter:
         if update_type_value == UpdateType.EDITED_CHANNEL_POST.value:
             self.__add_edited_channel_post_handler(handler)
             return
-        if update_type_value == UpdateType.INLINE_QUERY.value:
-            self.__add_inline_query_handler(handler)
-            return
-        if update_type_value == UpdateType.CHOSEN_INLINE_RESULT.value:
-            self.__add_chosen_inline_result_handler(handler)
-            return
-        # for others update handlers
+            # for others update handlers
         self._route_map[update_type_value] = handler.name
 
     def register_force_reply_handler(self, callback: Callable):
@@ -248,28 +223,14 @@ class SimpleRouter:
     def register_inline_query_handler(
         self,
         callback: Callable,
-        regex_match: Optional[Iterable[str]] = None,
-        callable_match: Optional[Callable] = None,
-        **kwargs
     ):
-        self.register_handler(
-            InlineQueryHandler(
-                callback=callback, regex_match=regex_match, callable_match=callable_match, **kwargs
-            )
-        )
+        self.register_handler(InlineQueryHandler(callback=callback))
 
     def register_chosen_inline_result_handler(
         self,
         callback: Callable,
-        regex_match: Optional[Iterable[str]] = None,
-        callable_match: Optional[Callable] = None,
-        **kwargs
     ):
-        self.register_handler(
-            ChosenInlineResultHandler(
-                callback=callback, regex_match=regex_match, callable_match=callable_match, **kwargs
-            )
-        )
+        self.register_handler(ChosenInlineResultHandler(callback=callback))
 
     def register_callback_query_handler(
         self,
@@ -568,35 +529,6 @@ class SimpleRouter:
     ):
         await self.__call_message_liked_handler(update_type, bot, message)
 
-    async def __call_inline_query_handler(
-        self, update_type: UpdateType, bot: SimpleBot, inline_query: InlineQuery
-    ):
-        route = self._route_map.get(update_type.value, None)
-        if not route:
-            return
-        if "all" in route:
-            await self.__call_handler(route["all"], bot, inline_query)
-            return
-        for handler_name in route.get("regex", ()):
-            handler = self._handlers[handler_name]
-            result = handler.regex_match(inline_query)
-            if result:
-                await handler(bot, inline_query, result)
-                return
-        for handler_name in route.get("callable", ()):
-            handler = self._handlers[handler_name]
-            result = handler.callable_match(inline_query)
-            if result:
-                if isinstance(result, bool):
-                    await handler(bot, inline_query)
-                else:
-                    await handler(bot, inline_query, result)
-
-    async def __call_chosen_inline_result_handler(
-        self, update_type: UpdateType, bot: SimpleBot, chosen_inline_result: ChosenInlineResult
-    ):
-        await self.__call_inline_query_handler(update_type, bot, chosen_inline_result)
-
     async def __call_callback_query_handler(
         self, update_type: UpdateType, bot: SimpleBot, callback_query: CallbackQuery
     ):
@@ -630,23 +562,35 @@ class SimpleRouter:
                 else:
                     await handler(bot, callback_query, result)
 
+    async def __call_inline_query_handler(
+        self, update_type: UpdateType, bot: SimpleBot, inline_query: InlineQuery
+    ):
+        handler_name = self._route_map.get(update_type.value, None)
+        if handler_name:
+            await self.__call_handler(handler_name, bot, inline_query)
+
+    async def __call_chosen_inline_result_handler(
+        self, update_type: UpdateType, bot: SimpleBot, chosen_inline_result: ChosenInlineResult
+    ):
+        await self.__call_inline_query_handler(update_type, bot, chosen_inline_result)
+
     async def __call_shipping_query_handler(
         self, update_type: UpdateType, bot: SimpleBot, shipping_query: ShippingQuery
     ):
-        await self._route_map[update_type](bot, shipping_query)
+        await self.__call_inline_query_handler(update_type, bot, shipping_query)
 
     async def __call_pre_checkout_query_handler(
         self, update_type: UpdateType, bot: SimpleBot, pre_checkout_query: PreCheckoutQuery
     ):
-        await self._route_map[update_type](bot, pre_checkout_query)
+        await self.__call_inline_query_handler(update_type, bot, pre_checkout_query)
 
     async def __call_poll_handler(self, update_type: UpdateType, bot: SimpleBot, poll: Poll):
-        await self._route_map[update_type](bot, poll)
+        await self.__call_inline_query_handler(update_type, bot, poll)
 
     async def __call_poll_answer_handler(
         self, update_type: UpdateType, bot: SimpleBot, poll_answer: PollAnswer
     ):
-        await self._route_map[update_type](bot, poll_answer)
+        await self.__call_inline_query_handler(update_type, bot, poll_answer)
 
     def has_force_reply_handler(self, handler_name: str) -> bool:
         return UpdateType.FORCE_REPLY.value in self._route_map and (
