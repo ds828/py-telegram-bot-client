@@ -498,8 +498,8 @@ class SimpleRouter:
             return False
         if message.text and message.text[0] == "/":
             cmd_and_args = message.text.split()
-            print(cmd_and_args)
-            handler_name = self._route_map[UpdateType.COMMAND.value].get(cmd_and_args[0], None)
+            cmd_name = cmd_and_args[0].split("@")[0]
+            handler_name = self._route_map[UpdateType.COMMAND.value].get(cmd_name, None)
             if handler_name:
                 if len(cmd_and_args) == 1:
                     await self.__call_handler(handler_name, bot, message)
