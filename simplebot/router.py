@@ -55,7 +55,7 @@ class SimpleRouter:
         self._route_map = {}
         self._call_handler_switcher = {
             UpdateType.MESSAGE: self.__call_message_handler,
-            UpdateType.EDITED_MESSAGE: self.__call_message_handler,
+            UpdateType.EDITED_MESSAGE: self.__call_edited_message_handler,
             UpdateType.CALLBACK_QUERY: self.__call_callback_query_handler,
             UpdateType.CHANNEL_POST: self.__call_channel_post_handler,
             UpdateType.EDITED_CHANNEL_POST: self.__call_edited_channel_post_handler,
@@ -497,9 +497,14 @@ class SimpleRouter:
         if UpdateType.COMMAND.value not in self._route_map:
             return False
         if message.text and message.text[0] == "/":
-            handler_name = self._route_map[UpdateType.COMMAND.value].get(message.text, None)
+            cmd_and_args = message.text.split()
+            print(cmd_and_args)
+            handler_name = self._route_map[UpdateType.COMMAND.value].get(cmd_and_args[0], None)
             if handler_name:
-                await self.__call_handler(handler_name, bot, message)
+                if len(cmd_and_args) == 1:
+                    await self.__call_handler(handler_name, bot, message)
+                else:
+                    await self.__call_handler(handler_name, bot, message, *cmd_and_args[1:])
                 return True
         return False
 
@@ -527,10 +532,16 @@ class SimpleRouter:
             return
         if await self.__call_force_reply_handler(bot, message):
             return
-        await self.__call_message_liked_handler(update_type, bot, message)
+        await self.__call_message_like_handler(update_type, bot, message)
         return
 
-    async def __call_message_liked_handler(
+    async def __call_edited_message_handler(
+        self, update_type: UpdateType, bot: SimpleBot, edited_message: Message
+    ):
+        await self.__call_message_handler(update_type, bot, edited_message)
+        return
+
+    async def __call_message_like_handler(
         self, update_type: UpdateType, bot: SimpleBot, message: Message
     ):
         route = self._route_map.get(update_type.value, None)
