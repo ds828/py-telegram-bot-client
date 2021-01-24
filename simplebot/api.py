@@ -251,7 +251,7 @@ class TelegramBotAPI:
         self, token: str, chat_id: Union[int, str], question: str, options: Iterable, **kwargs
     ) -> Message:
         real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "sendpoll", chat_id=chat_id, question=question, option=json.dumps(options), **kwargs
+            "sendpoll", chat_id=chat_id, question=question, options=json.dumps(options), **kwargs
         )
         return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
 

@@ -10,7 +10,7 @@ except ImportError:
 
 
 def exclude_none(**kwargs) -> Dict:
-    return {key: value for key, value in kwargs.items() if value}
+    return {key: value for key, value in kwargs.items() if value is not None}
 
 
 _pp = pprint.PrettyPrinter(indent=2)
