@@ -1,11 +1,10 @@
 """
 run in terminal: python -m example.live_location.py
 """
-import datetime
 import sqlite3
 
 from simplebot import bot_proxy, SimpleBot
-from simplebot.base import MessageType, Message, ParseMode
+from simplebot.base import MessageField, Message
 
 from example.settings import BOT_TOKEN
 
@@ -30,7 +29,7 @@ conn.execute(
 conn.commit()
 
 
-@router.edited_message_handler(message_type=MessageType.LOCATION)
+@router.edited_message_handler(fields=(MessageField.LOCATION,))
 def on_live_location(bot: SimpleBot, edited_message: Message):
     print(edited_message.location, edited_message.edit_date)
     with conn:

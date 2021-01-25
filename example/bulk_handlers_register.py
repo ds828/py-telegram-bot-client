@@ -6,7 +6,7 @@ from simplebot import bot_proxy, SimpleBot
 from simplebot.base import (
     BotCommand,
     Message,
-    MessageType,
+    MessageField,
 )
 from simplebot.handler import CommandHandler, MessageHandler
 
@@ -21,7 +21,7 @@ def on_message(bot: SimpleBot, message: Message):
 
 handlers = (
     CommandHandler(callback=on_mycmd, cmds=("/mycmd1", "/mycmd2")),
-    MessageHandler(callback=on_message, message_type=MessageType.TEXT),
+    MessageHandler(callback=on_message, message_fields=(MessageField.TEXT,)),
 )
 # define a named router
 # router = bot_proxy.router(name="my_router", handlers=handlers)

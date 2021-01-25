@@ -11,7 +11,7 @@ router = bot_proxy.router()
 example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
-# intercept all types of update
+# intercept any update types
 @router.interceptor(inter_type=InterceptorType.BEFORE)
 def on_before(bot: SimpleBot, data: SimpleObject):
     pretty_print(data)
@@ -19,7 +19,7 @@ def on_before(bot: SimpleBot, data: SimpleObject):
 
 
 # intercept when a message's incoming
-@router.interceptor(update_type=UpdateType.MESSAGE, inter_type=InterceptorType.BEFORE)
+@router.interceptor(update_types=(UpdateType.MESSAGE,), inter_type=InterceptorType.BEFORE)
 def on_message_before(bot: SimpleBot, message: Message):
     bot.send_message(chat_id=message.from_user.id, text="on_message_before: " + str(message))
 

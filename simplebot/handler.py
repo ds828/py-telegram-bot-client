@@ -2,26 +2,37 @@ import re
 import asyncio
 from typing import Iterable, Optional, Callable, Tuple, Union
 from enum import Enum
-from simplebot.base import CallbackQuery, UpdateType, MessageType
+from simplebot.base import CallbackQuery, MessageField, UpdateType
 
 
 class UpdateHandler:
-    __slots__ = ("_update_type", "_callback")
+    __slots__ = ("_update_types", "_callback")
 
-    def __init__(self, callback: Callable, update_type: Union[str, UpdateType] = UpdateType.ALL):
-        self._update_type = update_type.value if isinstance(update_type, Enum) else update_type
+    def __init__(
+        self, callback: Callable, update_types: Optional[Iterable[Union[str, UpdateType]]] = None
+    ):
+        if update_types is None:
+            update_types = ("any",)
+        self._update_types = tuple(
+            map(
+                lambda update_type: update_type.value
+                if isinstance(update_type, UpdateType)
+                else update_type,
+                update_types,
+            )
+        )
         self._callback = callback
 
     @property
-    def update_type(self):
-        return self._update_type
+    def update_types(self):
+        return self._update_types
 
     @property
     def name(self):
         return "{0}.{1}".format(self._callback.__module__, self._callback.__name__)
 
     def __str__(self) -> str:
-        return "{0}@{1}".format(self.update_type, self.name)
+        return "{0}@{1}".format(self.update_types, self.name)
 
     async def __call__(self, *args, **kwargs):
         if asyncio.iscoroutinefunction(self._callback):
@@ -30,20 +41,24 @@ class UpdateHandler:
 
 
 class ErrorHandler(UpdateHandler):
-    __slots__ = ("_error_type",)
+    __slots__ = ("_exceptions",)
 
     def __init__(
         self,
         callback: Callable,
-        update_type: Union[str, UpdateType] = UpdateType.ALL,
-        error_type=Exception,
+        update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
+        exceptions: Optional[Iterable[Exception]] = None,
     ):
-        super(ErrorHandler, self).__init__(callback, update_type)
-        self._error_type = error_type
+        super(ErrorHandler, self).__init__(callback, update_types)
+        self._exceptions = exceptions if exceptions else (Exception,)
 
-    async def __call__(self, bot, data, error, *args, **kwargs):
-        if isinstance(error, self._error_type):
-            return await super().__call__(bot, data, error, *args, **kwargs)
+    @property
+    def exceptions(self):
+        return self._exceptions
+
+    async def __call__(self, bot, data, exception, *args, **kwargs):
+        if isinstance(exception, self._exceptions):
+            return await super().__call__(bot, data, exception, *args, **kwargs)
         return None
 
 
@@ -59,10 +74,12 @@ class Interceptor(UpdateHandler):
         self,
         callback: Callable,
         inter_type: Union[str, InterceptorType],
-        update_type: Union[str, UpdateType] = UpdateType.ALL,
+        update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
     ):
-        super(Interceptor, self).__init__(callback, update_type=update_type)
-        self._inter_type = inter_type.value if isinstance(inter_type, Enum) else inter_type
+        super(Interceptor, self).__init__(callback, update_types=update_types)
+        self._inter_type = (
+            inter_type.value if isinstance(inter_type, InterceptorType) else inter_type
+        )
 
     @property
     def type(self) -> str:
@@ -73,7 +90,7 @@ class CommandHandler(UpdateHandler):
     __slots__ = ("_cmds",)
 
     def __init__(self, callback: Callable, cmds: Iterable):
-        super(CommandHandler, self).__init__(callback=callback, update_type=UpdateType.COMMAND)
+        super(CommandHandler, self).__init__(callback=callback, update_types=(UpdateType.COMMAND,))
         self._cmds = cmds
 
     @property
@@ -84,52 +101,84 @@ class CommandHandler(UpdateHandler):
 class ForceReplyHandler(UpdateHandler):
     def __init__(self, callback: Callable):
         super(ForceReplyHandler, self).__init__(
-            callback=callback, update_type=UpdateType.FORCE_REPLY
+            callback=callback, update_types=(UpdateType.FORCE_REPLY,)
         )
 
 
 class _MessageHandler(UpdateHandler):
-    __slots__ = ("_message_type",)
+    __slots__ = ("_message_fields",)
 
     def __init__(
         self,
         callback: Callable,
         update_type: Union[str, UpdateType],
-        message_type: Union[str, MessageType],
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        super(_MessageHandler, self).__init__(callback=callback, update_type=update_type)
-        self._message_type = message_type.value if isinstance(message_type, Enum) else message_type
+        super(_MessageHandler, self).__init__(callback=callback, update_types=(update_type,))
+        temp = (
+            map(
+                lambda field: field.value if isinstance(field, MessageField) else field,
+                fields,
+            )
+            if fields
+            else None
+        )
+        if temp:
+            if isinstance(fields, set):
+                self._message_fields = set(temp)
+            elif isinstance(fields, (list, tuple)):
+                self._message_fields = tuple(temp)
+        else:
+            self._message_fields = temp
 
     @property
-    def message_type(self) -> MessageType:
-        return self._message_type
+    def message_fields(self) -> Iterable:
+        return self._message_fields
 
 
 class MessageHandler(_MessageHandler):
-    def __init__(self, callback: Callable, message_type: MessageType = MessageType.ALL):
+    def __init__(
+        self,
+        callback: Callable,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
+    ):
         super(MessageHandler, self).__init__(
-            callback=callback, update_type=UpdateType.MESSAGE, message_type=message_type
+            callback=callback, update_type=UpdateType.MESSAGE, fields=fields
         )
 
 
 class EditedMessageHandler(_MessageHandler):
-    def __init__(self, callback: Callable, message_type: MessageType = MessageType.ALL):
+    def __init__(
+        self,
+        callback: Callable,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
+    ):
         super(EditedMessageHandler, self).__init__(
-            callback=callback, update_type=UpdateType.EDITED_MESSAGE, message_type=message_type
+            callback=callback, update_type=UpdateType.EDITED_MESSAGE, fields=fields
         )
 
 
 class ChannelPostHandler(_MessageHandler):
-    def __init__(self, callback: Callable, message_type: MessageType = MessageType.ALL):
+    def __init__(
+        self,
+        callback: Callable,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
+    ):
         super(ChannelPostHandler, self).__init__(
-            callback=callback, update_type=UpdateType.CHANNEL_POST, message_type=message_type
+            callback=callback, update_type=UpdateType.CHANNEL_POST, fields=fields
         )
 
 
 class EditedChannelPostHandler(_MessageHandler):
-    def __init__(self, callback: Callable, message_type: MessageType = MessageType.ALL):
+    def __init__(
+        self,
+        callback: Callable,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
+    ):
         super(EditedChannelPostHandler, self).__init__(
-            callback=callback, update_type=UpdateType.EDITED_CHANNEL_POST, message_type=message_type
+            callback=callback,
+            update_type=UpdateType.EDITED_CHANNEL_POST,
+            fields=fields,
         )
 
 
@@ -145,7 +194,7 @@ class CallbackQueryHandler(UpdateHandler):
         **kwargs
     ):
         super(CallbackQueryHandler, self).__init__(
-            callback=callback, update_type=UpdateType.CALLBACK_QUERY
+            callback=callback, update_types=(UpdateType.CALLBACK_QUERY,)
         )
         self._static_match = static_match
         self._regex_patterns = None
@@ -183,34 +232,36 @@ class InlineQueryHandler(UpdateHandler):
         callback: Callable,
     ):
         super(InlineQueryHandler, self).__init__(
-            callback=callback, update_type=UpdateType.INLINE_QUERY
+            callback=callback, update_types=(UpdateType.INLINE_QUERY,)
         )
 
 
 class ChosenInlineResultHandler(UpdateHandler):
     def __init__(self, callback: Callable):
         super(ChosenInlineResultHandler, self).__init__(
-            callback, update_type=UpdateType.CHOSEN_INLINE_RESULT
+            callback, update_types=(UpdateType.CHOSEN_INLINE_RESULT,)
         )
 
 
 class ShippingQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super(ShippingQueryHandler, self).__init__(callback, update_type=UpdateType.SHIPPING_QUERY)
+        super(ShippingQueryHandler, self).__init__(
+            callback, update_types=(UpdateType.SHIPPING_QUERY,)
+        )
 
 
 class PreCheckoutQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
         super(PreCheckoutQueryHandler, self).__init__(
-            callback, update_type=UpdateType.PRE_CHECKOUT_QUERY
+            callback, update_types=(UpdateType.PRE_CHECKOUT_QUERY,)
         )
 
 
 class PollHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super(PollHandler, self).__init__(callback, update_type=UpdateType.POLL)
+        super(PollHandler, self).__init__(callback, update_types=(UpdateType.POLL,))
 
 
 class PollAnswerHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super(PollAnswerHandler, self).__init__(callback, update_type=UpdateType.POLL_ANSWER)
+        super(PollAnswerHandler, self).__init__(callback, update_types=(UpdateType.POLL_ANSWER,))

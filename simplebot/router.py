@@ -1,6 +1,6 @@
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 import logging
-from typing import Dict, Iterable, Optional, Tuple, Callable
+from typing import Dict, Iterable, Optional, Tuple, Callable, Union
 
 from simplebot.utils import pretty_json
 from simplebot.base import (
@@ -8,7 +8,7 @@ from simplebot.base import (
     ChosenInlineResult,
     InlineQuery,
     Message,
-    MessageType,
+    MessageField,
     SimpleBotException,
     SimpleObject,
     Update,
@@ -37,6 +37,7 @@ from simplebot.handler import (
     PreCheckoutQueryHandler,
     ShippingQueryHandler,
     UpdateHandler,
+    _MessageHandler,
 )
 
 logger = logging.getLogger("simple-bot")
@@ -83,44 +84,66 @@ class SimpleRouter:
     def register_interceptor(self, interceptor: Interceptor):
         self._handlers[interceptor.name] = interceptor
         if interceptor.type not in self._route_map:
-            self._route_map[interceptor.type] = defaultdict(set)
-        self._route_map[interceptor.type][interceptor.update_type].add(interceptor.name)
-        logger.info(
-            "bind a %s %s: '%s@%s'",
-            interceptor.type.value,
-            interceptor.__class__.__name__,
-            interceptor.name,
-            self.name,
-        )
+            self._route_map[interceptor.type] = {}
+        for update_type in interceptor.update_types:
+            self._route_map[interceptor.type][update_type] = interceptor.name
+            logger.info(
+                "bind a %s %s: '%s@%s'",
+                interceptor.type,
+                interceptor.__class__.__name__,
+                interceptor.name,
+                self.name,
+            )
 
     def register_error_handler(self, handler: ErrorHandler):
         self._handlers[handler.name] = handler
         if "error" not in self._route_map:
             self._route_map["error"] = {}
-        update_type_value = handler.update_type
-        if update_type_value not in self._route_map["error"]:
-            self._route_map["error"][update_type_value] = set()
-        self._route_map["error"][update_type_value].add(handler.name)
-        logger.info(
-            "bind a ErrorHandler: '%s@%s'",
-            handler.name,
-            self.name,
-        )
+        for update_type in handler.update_types:
+            if update_type not in self._route_map["error"]:
+                self._route_map["error"][update_type] = {}
+            for exception in handler.exceptions:
+                self._route_map["error"][update_type][exception.__name__] = handler.name
+                logger.info(
+                    "bind a %s ErrorHandler on %s Update: '%s@%s'",
+                    exception.__name__,
+                    update_type,
+                    handler.name,
+                    self.name,
+                )
+
+    def __add_and_group(self, update_type: str, handler: _MessageHandler):
+        route = self._route_map[update_type]
+        if "and" not in route:
+            route["and"] = defaultdict(set)
+        route["and"][tuple(handler.message_fields)].add(handler.name)
+
+    def __add_or_group(self, update_type: str, handler: _MessageHandler):
+        route = self._route_map[update_type]
+        if "or" not in route:
+            route["or"] = defaultdict(set)
+        for field in handler.message_fields:
+            route["or"][field].add(handler.name)
 
     def __add_message_handler(self, handler: MessageHandler):
-        update_type_value = handler.update_type
-        message_type_value = handler.message_type
-        if update_type_value not in self._route_map:
-            self._route_map[update_type_value] = OrderedDict()
-        route = self._route_map[update_type_value]
-        if message_type_value not in route:
-            route[message_type_value] = {
-                handler.name,
-            }
-            if MessageType.LOCATION.value in route:
-                route.move_to_end(MessageType.LOCATION.value)
-        else:
-            route[message_type_value].add(handler.name)
+        update_type = handler.update_types[0]
+        if update_type not in self._route_map:
+            self._route_map[update_type] = {}
+        route = self._route_map[update_type]
+        message_fields = handler.message_fields
+        if message_fields is None:
+            if "any" in route:
+                logger.warn("You are overwritting a message handler: %s on any updatetypes with %s", route["any"], handler.name)
+            route["any"] = handler.name
+            return
+        if isinstance(message_fields, set):
+            if len(message_fields) == 1:
+                self.__add_or_group(update_type, handler)
+            else:
+                self.__add_and_group(update_type, handler)
+            return
+        if isinstance(message_fields, (list, tuple)):
+            self.__add_or_group(update_type, handler)
 
     def __add_edited_message_handler(self, handler: EditedMessageHandler):
         self.__add_message_handler(handler)
@@ -160,37 +183,39 @@ class SimpleRouter:
                 route["callable"] = set()
             route["callable"].add(handler.name)
         if not has_static_match and not has_regex_match and not has_callable_match:
-            route["all"] = handler.name
+            if "any" in route:
+                logger.warn("You are overwritting a callback_query handler: %s on any updatetypes with %s", route["any"], handler.name)
+            route["any"] = handler.name
 
     def register_handler(self, handler: UpdateHandler):
         if not isinstance(handler, UpdateHandler):
             raise SimpleBotException("need a UpdateHandler")
-        logger.info("bind a %s: '%s@%s'", handler.__class__.__name__, handler.name, self.name)
         self._handlers[handler.name] = handler
-        update_type_value = handler.update_type
-        if update_type_value == UpdateType.COMMAND.value:
-            self.__add_command_handler(handler)
-            return
-        if update_type_value == UpdateType.FORCE_REPLY.value:
-            self.__add_force_reply_handler(handler)
-            return
-        if update_type_value == UpdateType.MESSAGE.value:
-            self.__add_message_handler(handler)
-            return
-        if update_type_value == UpdateType.EDITED_MESSAGE.value:
-            self.__add_edited_message_handler(handler)
-            return
-        if update_type_value == UpdateType.CALLBACK_QUERY.value:
-            self.__add_callback_query_handler(handler)
-            return
-        if update_type_value == UpdateType.CHANNEL_POST.value:
-            self.__add_channel_post_handler(handler)
-            return
-        if update_type_value == UpdateType.EDITED_CHANNEL_POST.value:
-            self.__add_edited_channel_post_handler(handler)
-            return
+        for update_type in handler.update_types:
+            logger.info("bind a %s Handler: '%s@%s'", update_type, handler.name, self.name)
+            if update_type == UpdateType.COMMAND.value:
+                self.__add_command_handler(handler)
+                continue
+            if update_type == UpdateType.FORCE_REPLY.value:
+                self.__add_force_reply_handler(handler)
+                continue
+            if update_type == UpdateType.MESSAGE.value:
+                self.__add_message_handler(handler)
+                continue
+            if update_type == UpdateType.EDITED_MESSAGE.value:
+                self.__add_edited_message_handler(handler)
+                continue
+            if update_type == UpdateType.CALLBACK_QUERY.value:
+                self.__add_callback_query_handler(handler)
+                continue
+            if update_type == UpdateType.CHANNEL_POST.value:
+                self.__add_channel_post_handler(handler)
+                continue
+            if update_type == UpdateType.EDITED_CHANNEL_POST.value:
+                self.__add_edited_channel_post_handler(handler)
+                continue
             # for others update handlers
-        self._route_map[update_type_value] = handler.name
+            self._route_map[update_type] = handler.name
 
     def register_force_reply_handler(self, callback: Callable):
         self.register_handler(ForceReplyHandler(callback=callback))
@@ -201,23 +226,33 @@ class SimpleRouter:
     def register_message_handler(
         self,
         callback: Callable,
-        message_type: Optional[MessageType] = MessageType.ALL,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        self.register_handler(MessageHandler(callback=callback, message_type=message_type))
+        self.register_handler(MessageHandler(callback=callback, fields=fields))
 
     def register_edited_message_handler(
         self,
         callback: Callable,
-        message_type: Optional[MessageType] = MessageType.ALL,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        self.register_handler(EditedMessageHandler(callback=callback, message_type=message_type))
-
-    def register_channel_post_handler(self, callback: Callable, message_type: MessageType):
-        self.register_handler(ChannelPostHandler(callback=callback, message_type=message_type))
-
-    def register_edited_channel_post_handler(self, callback: Callable, message_type: MessageType):
         self.register_handler(
-            EditedChannelPostHandler(callback=callback, message_type=message_type)
+            EditedMessageHandler(callback=callback, fields=fields)
+        )
+
+    def register_channel_post_handler(
+        self,
+        callback: Callable,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
+    ):
+        self.register_handler(ChannelPostHandler(callback=callback, fields=fields))
+
+    def register_edited_channel_post_handler(
+        self,
+        callback: Callable,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
+    ):
+        self.register_handler(
+            EditedChannelPostHandler(callback=callback, fields=fields)
         )
 
     def register_inline_query_handler(
@@ -267,21 +302,27 @@ class SimpleRouter:
     # register handlers with decorators
     #
     ##################################################################################
-    def interceptor(self, inter_type: InterceptorType, update_type: UpdateType = UpdateType.ALL):
+    def interceptor(
+        self,
+        inter_type: InterceptorType,
+        update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
+    ):
         def decorator(callback):
             self.register_interceptor(
-                Interceptor(callback=callback, inter_type=inter_type, update_type=update_type)
+                Interceptor(callback=callback, inter_type=inter_type, update_types=update_types)
             )
             return callback
 
         return decorator
 
     def error_handler(
-        self, update_type: Optional[UpdateType] = UpdateType.ALL, error_type=Exception
+        self,
+        update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
+        exceptions=(Exception,),
     ):
         def decorator(callback):
             self.register_error_handler(
-                ErrorHandler(callback=callback, update_type=update_type, error_type=error_type)
+                ErrorHandler(callback=callback, update_types=update_types, exceptions=exceptions)
             )
             return callback
 
@@ -301,30 +342,36 @@ class SimpleRouter:
 
         return decorator
 
-    def message_handler(self, message_type: Optional[MessageType] = MessageType.ALL):
+    def message_handler(self, fields: Optional[Iterable[Union[str, MessageField]]] = None):
         def decorator(callback):
-            self.register_message_handler(callback, message_type)
+            self.register_message_handler(callback, fields)
             return callback
 
         return decorator
 
-    def edited_message_handler(self, message_type: Optional[MessageType] = MessageType.ALL):
+    def edited_message_handler(
+        self, fields: Optional[Iterable[Union[str, MessageField]]] = None
+    ):
         def decorator(callback):
-            self.register_edited_message_handler(callback, message_type)
+            self.register_edited_message_handler(callback, fields)
             return callback
 
         return decorator
 
-    def channel_post_handler(self, message_type: MessageType):
+    def channel_post_handler(
+        self, fields: Optional[Iterable[Union[str, MessageField]]] = None
+    ):
         def decorator(callback):
-            self.register_channel_post_handler(callback, message_type)
+            self.register_channel_post_handler(callback, fields)
             return callback
 
         return decorator
 
-    def edited_channel_post_handler(self, message_type: MessageType):
+    def edited_channel_post_handler(
+        self, fields: Optional[Iterable[Union[str, MessageField]]] = None
+    ):
         def decorator(callback):
-            self.register_edited_channel_post_handler(callback, message_type)
+            self.register_edited_channel_post_handler(callback, fields)
             return callback
 
         return decorator
@@ -415,14 +462,12 @@ class SimpleRouter:
         route = self._route_map.get(InterceptorType.BEFORE.value, None)
         if not route:
             return
-        names = route.get(UpdateType.ALL.value, None)
-        if names:
-            for name in names:
-                await self.__call_handler(name, bot, data)
-        names = route.get(update_type.value, None)
-        if names:
-            for name in names:
-                await self.__call_handler(name, bot, data)
+        interceptor_name = route.get("any", None)
+        if interceptor_name:
+            await self.__call_handler(interceptor_name, bot, data)
+        interceptor_name = route.get(update_type.value, None)
+        if interceptor_name:
+            await self.__call_handler(interceptor_name, bot, data)
 
     async def __call_after_interceptor(
         self, update_type: UpdateType, bot: SimpleBot, data: SimpleObject
@@ -430,14 +475,12 @@ class SimpleRouter:
         route = self._route_map.get(InterceptorType.AFTER.value, None)
         if not route:
             return
-        names = route.get(update_type.value, None)
-        if names:
-            for name in names:
-                await self.__call_handler(name, bot, data)
-        names = route.get(UpdateType.ALL.value, None)
-        if names:
-            for name in names:
-                await self.__call_handler(name, bot, data)
+        interceptor_name = route.get(update_type.value, None)
+        if interceptor_name:
+            await self.__call_handler(interceptor_name, bot, data)
+        interceptor_name = route.get("any", None)
+        if interceptor_name:
+            await self.__call_handler(interceptor_name, bot, data)
 
     async def __call_error_handler(
         self, update_type: UpdateType, bot: SimpleBot, data: SimpleObject, error
@@ -445,14 +488,13 @@ class SimpleRouter:
         route = self._route_map.get("error", None)
         if not route:
             return
-        handler_names = route.get(UpdateType.ALL.value, None)
-        if handler_names:
-            for handler_name in handler_names:
-                await self.__call_handler(handler_name, bot, data, error)
-        handler_names = route.get(update_type.value, None)
-        if handler_names:
-            for handler_name in handler_names:
-                await self.__call_handler(handler_name, bot, data, error)
+        error_name = type(error).__name__
+        _route = route.get("any", None)
+        if _route and error_name in _route:
+            await self.__call_handler(_route[error_name], bot, data, error)
+        _route = route.get(update_type.value, None)
+        if _route and error_name in _route:
+            await self.__call_handler(_route[error_name], bot, data, error)
 
     async def __call_command_handler(self, bot: SimpleBot, message: Message) -> bool:
         if UpdateType.COMMAND.value not in self._route_map:
@@ -508,26 +550,42 @@ class SimpleRouter:
         route = self._route_map.get(update_type.value, None)
         if not route:
             return
-        handler_names = route.get(MessageType.ALL.value, None)
-        if handler_names:
-            for handler_name in handler_names:
-                if not await self.__call_handler(handler_name, bot, message):
-                    return
-        for message_type_value, handler_names in route.items():
-            if message.get(message_type_value, None):
-                for handler_name in handler_names:
-                    if not await self.__call_handler(handler_name, bot, message):
-                        return
+        # call the handler on any fields
+        handler_name = route.get("any", None)
+        if handler_name:
+            if not await self.__call_handler(handler_name, bot, message):
+                return
+        # call 'and' handlers
+        and_group = route.get("and", None)
+        if and_group:
+            for and_fiedls, handler_names in and_group.items():
+                all_inside = True
+                for field in and_fiedls:
+                    if field not in message:
+                        all_inside = False
+                        break
+                if all_inside:
+                    for handler_name in handler_names:
+                        if not await self.__call_handler(handler_name, bot, message):
+                            return
+        # call 'or' handlers
+        or_group = route.get("or", None)
+        if or_group:
+            for message_field, handler_names in or_group.items():
+                if message_field in message:
+                    for handler_name in handler_names:
+                        if not await self.__call_handler(handler_name, bot, message):
+                            return
 
     async def __call_channel_post_handler(
         self, update_type: UpdateType, bot: SimpleBot, message: Message
     ):
-        await self.__call_message_liked_handler(update_type, bot, message)
+        await self.__call_message_like_handler(update_type, bot, message)
 
     async def __call_edited_channel_post_handler(
         self, update_type: UpdateType, bot: SimpleBot, message: Message
     ):
-        await self.__call_message_liked_handler(update_type, bot, message)
+        await self.__call_message_like_handler(update_type, bot, message)
 
     async def __call_callback_query_handler(
         self, update_type: UpdateType, bot: SimpleBot, callback_query: CallbackQuery
@@ -535,7 +593,7 @@ class SimpleRouter:
         route = self._route_map.get(update_type.value, None)
         if not route:
             return
-        if "all" in route:
+        if "any" in route:
             await self.__call_handler(route["all"], bot, callback_query)
             return
         if "static" in route:

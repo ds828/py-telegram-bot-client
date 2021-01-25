@@ -27,20 +27,9 @@ class UpdateType(str, Enum):
     POLL_ANSWER = "poll_answer"
     FORCE_REPLY = "force_reply"
     COMMAND = "command"
-    ALL = "all"
 
 
-ALL_UPDATE_TYPES = list(UpdateType)
-
-MESSAGE_LIKED_UPDATE_TYPES = (
-    UpdateType.EDITED_MESSAGE,
-    UpdateType.CHANNEL_POST,
-    UpdateType.EDITED_CHANNEL_POST,
-    UpdateType.MESSAGE,
-)
-
-
-class MessageType(str, Enum):
+class MessageField(str, Enum):
     TEXT = "text"
     AUDIO = "audio"
     ANIMATION = "animation"
@@ -71,11 +60,6 @@ class MessageType(str, Enum):
     CONNECTED_WEBSITE = "connected_website"
     POLL = "poll"
     PASSPORT_DATA = "passport_data"
-    ALL = "all"
-
-
-ALL_MESSAGE_TYPES = list(MessageType)
-
 
 class ParseMode(str, Enum):
     MARKDOWN_V2 = "MarkdownV2"

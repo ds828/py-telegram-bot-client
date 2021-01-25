@@ -6,6 +6,7 @@ from simplebot.base import SimpleBotException, SimpleObject, Message
 
 from example.settings import BOT_TOKEN
 
+
 router = bot_proxy.router()
 example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
@@ -19,7 +20,7 @@ def on_echo_text(bot: SimpleBot, message: Message):
     # raise Exception("something wrong")
 
 
-@router.error_handler(error_type=SimpleBotException)
+@router.error_handler(exceptions=(SimpleBotException,))
 def on_simplebotexception(bot: SimpleBot, data: SimpleObject, error):
     bot.send_message(chat_id=data.from_user.id, text="on_simplebotexception: " + str(error))
 
@@ -29,4 +30,5 @@ def on_exception(bot: SimpleBot, data: SimpleObject, error):
     bot.send_message(chat_id=data.from_user.id, text="on_exception: " + str(error))
 
 
+print(router.route_map)
 example_bot.run_polling(timeout=10)
