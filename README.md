@@ -9,7 +9,7 @@ This is a simple echo bot.
 
     
 	from simplebot import bot_proxy
-	from simplebot.base import MessageType, ParseMode
+	from simplebot.base import MessageField, ParseMode
 	
 	# define a unnamed router
 	router = bot_proxy.router()
@@ -19,7 +19,7 @@ This is a simple echo bot.
 	my_bot.delete_webhook(drop_pending_updates=True)
 	
 	# decorate a handler callback on incoming message updates that have a text field
-	@router.message_handler(message_type=MessageType.TEXT)
+	@router.message_handler(fields=(MessageField.TEXT,))
 	def on_echo_text(bot, message):
 	    # receive and reply
 	    sent_message = bot.send_message(
@@ -59,7 +59,7 @@ source code:
 
   	from fastapi import FastAPI, Request, status
 	from simplebot import bot_proxy
-  	from simplebot.base import MessageType, ParseMode
+  	from simplebot.base import MessageField, ParseMode
     	# from ngrok's https url, replace it with yours
   	WEBHOOK_URL = "https://5f9d0f13b9fb.au.ngrok.io/bot/{0}"
 
@@ -72,7 +72,7 @@ source code:
 	bot1.setup_webhook(WEBHOOK_URL.format(<BOT1_TOKEN>))
 	bot2.setup_webhook(WEBHOOK_URL.format(<BOT2_TOKEN>))
 
-	@router.message_handler(message_type=MessageType.TEXT)
+	@router.message_handler(fields=(MessageField.TEXT)
 	def on_echo_text(bot, message):
 	    bot.reply_message(message, text="I receive: <strong>{0}</strong>".format(message.text), parse_mode=ParseMode.HTML)
 
@@ -88,7 +88,7 @@ source code:
 
 	from fastapi import FastAPI, Request, status
 	from simplebot import bot_proxy
-	from simplebot.base import Message, MessageType, ParseMode
+	from simplebot.base import Message, MessageField, ParseMode
 	# from ngrok's https url, replace it with yours
 	WEBHOOK_URL = "https://5f9d0f13b9fb.au.ngrok.io/bot/{0}"
 
@@ -101,7 +101,7 @@ source code:
 	bot2.setup_webhook(WEBHOOK_URL.format(<BOT2_TOKEN>))
 
 	# bind a handler on router1
-	@router1.message_handler(message_type=MessageType.TEXT)
+	@router1.message_handler(fields=(MessageField.TEXT,))
 	def on_router1_echo(bot, message):
 	    bot.reply_message(
 	        message,
@@ -110,7 +110,7 @@ source code:
 	    )
 	   
 	# bind a handler on router2
-	@router2.message_handler(message_type=MessageType.TEXT)
+	@router2.message_handler(fields=(MessageField.TEXT,))
 	def on_router2_echo(bot, message):
 	    bot.reply_message(
 	        message,
@@ -131,7 +131,7 @@ source code:
 
 
 ### decorator
-	@router.message(message_type: MessageType.TEXT)
+	@router.message(fields=(MessageField.TEXT,))
 	def on_message(bot, message):
 		pass
 
@@ -141,8 +141,8 @@ good way to register one callback on multi routers
 	def on_message(bot, message):
 	    pass
 		
-	router1.register_message_handler(callback=on_message, message_type=MessageType.TEXT)
-	router2.register_message_handler(callback=on_message, message_type=MessageType.TEXT)
+	router1.register_message_handler(callback=on_message, fields=(MessageField.TEXT,))
+	router2.register_message_handler(callback=on_message, fields=(MessageField.TEXT,))
 
 ### All-in
 	from simplebot import bot_proxy, SimpelBot
@@ -161,7 +161,7 @@ good way to register one callback on multi routers
 
 	handlers = (
 	    CommandHandler(callback=on_mycmd, cmds=("/mycmd1", "/mycmd2")),
-	    MessageHandler(callback=on_message, message_type=MessageType.TEXT),
+	    MessageHandler(callback=on_message, fields=(MessageField.TEXT,)),
 	)
 	# way1: define a named router for creating a bot
 	# router1 = bot_proxy.router(name="router1", handlers=handlers)
@@ -179,13 +179,13 @@ good way to register one callback on multi routers
 |handler         |decorator                      |function                     |
 |----------------|-------------------------------|-----------------------------|
 |CallbackQueryHandler(callback: Callable, static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|@router.callback_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|router.register_callback_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|
-|ChannelPostHandler(callback: Callable, message_type: MessageType = MessageType.ALL)|@router.channel_post_handler(message_type: MessageType = MessageType.ALL)|router.register(callback: Callable, message_type: MessageType = MessageType.ALL)|
+|ChannelPostHandler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|@router.channel_post_handler(fields: Optional[Iterable[Union[str, MessageField]]])|router.register(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|
 |CommandHandler(callback: Callable, cmds: Iterable[str])|@router.command_handler(cmds: Iterable[str])|router.register_command_handler(callback: Callable, cmds: Iterable[str]) |
-|MessageHandler(callback: Callable, message_type: MessageType = MessageType.ALL)|@router.message_handler(message_type: MessageType = MessageType.ALL)         |router.register_message_handler(callback: Callable, message_type: MessageType = MessageType.ALL)|
+|MessageHandler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|@router.message_handler(fields: Optional[Iterable[Union[str, MessageField]]])         |router.register_message_handler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|
 |ForceReplyHandler(callback: Callable)|@router.force_reply_handler()|router.register_force_reply_handler(callback: Callable)|
-|EditedMessageHandler(callback: Callable, message_type: MessageType = Message.ALL)|@router.edited_message_handler(message_type: MessageType = Message.ALL)|router.register_edited_message_handler(callback: Callable, message_type: MessageType = Message.ALL)|
-|EditedChannelPostHandler(callback: Callable, message_type: MessageType = Message.ALL)|@router.edited_channel_post_handler(message_type: MessageType = Message.ALL)|router.register_edited_channel_post_handler(callback: Callable, message_type: MessageType = Message.ALL)|
-|ErrorHandler(callback: Callable, update_type: UpdateType = UpdateType.ALL, error_type = Exception)|@router.error_handler(update_type: UpdateType = UpdateType.ALL, error_type = Exception)|router.register_error_handler(callback: Callable, update_type: UpdateType = UpdateType.ALL, error_type = Exception)|
+|EditedMessageHandler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|@router.edited_message_handler(fields: Optional[Iterable[Union[str, MessageField]]])|router.register_edited_message_handler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|
+|EditedChannelPostHandler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|@router.edited_channel_post_handler(fields: Optional[Iterable[Union[str, MessageField]]])|router.register_edited_channel_post_handler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|
+|ErrorHandler(callback: Callable, update_types: Optional[Iterable[Union[str, UpdateType]]], error_type = Exception)|@router.error_handler(update_types: Optional[Iterable[Union[str, UpdateType]]], error_type = Exception)|router.register_error_handler(callback: Callable, update_types: Optional[Iterable[Union[str, UpdateType]]], exceptions = Optional[Iterable[Exception]])|
 |ForceReplyHandler(callback: Callable)|@router.force_reply_handler()|router.register_force_reply_handler(callback: Callable)|
 |InlineQueryHandler(callback: Callable, static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|@router.inline_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|router.register_inline_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|
 
