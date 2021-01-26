@@ -2,7 +2,7 @@
 run in terminal: python -m example.long_polling.py
 """
 from simplebot import bot_proxy, SimpleBot
-from simplebot.base import MessageType, Message, ParseMode
+from simplebot.base import MessageField, Message, ParseMode
 
 from example.settings import BOT_TOKEN
 
@@ -11,7 +11,7 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-@router.message_handler(message_type=MessageType.TEXT)
+@router.message_handler(fields=(MessageField.TEXT,))
 def on_echo_text(bot: SimpleBot, message: Message):
     bot.reply_message(
         message,

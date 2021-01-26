@@ -16,8 +16,7 @@ router = bot_proxy.router()
 example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
-# Message is an venue, information about the animation.
-# For backward compatibility, when this field is set, the location field will also be set
+# when venue field is set, the location field will also be set
 # For this reason, use a set as fields, items in set have a AND relationship
 @router.message_handler(fields={MessageField.VENUE, MessageField.LOCATION})
 def on_venue(bot: SimpleBot, message: Message):

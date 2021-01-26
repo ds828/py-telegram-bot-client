@@ -15,8 +15,7 @@ router = bot_proxy.router()
 example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
-# Message is an animation, information about the animation.
-# For backward compatibility, when this field is set, the document field will also be set
+# when animation field is set, the document field will also be set
 # For this reason, use a set as fields, items in set have a AND relationship
 @router.message_handler(fields={MessageField.ANIMATION, MessageField.DOCUMENT})
 def on_animation(bot: SimpleBot, message: Message):
