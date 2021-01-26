@@ -115,8 +115,8 @@ class SimpleRouter:
     def __add_and_group(self, update_type: str, handler: _MessageHandler):
         route = self._route_map[update_type]
         if "and" not in route:
-            route["and"] = defaultdict(set)
-        route["and"][tuple(handler.message_fields)].add(handler.name)
+            route["and"] = []
+        route["and"].append((handler.message_fields, handler.name))
 
     def __add_or_group(self, update_type: str, handler: _MessageHandler):
         route = self._route_map[update_type]
@@ -133,7 +133,11 @@ class SimpleRouter:
         message_fields = handler.message_fields
         if message_fields is None:
             if "any" in route:
-                logger.warn("You are overwritting a message handler: %s on any updatetypes with %s", route["any"], handler.name)
+                logger.warn(
+                    "You are overwritting a message handler: %s on any updatetypes with %s",
+                    route["any"],
+                    handler.name,
+                )
             route["any"] = handler.name
             return
         if isinstance(message_fields, set):
@@ -184,7 +188,11 @@ class SimpleRouter:
             route["callable"].add(handler.name)
         if not has_static_match and not has_regex_match and not has_callable_match:
             if "any" in route:
-                logger.warn("You are overwritting a callback_query handler: %s on any updatetypes with %s", route["any"], handler.name)
+                logger.warn(
+                    "You are overwritting a callback_query handler: %s on any updatetypes with %s",
+                    route["any"],
+                    handler.name,
+                )
             route["any"] = handler.name
 
     def register_handler(self, handler: UpdateHandler):
@@ -235,9 +243,7 @@ class SimpleRouter:
         callback: Callable,
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        self.register_handler(
-            EditedMessageHandler(callback=callback, fields=fields)
-        )
+        self.register_handler(EditedMessageHandler(callback=callback, fields=fields))
 
     def register_channel_post_handler(
         self,
@@ -251,9 +257,7 @@ class SimpleRouter:
         callback: Callable,
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        self.register_handler(
-            EditedChannelPostHandler(callback=callback, fields=fields)
-        )
+        self.register_handler(EditedChannelPostHandler(callback=callback, fields=fields))
 
     def register_inline_query_handler(
         self,
@@ -349,18 +353,14 @@ class SimpleRouter:
 
         return decorator
 
-    def edited_message_handler(
-        self, fields: Optional[Iterable[Union[str, MessageField]]] = None
-    ):
+    def edited_message_handler(self, fields: Optional[Iterable[Union[str, MessageField]]] = None):
         def decorator(callback):
             self.register_edited_message_handler(callback, fields)
             return callback
 
         return decorator
 
-    def channel_post_handler(
-        self, fields: Optional[Iterable[Union[str, MessageField]]] = None
-    ):
+    def channel_post_handler(self, fields: Optional[Iterable[Union[str, MessageField]]] = None):
         def decorator(callback):
             self.register_channel_post_handler(callback, fields)
             return callback
@@ -558,16 +558,10 @@ class SimpleRouter:
         # call 'and' handlers
         and_group = route.get("and", None)
         if and_group:
-            for and_fiedls, handler_names in and_group.items():
-                all_inside = True
-                for field in and_fiedls:
-                    if field not in message:
-                        all_inside = False
-                        break
-                if all_inside:
-                    for handler_name in handler_names:
-                        if not await self.__call_handler(handler_name, bot, message):
-                            return
+            message_fields_as_set = set(message.keys())
+            for fields, handler_name in and_group:
+                if fields <= message_fields_as_set and not await self.__call_handler(handler_name, bot, message):
+                    return
         # call 'or' handlers
         or_group = route.get("or", None)
         if or_group:

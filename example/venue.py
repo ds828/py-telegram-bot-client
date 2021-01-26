@@ -1,0 +1,27 @@
+"""
+run in terminal: python -m example.venue.py
+for testing this, you can share a venue to this bot though @foursquare
+"""
+import logging
+from simplebot.utils import pretty_print
+from simplebot import bot_proxy, SimpleBot
+from simplebot.base import Message, MessageField
+
+from example.settings import BOT_TOKEN
+
+logger = logging.getLogger("simple-bot")
+logger.setLevel(logging.DEBUG)
+
+router = bot_proxy.router()
+example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+example_bot.delete_webhook(drop_pending_updates=True)
+
+# Message is an venue, information about the animation.
+# For backward compatibility, when this field is set, the location field will also be set
+# For this reason, use a set as fields, items in set have a AND relationship
+@router.message_handler(fields={MessageField.VENUE, MessageField.LOCATION})
+def on_venue(bot: SimpleBot, message: Message):
+    pretty_print(message)
+
+
+example_bot.run_polling(timeout=10)

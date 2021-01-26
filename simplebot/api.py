@@ -9,7 +9,15 @@ from typing import Iterable, Union, Optional, List, Tuple, Dict, Any, Callable
 import socket
 import urllib3
 
-from simplebot.base import InputMedia, Message, SimpleBotException, InputFile, Update, SimpleObject
+from simplebot.base import (
+    InputMedia,
+    LabeledPrice,
+    Message,
+    SimpleBotException,
+    InputFile,
+    Update,
+    SimpleObject,
+)
 from simplebot.utils import exclude_none, pretty_json
 
 logger = logging.getLogger("simple-bot")
@@ -266,6 +274,36 @@ class TelegramBotAPI:
         )
         return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
 
+    def send_invoice(
+        self,
+        token: str,
+        chat_id: int,
+        title: str,
+        description: str,
+        payload: str,
+        provider_token: str,
+        start_parameter: str,
+        currency: str,
+        prices: Iterable[LabeledPrice],
+        **kwargs
+    ) -> Message:
+        provider_data = kwargs.get("provider_data", None)
+        if provider_data:
+            kwargs["provider_data"] = json.dumps(provider_data)
+        real_api_name, form_data, attached_files = self.__prepare_request_data(
+            "sendInvoice",
+            chat_id=chat_id,
+            title=title,
+            description=description,
+            payload=payload,
+            provider_token=provider_token,
+            start_parameter=start_parameter,
+            currency=currency,
+            prices=json.dumps(prices),
+            **kwargs
+        )
+        return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
+
     def answer_shipping_query(
         self, token: str, shipping_query_id: str, ok: bool = True, **kwargs
     ) -> bool:
@@ -273,7 +311,7 @@ class TelegramBotAPI:
         if ok:
             if "shipping_options" not in kwargs:
                 raise SimpleBotException("'shipping_options' is required when ok is True")
-            kwargs["shipping_options"] = json.dumps(kwargs["shipping_optionsp"])
+            kwargs["shipping_options"] = json.dumps(kwargs["shipping_options"])
         else:
             if "error_message" not in kwargs:
                 raise SimpleBotException("'error_message' is required when ok is False")

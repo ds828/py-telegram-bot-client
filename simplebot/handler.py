@@ -115,21 +115,12 @@ class _MessageHandler(UpdateHandler):
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
         super(_MessageHandler, self).__init__(callback=callback, update_types=(update_type,))
-        temp = (
-            map(
-                lambda field: field.value if isinstance(field, MessageField) else field,
-                fields,
+        if fields:
+            self._message_fields = type(fields)(
+                map(lambda field: field.value if isinstance(field, MessageField) else field, fields)
             )
-            if fields
-            else None
-        )
-        if temp:
-            if isinstance(fields, set):
-                self._message_fields = set(temp)
-            elif isinstance(fields, (list, tuple)):
-                self._message_fields = tuple(temp)
         else:
-            self._message_fields = temp
+            self._message_fields = fields
 
     @property
     def message_fields(self) -> Iterable:
