@@ -12,7 +12,7 @@ import urllib3
 from simplebot.base import (
     InputMedia,
     LabeledPrice,
-    Message,
+    Message, PassportElementError,
     SimpleBotException,
     InputFile,
     Update,
@@ -216,7 +216,7 @@ class TelegramBotAPI:
                     files.extend(input_media.attached_files)
                     media_group.append(input_media.media_data)
             real_api_name, form_data, attached_files = self.__prepare_request_data(
-                "sendmediagroup", chat_id=chat_id, media=json.dumps(media_group), **kwargs
+                "sendMediaGroup", chat_id=chat_id, media=json.dumps(media_group), **kwargs
             )
             return self.__call_api(
                 token,
@@ -238,7 +238,7 @@ class TelegramBotAPI:
         if not media:
             raise SimpleBotException("'media' is required")
         real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "editmessagemedia",
+            "editMessageMedia",
             chat_id=chat_id,
             message_id=message_id,
             inline_message_id=inline_message_id,
@@ -259,7 +259,7 @@ class TelegramBotAPI:
         self, token: str, chat_id: Union[int, str], question: str, options: Iterable, **kwargs
     ) -> Message:
         real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "sendpoll", chat_id=chat_id, question=question, options=json.dumps(options), **kwargs
+            "sendPoll", chat_id=chat_id, question=question, options=json.dumps(options), **kwargs
         )
         return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
 
@@ -267,7 +267,7 @@ class TelegramBotAPI:
         self, token: str, inline_query_id: str, results: Iterable, **kwargs
     ) -> bool:
         real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "answerinlinequery",
+            "answerInlineQuery",
             inline_query_id=inline_query_id,
             results=json.dumps(results),
             **kwargs
@@ -316,13 +316,13 @@ class TelegramBotAPI:
             if "error_message" not in kwargs:
                 raise SimpleBotException("'error_message' is required when ok is False")
         real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "answershippingquery", shipping_query_id=shipping_query_id, ok=ok, **kwargs
+            "answerShippingQuery", shipping_query_id=shipping_query_id, ok=ok, **kwargs
         )
         return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
 
-    def set_passport_data_errors(self, token: str, user_id: int, errors: Iterable) -> bool:
+    def set_passport_data_errors(self, token: str, user_id: int, errors: Iterable[PassportElementError]) -> bool:
         real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "setpassportdataerrors", user_id=user_id, errors=json.dumps(errors)
+            "setPassportDataErrors", user_id=user_id, errors=json.dumps(errors)
         )
         return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
 

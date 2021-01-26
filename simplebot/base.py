@@ -1,7 +1,7 @@
 import random
 import string
 from enum import Enum
-from typing import Any, Union, Optional, List
+from typing import Any, Union, Optional, List, Iterable
 
 try:
     import ujson as json
@@ -661,10 +661,6 @@ class LabeledPrice(SimpleObject):
     def __init__(self, label: str, amount: int, **kwargs):
         super(LabeledPrice, self).__init__(label=label, amount=amount, **kwargs)
 
-    @property
-    def param(self):
-        return json.dumps(self)
-
 
 class ShippingOption(SimpleObject):
     def __init__(self, id: str, title: str, prices: List[LabeledPrice], **kwargs):
@@ -697,3 +693,100 @@ class ChatPermissions(SimpleObject):
     @property
     def param(self):
         return json.dumps(self)
+
+
+class PassportElementType(str, Enum):
+    PERSONAL_DETAILS = "personal_details"
+    PASSPORT = "passport"
+    INTERNAL_PASSPORT = "internal_passport"
+    DRIVER_LICENSE = "driver_license"
+    IDENTITY_CARD = "identity_card"
+    ADDRESS = "address"
+    UTILITY_BILL = "utility_bill"
+    BANK_STATEMENT = "bank_statement"
+    RENTAL_AGREEMENT = "rental_agreement"
+    PASSPORT_REGISTRATION = "passport_registration"
+    TEMPORARY_REGISTRATION = "temporary_registration"
+    PHONE_NUMBER = "phone_number"
+    EMAIL = "email"
+
+
+class PassportElementError(SimpleObject):
+    __slots__ = ("source", "type", "message")
+
+    def __init__(self, type: Union[str, PassportElementType], message: str):
+        self.type = type.value if isinstance(type, PassportElementType) else type
+        self.message = message
+
+
+class PassportElementErrorDataField(PassportElementError):
+    __slots__ = ("field_name", "data_hash")
+
+    def __init__(
+        self, type: Union[str, PassportElementType], field_name: str, data_hash: str, message: str
+    ):
+        super(PassportElementErrorDataField, self).__init__(type, message)
+        self.source = "data"
+        self.field_name = field_name
+        self.data_hash = data_hash
+
+
+class PassportElementErrorFrontSide(PassportElementError):
+    __slots__ = ("file_hash",)
+
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str, message: str):
+        super().__init__(type, message)
+        self.file_hash = file_hash
+        self.source = "front_side"
+
+
+class PassportElementErrorReverseSide(PassportElementErrorFrontSide):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str, message: str):
+        super(PassportElementErrorReverseSide, self).__init__(type, file_hash, message)
+        self.source = "reverse_side"
+
+
+class PassportElementErrorSelfie(PassportElementErrorFrontSide):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str, message: str):
+        super(PassportElementErrorSelfie, self).__init__(type, file_hash, message)
+        self.source = "selfie"
+
+
+class PassportElementErrorFile(PassportElementErrorFrontSide):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str, message: str):
+        super().__init__(type, file_hash, message)
+        self.source = "file"
+
+
+class PassportElementErrorFiles(PassportElementError):
+    __slots__ = ("file_hashes",)
+
+    def __init__(
+        self, type: Union[str, PassportElementType], file_hashes: Iterable[str], message: str
+    ):
+        super().__init__(type, message)
+        self.file_hashes = file_hashes
+        self.source = "files"
+
+
+class PassportElementErrorTranslationFile(PassportElementErrorFrontSide):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str, message: str):
+        super().__init__(type, file_hash, message)
+        self.source = "translation_file"
+
+
+class PassportElementErrorTranslationFiles(PassportElementErrorFiles):
+    def __init__(
+        self, type: Union[str, PassportElementType], file_hashes: Iterable[str], message: str
+    ):
+        super().__init__(type, file_hashes, message)
+        self.source = "translation_files"
+
+
+class PassportElementErrorUnspecified(PassportElementError):
+    __slots__ = ("element_hash",)
+
+    def __init__(self, type: Union[str, PassportElementType], element_hash: str, message: str):
+        super().__init__(type, message)
+        self.element_hash = element_hash
+        self.source = "unspecified"
