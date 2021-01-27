@@ -39,7 +39,10 @@ class MemoryStorage(SimpleStorage):
             return True
         current_time = int(datetime.now().timestamp())
         if key not in self._data or self._data[key].get("expires", 0) < current_time:
-            self._data[key] = {"expires": current_time + expires, "data": {field: value}}
+            self._data[key] = {
+                "expires": current_time + expires,
+                "data": {field: value},
+            }
             return True
         data = self._data[key]
         data["expires"] = current_time + expires
@@ -86,7 +89,9 @@ class SQLiteStorage(SimpleStorage):
 
     def __init__(self, db_file: Optional[str] = None):
         if db_file is None:
-            self._db_conn = sqlite3.connect("file:memory?cache=shared&mode=memory", uri=True)
+            self._db_conn = sqlite3.connect(
+                "file:memory?cache=shared&mode=memory", uri=True
+            )
         else:
             db_path = os.path.dirname(db_file)
             if not os.path.exists(db_path):
@@ -110,7 +115,9 @@ class SQLiteStorage(SimpleStorage):
 
     def set_value(self, key: str, field: str, value: str, expires: int) -> bool:
         with self._db_conn:
-            cur = self._db_conn.execute("SELECT data, expires FROM t_storage WHERE key=?", (key,))
+            cur = self._db_conn.execute(
+                "SELECT data, expires FROM t_storage WHERE key=?", (key,)
+            )
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
             if row_data and row_data["expires"] >= current_time:
@@ -136,19 +143,24 @@ class SQLiteStorage(SimpleStorage):
 
     def get_value(self, key: str, field: str, expires: int) -> Any:
         with self._db_conn:
-            cur = self._db_conn.execute("SELECT data, expires FROM t_storage WHERE key=?", (key,))
+            cur = self._db_conn.execute(
+                "SELECT data, expires FROM t_storage WHERE key=?", (key,)
+            )
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
             if row_data and row_data["expires"] >= current_time:
                 self._db_conn.execute(
-                    "UPDATE t_storage SET expires=? WHERE key=?", (current_time + expires, key)
+                    "UPDATE t_storage SET expires=? WHERE key=?",
+                    (current_time + expires, key),
                 )
                 return json.loads(row_data["data"]).get(field, None)
             return None
 
     def delete_field(self, key: str, field: str, expires: int) -> bool:
         with self._db_conn:
-            cur = self._db_conn.execute("SELECT data, expires FROM t_storage WHERE key=?", (key,))
+            cur = self._db_conn.execute(
+                "SELECT data, expires FROM t_storage WHERE key=?", (key,)
+            )
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
             if row_data and row_data["expires"] >= current_time:
@@ -168,12 +180,15 @@ class SQLiteStorage(SimpleStorage):
 
     def dict(self, key: str, expires: int) -> Dict:
         with self._db_conn:
-            cur = self._db_conn.execute("SELECT data, expires FROM t_storage WHERE key=?", (key,))
+            cur = self._db_conn.execute(
+                "SELECT data, expires FROM t_storage WHERE key=?", (key,)
+            )
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
             if row_data and row_data["expires"] >= current_time:
                 self._db_conn.execute(
-                    "UPDATE t_storage SET expires=? WHERE key=?", (current_time + expires, key)
+                    "UPDATE t_storage SET expires=? WHERE key=?",
+                    (current_time + expires, key),
                 )
                 return json.loads(row_data["data"])
             return {}
@@ -208,7 +223,8 @@ class RedisStorage(SimpleStorage):
     def dict(self, key: str, expires: int) -> Dict:
         self._redis.expire(key, expires)
         return {
-            field: json.loads(value)[field] for field, value in self._redis.hgetall(key).items()
+            field: json.loads(value)[field]
+            for field, value in self._redis.hgetall(key).items()
         }
 
 

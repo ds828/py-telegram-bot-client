@@ -12,7 +12,8 @@ import urllib3
 from simplebot.base import (
     InputMedia,
     LabeledPrice,
-    Message, PassportElementError,
+    Message,
+    PassportElementError,
     SimpleBotException,
     InputFile,
     Update,
@@ -26,7 +27,9 @@ logger = logging.getLogger("simple-bot")
 class SimpleBotAPIException(SimpleBotException):
     __slots__ = ("_status_code", "_ok", "_error_code", "_description")
 
-    def __init__(self, status_code: int, ok: bool, error_code: int, description: str) -> None:
+    def __init__(
+        self, status_code: int, ok: bool, error_code: int, description: str
+    ) -> None:
         super().__init__(description)
         self._status_code = status_code
         self._ok = ok
@@ -100,7 +103,10 @@ class SimpleRequest:
             data = {}
         if not files:
             return self._pool.request(
-                "POST", api_url, body=json.dumps(data).encode("utf-8"), headers=self._json_header
+                "POST",
+                api_url,
+                body=json.dumps(data).encode("utf-8"),
+                headers=self._json_header,
             )
         for _ in files:
             data[_[0]] = _[1]
@@ -180,7 +186,11 @@ class TelegramBotAPI:
         return "".join(api_name.split("_")).lower(), form_data, attached_files
 
     def __call_api(
-        self, token: str, api_name: str, data: Optional[Dict] = None, files: Optional[List] = None
+        self,
+        token: str,
+        api_name: str,
+        data: Optional[Dict] = None,
+        files: Optional[List] = None,
     ):
         return self.__check_response(
             self._http.request(self._api_url.format(token, api_name), data, files)
@@ -191,14 +201,18 @@ class TelegramBotAPI:
             real_api_name, form_data, attached_files = self.__prepare_request_data(
                 api_name, **kwargs
             )
-            return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
+            return self.__call_api(
+                token, real_api_name, data=form_data, files=attached_files
+            )
 
         return bot_api_method
 
     def get_updates(self, token: str, **kwargs) -> Tuple[Update]:
         if "allowed_updates" in kwargs:
             kwargs["allowed_updates"] = json.dumps(kwargs["allowed_updates"])
-        return tuple(Update(**raw_update) for raw_update in self.getupdates(token, **kwargs))
+        return tuple(
+            Update(**raw_update) for raw_update in self.getupdates(token, **kwargs)
+        )
 
     def set_webhook(self, token: str, **kwargs) -> bool:
         if "allowed_updates" in kwargs:
@@ -216,7 +230,10 @@ class TelegramBotAPI:
                     files.extend(input_media.attached_files)
                     media_group.append(input_media.media_data)
             real_api_name, form_data, attached_files = self.__prepare_request_data(
-                "sendMediaGroup", chat_id=chat_id, media=json.dumps(media_group), **kwargs
+                "sendMediaGroup",
+                chat_id=chat_id,
+                media=json.dumps(media_group),
+                **kwargs
             )
             return self.__call_api(
                 token,
@@ -249,19 +266,34 @@ class TelegramBotAPI:
             token,
             real_api_name,
             data=form_data,
-            files=attached_files + media.attached_files if attached_files else media.attached_files,
+            files=attached_files + media.attached_files
+            if attached_files
+            else media.attached_files,
         )
 
     def set_my_commands(self, token: str, commands: Iterable) -> bool:
-        return self.__call_api(token, "setmycommands", data={"commands": json.dumps(commands)})
+        return self.__call_api(
+            token, "setmycommands", data={"commands": json.dumps(commands)}
+        )
 
     def send_poll(
-        self, token: str, chat_id: Union[int, str], question: str, options: Iterable, **kwargs
+        self,
+        token: str,
+        chat_id: Union[int, str],
+        question: str,
+        options: Iterable,
+        **kwargs
     ) -> Message:
         real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "sendPoll", chat_id=chat_id, question=question, options=json.dumps(options), **kwargs
+            "sendPoll",
+            chat_id=chat_id,
+            question=question,
+            options=json.dumps(options),
+            **kwargs
         )
-        return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
+        return self.__call_api(
+            token, real_api_name, data=form_data, files=attached_files
+        )
 
     def answer_inline_query(
         self, token: str, inline_query_id: str, results: Iterable, **kwargs
@@ -272,7 +304,9 @@ class TelegramBotAPI:
             results=json.dumps(results),
             **kwargs
         )
-        return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
+        return self.__call_api(
+            token, real_api_name, data=form_data, files=attached_files
+        )
 
     def send_invoice(
         self,
@@ -302,7 +336,9 @@ class TelegramBotAPI:
             prices=json.dumps(prices),
             **kwargs
         )
-        return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
+        return self.__call_api(
+            token, real_api_name, data=form_data, files=attached_files
+        )
 
     def answer_shipping_query(
         self, token: str, shipping_query_id: str, ok: bool = True, **kwargs
@@ -310,7 +346,9 @@ class TelegramBotAPI:
 
         if ok:
             if "shipping_options" not in kwargs:
-                raise SimpleBotException("'shipping_options' is required when ok is True")
+                raise SimpleBotException(
+                    "'shipping_options' is required when ok is True"
+                )
             kwargs["shipping_options"] = json.dumps(kwargs["shipping_options"])
         else:
             if "error_message" not in kwargs:
@@ -318,13 +356,21 @@ class TelegramBotAPI:
         real_api_name, form_data, attached_files = self.__prepare_request_data(
             "answerShippingQuery", shipping_query_id=shipping_query_id, ok=ok, **kwargs
         )
-        return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
+        return self.__call_api(
+            token, real_api_name, data=form_data, files=attached_files
+        )
 
-    def set_passport_data_errors(self, token: str, user_id: int, errors: Iterable[PassportElementError]) -> bool:
+    def set_passport_data_errors(
+        self, token: str, user_id: int, errors: Iterable[PassportElementError]
+    ) -> bool:
         real_api_name, form_data, attached_files = self.__prepare_request_data(
             "setPassportDataErrors", user_id=user_id, errors=json.dumps(errors)
         )
-        return self.__call_api(token, real_api_name, data=form_data, files=attached_files)
+        return self.__call_api(
+            token, real_api_name, data=form_data, files=attached_files
+        )
 
     def get_file_bytes(self, token: str, file_path: str) -> bytes:
-        return self._http.fetch_file_data(self._download_file_url.format(token, file_path))
+        return self._http.fetch_file_data(
+            self._download_file_url.format(token, file_path)
+        )

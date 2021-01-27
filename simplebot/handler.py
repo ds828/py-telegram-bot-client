@@ -9,7 +9,9 @@ class UpdateHandler:
     __slots__ = ("_update_types", "_callback")
 
     def __init__(
-        self, callback: Callable, update_types: Optional[Iterable[Union[str, UpdateType]]] = None
+        self,
+        callback: Callable,
+        update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
     ):
         if update_types is None:
             update_types = ("any",)
@@ -49,7 +51,7 @@ class ErrorHandler(UpdateHandler):
         update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
         exceptions: Optional[Iterable[Exception]] = None,
     ):
-        super(ErrorHandler, self).__init__(callback, update_types)
+        super().__init__(callback, update_types)
         self._exceptions = exceptions if exceptions else (Exception,)
 
     @property
@@ -76,7 +78,7 @@ class Interceptor(UpdateHandler):
         inter_type: Union[str, InterceptorType],
         update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
     ):
-        super(Interceptor, self).__init__(callback, update_types=update_types)
+        super().__init__(callback, update_types=update_types)
         self._inter_type = (
             inter_type.value if isinstance(inter_type, InterceptorType) else inter_type
         )
@@ -90,7 +92,7 @@ class CommandHandler(UpdateHandler):
     __slots__ = ("_cmds",)
 
     def __init__(self, callback: Callable, cmds: Iterable):
-        super(CommandHandler, self).__init__(callback=callback, update_types=(UpdateType.COMMAND,))
+        super().__init__(callback=callback, update_types=(UpdateType.COMMAND,))
         self._cmds = cmds
 
     @property
@@ -100,9 +102,7 @@ class CommandHandler(UpdateHandler):
 
 class ForceReplyHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super(ForceReplyHandler, self).__init__(
-            callback=callback, update_types=(UpdateType.FORCE_REPLY,)
-        )
+        super().__init__(callback=callback, update_types=(UpdateType.FORCE_REPLY,))
 
 
 class _MessageHandler(UpdateHandler):
@@ -114,10 +114,15 @@ class _MessageHandler(UpdateHandler):
         update_type: Union[str, UpdateType],
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        super(_MessageHandler, self).__init__(callback=callback, update_types=(update_type,))
+        super().__init__(callback=callback, update_types=(update_type,))
         if fields:
             self._message_fields = type(fields)(
-                map(lambda field: field.value if isinstance(field, MessageField) else field, fields)
+                map(
+                    lambda field: field.value
+                    if isinstance(field, MessageField)
+                    else field,
+                    fields,
+                )
             )
         else:
             self._message_fields = fields
@@ -133,7 +138,7 @@ class MessageHandler(_MessageHandler):
         callback: Callable,
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        super(MessageHandler, self).__init__(
+        super().__init__(
             callback=callback, update_type=UpdateType.MESSAGE, fields=fields
         )
 
@@ -144,7 +149,7 @@ class EditedMessageHandler(_MessageHandler):
         callback: Callable,
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        super(EditedMessageHandler, self).__init__(
+        super().__init__(
             callback=callback, update_type=UpdateType.EDITED_MESSAGE, fields=fields
         )
 
@@ -155,7 +160,7 @@ class ChannelPostHandler(_MessageHandler):
         callback: Callable,
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        super(ChannelPostHandler, self).__init__(
+        super().__init__(
             callback=callback, update_type=UpdateType.CHANNEL_POST, fields=fields
         )
 
@@ -166,7 +171,7 @@ class EditedChannelPostHandler(_MessageHandler):
         callback: Callable,
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        super(EditedChannelPostHandler, self).__init__(
+        super().__init__(
             callback=callback,
             update_type=UpdateType.EDITED_CHANNEL_POST,
             fields=fields,
@@ -184,13 +189,13 @@ class CallbackQueryHandler(UpdateHandler):
         callable_match: Optional[Callable] = None,
         **kwargs
     ):
-        super(CallbackQueryHandler, self).__init__(
-            callback=callback, update_types=(UpdateType.CALLBACK_QUERY,)
-        )
+        super().__init__(callback=callback, update_types=(UpdateType.CALLBACK_QUERY,))
         self._static_match = static_match
         self._regex_patterns = None
         if regex_match:
-            self._regex_patterns = tuple([re.compile(regex_str) for regex_str in regex_match])
+            self._regex_patterns = tuple(
+                [re.compile(regex_str) for regex_str in regex_match]
+            )
         self._callable_match = callable_match
         self._kwargs = kwargs
 
@@ -200,7 +205,11 @@ class CallbackQueryHandler(UpdateHandler):
 
     @property
     def have_matches(self) -> Tuple[bool, bool, bool]:
-        return bool(self._static_match), bool(self._regex_patterns), bool(self._callable_match)
+        return (
+            bool(self._static_match),
+            bool(self._regex_patterns),
+            bool(self._callable_match),
+        )
 
     def regex_match(self, callback_query: CallbackQuery):
         if not self._regex_patterns:
@@ -222,37 +231,29 @@ class InlineQueryHandler(UpdateHandler):
         self,
         callback: Callable,
     ):
-        super(InlineQueryHandler, self).__init__(
-            callback=callback, update_types=(UpdateType.INLINE_QUERY,)
-        )
+        super().__init__(callback=callback, update_types=(UpdateType.INLINE_QUERY,))
 
 
 class ChosenInlineResultHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super(ChosenInlineResultHandler, self).__init__(
-            callback, update_types=(UpdateType.CHOSEN_INLINE_RESULT,)
-        )
+        super().__init__(callback, update_types=(UpdateType.CHOSEN_INLINE_RESULT,))
 
 
 class ShippingQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super(ShippingQueryHandler, self).__init__(
-            callback, update_types=(UpdateType.SHIPPING_QUERY,)
-        )
+        super().__init__(callback, update_types=(UpdateType.SHIPPING_QUERY,))
 
 
 class PreCheckoutQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super(PreCheckoutQueryHandler, self).__init__(
-            callback, update_types=(UpdateType.PRE_CHECKOUT_QUERY,)
-        )
+        super().__init__(callback, update_types=(UpdateType.PRE_CHECKOUT_QUERY,))
 
 
 class PollHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super(PollHandler, self).__init__(callback, update_types=(UpdateType.POLL,))
+        super().__init__(callback, update_types=(UpdateType.POLL,))
 
 
 class PollAnswerHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super(PollAnswerHandler, self).__init__(callback, update_types=(UpdateType.POLL_ANSWER,))
+        super().__init__(callback, update_types=(UpdateType.POLL_ANSWER,))
