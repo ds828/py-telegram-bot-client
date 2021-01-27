@@ -72,7 +72,7 @@ source code:
 	bot1.setup_webhook(WEBHOOK_URL.format(<BOT1_TOKEN>))
 	bot2.setup_webhook(WEBHOOK_URL.format(<BOT2_TOKEN>))
 
-	@router.message_handler(fields=(MessageField.TEXT)
+	@router.message_handler(fields=(MessageField.TEXT,))
 	def on_echo_text(bot, message):
 	    bot.reply_message(message, text="I receive: <strong>{0}</strong>".format(message.text), parse_mode=ParseMode.HTML)
 
