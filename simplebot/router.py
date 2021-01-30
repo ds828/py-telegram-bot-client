@@ -573,11 +573,6 @@ class SimpleRouter:
         route = self._route_map.get(update_type.value, None)
         if not route:
             return
-        # call the handler on any fields
-        handler_name = route.get("any", None)
-        if handler_name:
-            if not await self.__call_handler(handler_name, bot, message):
-                return
         # call 'and' handlers
         and_group = route.get("and", None)
         if and_group:
@@ -595,6 +590,12 @@ class SimpleRouter:
                     for handler_name in handler_names:
                         if not await self.__call_handler(handler_name, bot, message):
                             return
+        # call the handler on any fields
+        handler_name = route.get("any", None)
+        if handler_name:
+            await self.__call_handler(handler_name, bot, message)
+            return
+
 
     async def __call_channel_post_handler(
         self, update_type: UpdateType, bot: SimpleBot, message: Message
