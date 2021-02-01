@@ -5,6 +5,7 @@ except ImportError:
 
 import logging
 from io import BytesIO
+import string
 from typing import Iterable, Union, Optional, List, Tuple, Dict, Any, Callable
 import socket
 import urllib3
@@ -182,7 +183,7 @@ class TelegramBotAPI:
                     form_data["thumb"] = value.attach_str
                 else:
                     attached_files.append((name, value.file_tuple))
-                    del form_data[name]
+                    del form_data[name] 
         return "".join(api_name.split("_")).lower(), form_data, attached_files
 
     def __call_api(

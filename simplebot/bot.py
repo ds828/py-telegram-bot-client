@@ -14,8 +14,6 @@ logger = logging.getLogger("simple-bot")
 
 
 class SimpleBot:
-    """SimpleBot."""
-
     _force_reply_key_format = "bot:force_reply:{0}"
     __slots__ = (
         "_bot_id",
@@ -34,14 +32,6 @@ class SimpleBot:
         storage: Optional[SimpleStorage] = None,
         http_request: Optional[SimpleRequest] = None,
     ):
-        """__init__.
-
-        Args:
-            token (str): bot token
-            router: a SimpleRouter object
-            storage (Optional[DefaultStorageBackend]): storage backend
-            http_request (Optional[DefaultRequestProvider]): http_request provider
-        """
         try:
             self._bot_id = int(token.split(":")[0])
         except IndexError as error:
@@ -53,17 +43,13 @@ class SimpleBot:
         )
         if storage is None:
             logger.warning("You are using a memory storage which can not be persisted.")
-        self._storage = storage if isinstance(storage, SimpleStorage) else MemoryStorage()
+        self._storage = (
+            storage if isinstance(storage, SimpleStorage) else MemoryStorage()
+        )
         self.last_update_id = 0
         self._bot_me = None
 
     def __getattr__(self, api_name):
-        """__getattr__.
-
-        Args:
-            api_name: telegram bot api name.
-            You can use send_XXX, sendxxx, sendXxx. such as send_message, sendMessage, sendmessage.
-        """
         if api_name.startswith("reply"):
 
             def reply_method(message: Message, **kwargs):
@@ -75,11 +61,14 @@ class SimpleBot:
                     kwargs: other kwargs of sendXXX api method
                 """
                 kwargs.update(
-                    {"chat_id": message.chat.id, "reply_to_message_id": message.message_id}
+                    {
+                        "chat_id": message.chat.id,
+                        "reply_to_message_id": message.message_id,
+                    }
                 )
-                return getattr(self._bot_api, "send{0}".format(api_name.split("reply")[1]))(
-                    self.token, **kwargs
-                )
+                return getattr(
+                    self._bot_api, "send{0}".format(api_name.split("reply")[1])
+                )(self.token, **kwargs)
 
             return reply_method
 
@@ -90,44 +79,23 @@ class SimpleBot:
 
     @property
     def token(self) -> str:
-        """bot token.
-
-        Args:
-
-        Returns:
-            str:
-        """
         return self._token
 
     @property
     def router(self):
-        """router in the bot"""
         return self._router
 
     @property
     def id(self) -> int:
-        """bot's id.
-
-        Args:
-
-        Returns:
-            int:
-        """
         return self._bot_id
 
     @property
     def me(self):
-        """bot's information"""
         if self._bot_me is None:
             self._bot_me = self.get_me()
         return self._bot_me
 
     async def dispatch(self, update: Update):
-        """dispatchu a update.
-
-        Args:
-            update (Update): update
-        """
         logger.debug(
             """
 ----------------------- UPDATE BEGIN ---------------------------
@@ -145,15 +113,9 @@ class SimpleBot:
         *force_reply_args,
         expires: int = 1800,
     ):
-        """join_force_reply.
-
-        Args:
-            user_id (int): user_id
-            callback (callable): callback
-            force_reply_data (Optional[Iterable[str]]): force_reply_data
-            expires (int): expires
-        """
-        force_reply_callback_name = "{0}.{1}".format(callback.__module__, callback.__name__)
+        force_reply_callback_name = "{0}.{1}".format(
+            callback.__module__, callback.__name__
+        )
         if not self.router.has_force_reply_handler(force_reply_callback_name):
             raise SimpleBotException(
                 "{0} is not a force reply handler".format(force_reply_callback_name)
@@ -161,30 +123,21 @@ class SimpleBot:
         field = self._force_reply_key_format.format(user_id)
         session = self.get_session(user_id)
         if not force_reply_args:
-            session.set(field, build_force_reply_data(force_reply_callback_name), expires)
+            session.set(
+                field, build_force_reply_data(force_reply_callback_name), expires
+            )
         else:
             session.set(
-                field, build_force_reply_data(force_reply_callback_name, *force_reply_args), expires
+                field,
+                build_force_reply_data(force_reply_callback_name, *force_reply_args),
+                expires,
             )
 
     def force_reply_done(self, user_id: int):
-        """force_reply_done.
-
-        Args:
-            user_id (int): user_id
-        """
         session = self.get_session(user_id)
         del session[self._force_reply_key_format.format(user_id)]
 
     def get_force_reply(self, user_id: int) -> Tuple:
-        """get_force_reply.
-
-        Args:
-            user_id (int): user_id
-
-        Returns:
-            Tuple:
-        """
         session = self.get_session(user_id)
         force_reply_data = session.get(self._force_reply_key_format.format(user_id))
         if not force_reply_data:

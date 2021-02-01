@@ -37,7 +37,8 @@ def on_pinned_message(bot: SimpleBot, message: Message):
     )
 
 
-# any fields of a message, it will be called if others callbacks before it return bool(something) is True
+# any fields of a message
+# it will be called if others callbacks before it return bool(something) is True
 @router.message_handler()
 def on_unacceptable(bot: SimpleBot, message: Message):
     bot.send_message(chat_id=message.chat.id, text="Opoos...")

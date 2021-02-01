@@ -10,7 +10,9 @@ from simplebot.storage import SimpleStorage
 from simplebot.handler import UpdateHandler
 
 logger = logging.getLogger("simple-bot")
-formatter = logging.Formatter('%(levelname)s %(asctime)s (%(filename)s:%(lineno)d): "%(message)s"')
+formatter = logging.Formatter(
+    '%(levelname)s %(asctime)s (%(filename)s:%(lineno)d): "%(message)s"'
+)
 console_output_handler = logging.StreamHandler(sys.stderr)
 console_output_handler.setFormatter(formatter)
 logger.addHandler(console_output_handler)
@@ -31,15 +33,6 @@ class BotProxy:
     __slots__ = ("_bot_data", "_router_data", "_name")
 
     def __init__(self, name: str = "default_proxy") -> None:
-        """__init__.
-
-        Args:
-            name (str): name of this bot proxy
-
-        Returns:
-            None:
-        """
-        super().__init__()
         self._bot_data = {}
         self._router_data = {}
         self._name = name
@@ -54,16 +47,6 @@ class BotProxy:
         name: Optional[str] = None,
         handlers: Optional[Iterable[UpdateHandler]] = None,
     ) -> SimpleRouter:
-        """create a router or return the router if this name exists.
-
-        Args:
-            name: this router's name
-            handlers: handlers in this router
-
-        Returns:
-            A SimpleRouter object
-
-        """
         name = name or "default_router"
         if name not in self._router_data:
             self._router_data[name] = SimpleRouter(name, handlers)
@@ -85,20 +68,16 @@ class BotProxy:
             token,
             router,
             storage,
-            SimpleRequest(api_host=api_host or "https://api.telegram.org", **urllib3_pool_kwargs),
+            SimpleRequest(
+                api_host=api_host or "https://api.telegram.org", **urllib3_pool_kwargs
+            ),
         )
         return self._bot_data[token]
 
     async def dispatch(self, token: str, raw_update: Dict):
-        """dispatch a incoming update to a bot
-
-        Args:
-            token (str): telegram bot token
-            raw_update (Dict): a incoming update
-        """
         simple_bot = self._bot_data.get(token, None)
         if simple_bot is None:
-            raise SimpleBotException("No bot found with token[ secret ]: '{0}'".format(token))
+            raise SimpleBotException("No bot found with token: '{0}'".format(token))
         await simple_bot.dispatch(Update(**raw_update))
 
 

@@ -65,10 +65,16 @@ def on_reply_button_click(bot: SimpleBot, message: Message):
         return
 
 
+RadioGroup.bind(router, name="radio-select")
+MultiSelect.bind(router, name="mulit-select")
+
+
 @router.command_handler(cmds=("/select",))
 def on_select_keyboard(bot: SimpleBot, message: Message):
     radio_group = RadioGroup(name="radio-select")
-    radio_group.add_options((True, "key1", "value1"), ("key2", "value2", True), ("key3", "value3"))
+    radio_group.add_options(
+        (True, "key1", "value1"), ("key2", "value2", True), ("key3", "value3")
+    )
     multi_select = MultiSelect(name="mulit-select")
     multi_select.add_options(
         (True, "select1", "select-value1"),
@@ -82,32 +88,6 @@ def on_select_keyboard(bot: SimpleBot, message: Message):
         text=message.text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=radio_group.layout),
     )
-
-
-@router.callback_query_handler(callable_match=parse_callback_data, name="mulit-select")
-def on_select_button_click(bot, callback_query, *callback_data_args):
-    mulit_select = MultiSelect(
-        name="mulit-select", layout=callback_query.message.reply_markup.inline_keyboard
-    )
-    mulit_select.toggle(callback_data_args)
-    bot.edit_message_reply_markup(
-        chat_id=callback_query.from_user.id,
-        message_id=callback_query.message.message_id,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=mulit_select.layout),
-    )
-
-
-@router.callback_query_handler(callable_match=parse_callback_data, name="radio-select")
-def on_radio_button_click(bot, callback_query, *callback_data_args):
-    radio_group = RadioGroup(
-        name="radio-select", layout=callback_query.message.reply_markup.inline_keyboard
-    )
-    if radio_group.toggle(callback_data_args):
-        bot.edit_message_reply_markup(
-            chat_id=callback_query.from_user.id,
-            message_id=callback_query.message.message_id,
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=radio_group.layout),
-        )
 
 
 @router.callback_query_handler(static_match="submit")
@@ -125,7 +105,9 @@ def on_submit(bot, callback_query):
     )
     bot.send_message(
         chat_id=callback_query.from_user.id,
-        text="you select: {0} {1}".format(radio_group.get_selected(), multi_select.get_selected()),
+        text="you select: {0} {1}".format(
+            radio_group.get_selected(), multi_select.get_selected()
+        ),
     )
 
 

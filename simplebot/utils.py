@@ -39,12 +39,17 @@ def regex_match(regex_patterns: Iterable[Pattern]):
     return decorate
 
 
-def i18n(trans_data: Dict):
+def i18n(source: Dict):
     def decorate(method):
         @wraps(method)
         def wrapper(bot, data, *args, **kwargs):
             def _(text, lang=data.from_user.language_code):
-                return trans_data.get(lang, {}).get(text, text)
+                lang_source = source.get(lang, None)
+                if lang_source:
+                    if isinstance(lang_source, dict):
+                        return lang_source.get(text, text)
+                    return lang_source.gettext(text)
+                return text
 
             return method(bot, data, *args, _, **kwargs)
 
