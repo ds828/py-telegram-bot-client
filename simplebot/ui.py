@@ -1,4 +1,5 @@
 from typing import Iterable, Tuple, Optional, List
+from datetime import datetime, date
 
 from simplebot.bot import SimpleBot
 from simplebot.router import SimpleRouter
@@ -20,8 +21,8 @@ class Keyboard:
     def add_line(self, *buttons):
         self._layout.append(tuple(buttons))
 
-    def add_layout(self, layout: List):
-        self._layout += layout
+    def add_keyboard(self, keyboard):
+        self._layout += keyboard.layout
 
     @property
     def layout(self):
@@ -62,7 +63,7 @@ class RadioGroup(Keyboard):
                 if "callback_data" in button:
                     if button["text"][0] not in self._emoji:
                         continue
-                    if not button["callback_data"].startswith(self._name):
+                    if button["callback_data"].split("|")[0] != self._name:
                         continue
                     if button["callback_data"] == toggled_option:
                         if button["text"][0] == self._emoji[1]:  # unselected
@@ -88,7 +89,7 @@ class RadioGroup(Keyboard):
         return None
 
     @staticmethod
-    def bind(router: SimpleRouter, name: str, emoji=("🔘", "⚪")):
+    def set_auto_toggle(router: SimpleRouter, name: str, emoji=("🔘", "⚪")):
         def on_radio_button_click(bot, callback_query, *callback_data_args):
             radio_group = RadioGroup(
                 name=name,
@@ -143,7 +144,7 @@ class MultiSelect(RadioGroup):
         return tuple(selected)
 
     @staticmethod
-    def bind(router: SimpleRouter, name: str, emoji=("✔", "")):
+    def set_auto_toggle(router: SimpleRouter, name: str, emoji=("✔", "")):
         def on_select_button_click(
             bot: SimpleBot, callback_query: CallbackQuery, *callback_data_args
         ):
@@ -167,5 +168,31 @@ class MultiSelect(RadioGroup):
 
 
 class DateTimePicker(RadioGroup):
-    def __init__(self, name: str, layout: Optional[List] = None):
-        super().__init__(name=name, layout=layout)
+    def __init__(
+        self,
+        name: str,
+        start_date: str = None,
+        end_date: str = None,
+        week_start: int = 0,
+        format: str = "dd/mm/yyyy",
+        disabled_days_of_week=None,
+        today_button: bool = True,
+        languages=None,
+        layout: Optional[List] = None,
+        emoji=("⭐", ""),
+    ):
+        super().__init__(name=name, layout=layout, emoji=emoji)
+        self._start_date = (
+            datetime.strptime(start_date, format) if start_date else date.today()
+        )
+        self._end_date = (
+            datetime.strptime(end_date, format) if end_date else date.today()
+        )
+        self._week_start = week_start
+        self._format = format
+        self._disabled_days_of_week = disabled_days_of_week
+        self._today_button = today_button
+        self._languages = languages
+
+    def next(self, days=7, col=1):
+        pass

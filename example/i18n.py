@@ -1,6 +1,7 @@
 """
 run in cli: python -m example.i18n.py
 """
+import gettext
 from simplebot import bot_proxy, SimpleBot
 from simplebot.base import Message
 from simplebot.utils import i18n
@@ -11,6 +12,13 @@ trans_data = {
     "zh-hant": {"start": "開始", "help": "幫助"},
 }
 
+translations = {}
+locale_dir = "./locales"
+for lang in ("en", "zh-hant"):
+    translate = gettext.translation("simplebot", locale_dir, languages=[lang])
+    translate.install()
+    translations[lang] = translate
+
 router = bot_proxy.router()
 example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
@@ -18,6 +26,7 @@ example_bot.delete_webhook(drop_pending_updates=True)
 
 @router.message_handler()
 @i18n(trans_data)
+# @i18n(translations)
 def on_i18n_text(bot: SimpleBot, message: Message, _: callable):
     bot.reply_message(message, _(message.text))
 

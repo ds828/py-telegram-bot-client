@@ -63,8 +63,9 @@ def build_callback_data(name: str, *args) -> str:
 
 
 def parse_callback_data(callback_data: str, name: str):
-    if callback_data.startswith(name):
-        return tuple(json.loads(callback_data.split("|")[1]))
+    name_args = callback_data.split("|")
+    if name_args[0] == name:
+        return tuple(json.loads(name_args[1]))
     return None
 
 
