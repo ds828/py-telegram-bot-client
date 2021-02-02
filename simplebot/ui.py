@@ -1,5 +1,4 @@
 from typing import Iterable, Tuple, Optional, List
-from datetime import datetime, date
 
 from simplebot.bot import SimpleBot
 from simplebot.router import SimpleRouter
