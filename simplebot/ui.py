@@ -165,34 +165,3 @@ class MultiSelect(RadioGroup):
             callable_match=parse_callback_data,
             name=name,
         )
-
-
-class DateTimePicker(RadioGroup):
-    def __init__(
-        self,
-        name: str,
-        start_date: str = None,
-        end_date: str = None,
-        week_start: int = 0,
-        format: str = "dd/mm/yyyy",
-        disabled_days_of_week=None,
-        today_button: bool = True,
-        languages=None,
-        layout: Optional[List] = None,
-        emoji=("⭐", ""),
-    ):
-        super().__init__(name=name, layout=layout, emoji=emoji)
-        self._start_date = (
-            datetime.strptime(start_date, format) if start_date else date.today()
-        )
-        self._end_date = (
-            datetime.strptime(end_date, format) if end_date else date.today()
-        )
-        self._week_start = week_start
-        self._format = format
-        self._disabled_days_of_week = disabled_days_of_week
-        self._today_button = today_button
-        self._languages = languages
-
-    def next(self, days=7, col=1):
-        pass
