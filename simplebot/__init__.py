@@ -48,8 +48,11 @@ class BotProxy:
         handlers: Optional[Iterable[UpdateHandler]] = None,
     ) -> SimpleRouter:
         name = name or "default_router"
-        if name not in self._router_data:
+        router = self._router_data.get(name, None)
+        if router is None:
             self._router_data[name] = SimpleRouter(name, handlers)
+        else:
+            router.register_handlers(handlers)
         return self._router_data[name]
 
     def create_bot(
