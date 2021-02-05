@@ -139,7 +139,9 @@ class SimpleBot:
 
     def get_force_reply(self, user_id: int) -> Tuple:
         session = self.get_session(user_id)
-        force_reply_data = session.get(self._force_reply_key_format.format(user_id))
+        force_reply_data = session.get(
+            self._force_reply_key_format.format(user_id), None
+        )
         if not force_reply_data:
             return None, None
         return parse_force_reply_data(force_reply_data)

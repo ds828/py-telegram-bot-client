@@ -246,7 +246,10 @@ class SimpleSession:
         return self._session_id
 
     def get(self, field: str, default=None) -> Any:
-        return self.__getitem__(field) or default
+        try:
+            return self.__getitem__(field)
+        except:
+            return default
 
     def __getitem__(self, field: str) -> Any:
         if field in self._local_data:
@@ -255,7 +258,7 @@ class SimpleSession:
         if value:
             self._local_data[field] = value
             return value
-        return None
+        raise KeyError("'{0}' is not found".format(field))
 
     def set(self, field: str, value, expires: int = 1800) -> bool:
         self._local_data[field] = value

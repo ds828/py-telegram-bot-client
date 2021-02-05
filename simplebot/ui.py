@@ -8,11 +8,10 @@ from simplebot.base import CallbackQuery, InlineKeyboardButton, InlineKeyboardMa
 
 
 class Keyboard:
-    __slots__ = ("_layout", "_buttons")
+    __slots__ = ("_layout",)
 
     def __init__(self, layout: Optional[List] = None):
         self._layout = layout or []
-        self._buttons = []
 
     def add_buttons(self, *buttons, col: int = 1):
         for idx in range(0, len(buttons), col):
@@ -33,9 +32,15 @@ class RadioGroup(Keyboard):
     __slots__ = ("_name", "_emoji")
 
     def __init__(self, name: str, layout: Optional[List] = None, emoji=("🔘", "⚪")):
-        super().__init__(layout=layout)
         self._name = name
         self._emoji = emoji
+        if layout:
+            for line in layout:
+                for button in line:
+                    if parse_callback_data(button["callback_data"], name):
+                        super().__init__(layout=layout)
+                        return
+        super().__init__(layout=None)
 
     def add_options(self, *options: Iterable, col: int = 1):
         for idx in range(0, len(options), col):
