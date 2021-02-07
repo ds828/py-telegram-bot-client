@@ -116,7 +116,7 @@ class SQLiteStorage(SimpleStorage):
     def set_value(self, key: str, field: str, value: str, expires: int) -> bool:
         with self._db_conn:
             cur = self._db_conn.execute(
-                "SELECT data, expires FROM t_storage WHERE key=?", (key,)
+                "SELECT data, expires from t_storage WHERE key=?", (key,)
             )
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
@@ -144,7 +144,7 @@ class SQLiteStorage(SimpleStorage):
     def get_value(self, key: str, field: str, expires: int) -> Any:
         with self._db_conn:
             cur = self._db_conn.execute(
-                "SELECT data, expires FROM t_storage WHERE key=?", (key,)
+                "SELECT data, expires from t_storage WHERE key=?", (key,)
             )
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
@@ -159,7 +159,7 @@ class SQLiteStorage(SimpleStorage):
     def delete_field(self, key: str, field: str, expires: int) -> bool:
         with self._db_conn:
             cur = self._db_conn.execute(
-                "SELECT data, expires FROM t_storage WHERE key=?", (key,)
+                "SELECT data, expires from t_storage WHERE key=?", (key,)
             )
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
@@ -176,12 +176,12 @@ class SQLiteStorage(SimpleStorage):
 
     def delete_key(self, key: str):
         with self._db_conn:
-            self._db_conn.execute("DELETE FROM t_storage WHERE key=? ", (key,))
+            self._db_conn.execute("DELETE from t_storage WHERE key=? ", (key,))
 
     def dict(self, key: str, expires: int) -> Dict:
         with self._db_conn:
             cur = self._db_conn.execute(
-                "SELECT data, expires FROM t_storage WHERE key=?", (key,)
+                "SELECT data, expires from t_storage WHERE key=?", (key,)
             )
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())

@@ -43,25 +43,19 @@ class UpdateHandler:
 
 
 class ErrorHandler(UpdateHandler):
-    __slots__ = ("_exceptions",)
+    __slots__ = ("_errors",)
 
     def __init__(
         self,
         callback: Callable,
         update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
-        exceptions: Optional[Iterable[Exception]] = None,
+        errors: Optional[Iterable[Exception]] = None,
     ):
         super().__init__(callback, update_types)
-        self._exceptions = exceptions if exceptions else (Exception,)
+        self._errors = errors if errors else (Exception,)
 
-    @property
-    def exceptions(self):
-        return self._exceptions
-
-    async def __call__(self, bot, data, exception, *args, **kwargs):
-        if isinstance(exception, self._exceptions):
-            return await super().__call__(bot, data, exception, *args, **kwargs)
-        return None
+    def include(self, error):
+        return isinstance(error, self._errors)
 
 
 class InterceptorType(Enum):

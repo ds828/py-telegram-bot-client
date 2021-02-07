@@ -20,9 +20,11 @@ def on_echo_text(bot: SimpleBot, message: Message):
     # raise Exception("something wrong")
 
 
-@router.error_handler(exceptions=(SimpleBotException,))
+@router.error_handler(errors=(SimpleBotException,))
 def on_simplebotexception(bot: SimpleBot, data: SimpleObject, error):
-    bot.send_message(chat_id=data.from_user.id, text="on_simplebotexception: " + str(error))
+    bot.send_message(
+        chat_id=data.from_user.id, text="on_simplebotexception: " + str(error)
+    )
 
 
 @router.error_handler()

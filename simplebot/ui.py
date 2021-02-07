@@ -22,6 +22,9 @@ class Keyboard:
     def add_keyboard(self, keyboard):
         self._layout += keyboard.layout
 
+    def delete_button(self, line_idx: int, col_idx: int):
+        del self._layout[line_idx][col_idx]
+
     @property
     def layout(self):
         return self._layout
@@ -91,6 +94,13 @@ class RadioGroup(Keyboard):
                     if button["callback_data"].startswith(self._name):
                         return parse_callback_data(button["callback_data"], self._name)
         return None
+
+    def delete_all(self):
+        if self._layout:
+            for line in self._layout:
+                for idx, button in enumerate(line):
+                    if parse_callback_data(button["callback_data"], self._name):
+                        del line[idx]
 
     @staticmethod
     def set_auto_toggle(router: SimpleRouter, name: str, emoji=("🔘", "⚪")):
