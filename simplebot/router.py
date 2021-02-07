@@ -99,25 +99,21 @@ class SimpleRouter:
 
     def register_error_handler(self, handler: ErrorHandler):
         if "error" not in self._route_map:
-            self._route_map["error"] = {}
+            self._route_map["error"] = defaultdict(set)
         for update_type in handler.update_types:
-            if update_type not in self._route_map["error"]:
-                self._route_map["error"][update_type] = {}
-            for exception in handler.exceptions:
-                self._route_map["error"][update_type][exception.__name__] = handler
-                logger.info(
-                    "bind a %s ErrorHandler on %s Update: '%s@%s'",
-                    exception.__name__,
-                    update_type,
-                    handler.name,
-                    self.name,
-                )
+            self._route_map["error"][update_type].add(handler)
+            logger.info(
+                "bind a ErrorHandler on %s Update: '%s@%s'",
+                update_type,
+                handler.name,
+                self.name,
+            )
 
     def __add_and_group(self, update_type: str, handler: _MessageHandler):
         route = self._route_map[update_type]
         if "and" not in route:
-            route["and"] = []
-        route["and"].append((handler.message_fields, handler))
+            route["and"] = set()
+        route["and"].add((handler.message_fields, handler))
 
     def __add_or_group(self, update_type: str, handler: _MessageHandler):
         route = self._route_map[update_type]
@@ -328,12 +324,12 @@ class SimpleRouter:
     def error_handler(
         self,
         update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
-        exceptions=(Exception,),
+        errors: Optional[Iterable[Exception]] = None,
     ):
         def decorator(callback):
             self.register_error_handler(
                 ErrorHandler(
-                    callback=callback, update_types=update_types, exceptions=exceptions
+                    callback=callback, update_types=update_types, errors=errors
                 )
             )
             return callback
@@ -499,16 +495,20 @@ class SimpleRouter:
     async def __call_error_handler(
         self, update_type: UpdateType, bot: SimpleBot, data: SimpleObject, error
     ):
+        print(error)
         route = self._route_map.get("error", None)
         if not route:
             return
-        error_name = type(error).__name__
-        _route = route.get("any", None)
-        if _route and error_name in _route:
-            await self.__call_handler(_route[error_name], bot, data, error)
-        _route = route.get(update_type.value, None)
-        if _route and error_name in _route:
-            await self.__call_handler(_route[error_name], bot, data, error)
+        handlers = route.get("any", None)
+        if handlers:
+            for handler in handlers:
+                if handler.include(error):
+                    await self.__call_handler(handler, bot, data, error)
+        handlers = route.get(update_type.value, None)
+        if handlers:
+            for handler in handlers:
+                if handler.include(error):
+                    await self.__call_handler(handler, bot, data, error)
 
     async def __call_command_handler(self, bot: SimpleBot, message: Message) -> bool:
         if UpdateType.COMMAND.value not in self._route_map:
