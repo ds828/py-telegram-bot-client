@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import os
-from typing import Iterable, Optional, Tuple, Callable
+from typing import Iterable, Optional, Tuple, Callable, Dict
 import logging
 
 from simplebot.api import SimpleRequest, TelegramBotAPI
@@ -21,6 +21,7 @@ class SimpleBot:
         "_router",
         "_bot_api",
         "_storage",
+        "_i18n_source",
         "last_update_id",
         "_bot_me",
     )
@@ -30,6 +31,7 @@ class SimpleBot:
         token: str,
         router,
         storage: Optional[SimpleStorage] = None,
+        i18n_source: Optional[Dict] = None,
         http_request: Optional[SimpleRequest] = None,
     ):
         try:
@@ -46,6 +48,7 @@ class SimpleBot:
         self._storage = (
             storage if isinstance(storage, SimpleStorage) else MemoryStorage()
         )
+        self._i18n_source = i18n_source
         self.last_update_id = 0
         self._bot_me = None
 
@@ -148,6 +151,15 @@ class SimpleBot:
 
     def get_session(self, user_id: int, expires: int = 1800) -> SimpleSession:
         return SimpleSession(self.id, user_id, self._storage, expires)
+
+    def get_text(self, lang_code: str, text: str) -> str:
+        if self._i18n_source:
+            lang_source = self._i18n_source.get(lang_code, None)
+            if lang_source:
+                if isinstance(lang_source, dict):
+                    return lang_source.get(text, text)
+                return lang_source.gettext(text)
+        return text
 
     def setup_webhook(
         self,

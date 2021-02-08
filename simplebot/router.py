@@ -531,21 +531,22 @@ class SimpleRouter:
         force_reply_handler_name, force_reply_args = bot.get_force_reply(
             message.from_user.id
         )
-        route = self._route_map[UpdateType.FORCE_REPLY.value]
         if force_reply_handler_name:
             if (
                 UpdateType.FORCE_REPLY.value not in self._route_map
-                or force_reply_handler_name not in route
+                or force_reply_handler_name
+                not in self._route_map[UpdateType.FORCE_REPLY.value]
             ):
                 raise SimpleBotException(
                     "{0} is not a force reply callback".format(force_reply_handler_name)
                 )
+            handler = self._route_map[UpdateType.FORCE_REPLY.value][
+                force_reply_handler_name
+            ]
             if force_reply_args:
-                await self.__call_handler(
-                    route[force_reply_handler_name], bot, message, *force_reply_args
-                )
+                await self.__call_handler(handler, bot, message, *force_reply_args)
             else:
-                await self.__call_handler(route[force_reply_handler_name], bot, message)
+                await self.__call_handler(handler, bot, message)
             return True
         return False
 

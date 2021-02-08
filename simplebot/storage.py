@@ -248,7 +248,7 @@ class SimpleSession:
     def get(self, field: str, default=None) -> Any:
         try:
             return self.__getitem__(field)
-        except:
+        except KeyError:
             return default
 
     def __getitem__(self, field: str) -> Any:
