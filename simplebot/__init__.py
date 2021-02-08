@@ -61,6 +61,7 @@ class BotProxy:
         router: Optional[SimpleRouter] = None,
         handlers: Optional[Iterable[UpdateHandler]] = None,
         storage: Optional[SimpleStorage] = None,
+        i18n_source: Optional[Dict] = None,
         api_host: Optional[str] = None,
         **urllib3_pool_kwargs
     ):
@@ -71,6 +72,7 @@ class BotProxy:
             token,
             router,
             storage,
+            i18n_source,
             SimpleRequest(
                 api_host=api_host or "https://api.telegram.org", **urllib3_pool_kwargs
             ),
