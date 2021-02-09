@@ -1,7 +1,6 @@
 """
 run in terminal: python -m example.live_location.py
 """
-import sqlite3
 
 from simplebot import bot_proxy, SimpleBot
 from simplebot.base import MessageField, Message
@@ -12,41 +11,23 @@ router = bot_proxy.router()
 example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
-conn = sqlite3.connect(
-    "file:memory?cache=shared&mode=memory",
-    detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
-)
-conn.execute(
-    """
-    CREATE TABLE IF NOT EXISTS "t_live_location" (
-                    `id`    INTEGER NOT NULL PRIMARY KEY UNIQUE,
-                    `lng`   REAL    NOT NULL,
-                    `lat`   REAL    NOT NULL,
-                    `time`  INTEGER NOT NULL
-                );
-"""
-)
-conn.commit()
+# when a live location start to be shared
+# the telegram bot server will send a location message which has a 'live_period' field firstly
+@router.message_handler(fields=(MessageField.LOCATION,))
+def on_share_location(bot: SimpleBot, message: Message):
+    if "live_period" in message.location:
+        # begin to share a live location
+        print("start to share live locations")
 
 
+# next, the bot will receive edited messages as live location updates.
+# if a sharing live location is stopped, the bot will receive a location edited message without a 'live_period' field.
 @router.edited_message_handler(fields=(MessageField.LOCATION,))
 def on_live_location(bot: SimpleBot, edited_message: Message):
-    print(edited_message.location, edited_message.edit_date)
-    with conn:
-        conn.execute(
-            """
-            INSERT INTO t_live_location (
-                lng,
-                lat,
-                time
-            ) VALUES (?, ?, ?)
-        """,
-            (
-                edited_message.location.longitude,
-                edited_message.location.latitude,
-                edited_message.edit_date,
-            ),
-        )
+    if "live_period" in edited_message.location:
+        print(edited_message.location, edited_message.edit_date)
+    else:
+        print("stop to share live locations")
 
 
 example_bot.run_polling(timeout=10)
