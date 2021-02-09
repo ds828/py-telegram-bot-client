@@ -177,12 +177,12 @@ class SimpleRouter:
             route["static"][handler.static_match] = handler
         if has_regex_match:
             if "regex" not in route:
-                route["regex"] = []
-            route["regex"].append(handler)
+                route["regex"] = set()
+            route["regex"].add(handler)
         if has_callable_match:
             if "callable" not in route:
-                route["callable"] = []
-            route["callable"].append(handler)
+                route["callable"] = set()
+            route["callable"].add(handler)
         if not has_static_match and not has_regex_match and not has_callable_match:
             if "any" in route:
                 logger.warning(
