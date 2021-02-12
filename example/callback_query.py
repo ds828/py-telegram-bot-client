@@ -7,7 +7,7 @@ from simplebot.base import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
-    MessageType,
+    MessageField,
 )
 from simplebot.ui import Keyboard
 from simplebot.utils import build_callback_data, parse_callback_data
@@ -20,15 +20,19 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-@router.message_handler(message_type=MessageType.TEXT)
+@router.message_handler(fields=(MessageField.TEXT,))
 def on_select(bot: SimpleBot, message: Message):
     keyboard = Keyboard()
     btn_0 = InlineKeyboardButton(text="static", callback_data="static")
     btn_1 = InlineKeyboardButton(text="regex", callback_data="regex-abc123")
     btn_2 = InlineKeyboardButton(
-        text="callable", callback_data=build_callback_data("callable", "match")
+        text="simple-callable",
+        callback_data=build_callback_data("simple-callable", "value", 100),
     )
-    keyboard.add_buttons(btn_0, btn_1, btn_2)
+    btn_3 = InlineKeyboardButton(
+        text="callable", callback_data=build_callback_data("callable", "callable_arg")
+    )
+    keyboard.add_buttons(btn_0, btn_1, btn_2, btn_3)
     bot.send_message(
         chat_id=message.chat.id,
         text="select one",
@@ -39,19 +43,35 @@ def on_select(bot: SimpleBot, message: Message):
 @router.callback_query_handler(static_match="static")
 def on_static_match(bot: SimpleBot, callback_query: CallbackQuery):
     bot.answer_callback_query(callback_query_id=callback_query.id)
-    bot.send_message(chat_id=callback_query.from_user.id, text="your select matches 'static'")
+    bot.send_message(
+        chat_id=callback_query.from_user.id, text="your select matches 'static'"
+    )
 
 
 @router.callback_query_handler(regex_match={r"^regex-.*"})
 def on_regex_match(bot: SimpleBot, callback_query: CallbackQuery, result):
     bot.answer_callback_query(callback_query_id=callback_query.id)
     bot.send_message(
-        chat_id=callback_query.from_user.id, text="your matche result is {0}".format(result)
+        chat_id=callback_query.from_user.id,
+        text="your matche result is {0}".format(result),
+    )
+
+
+@router.callback_query_handler(callback_query_name="simple-callable")
+def on_simple_callable(
+    bot: SimpleBot, callback_query: CallbackQuery, value_str: str, value_int: int
+):
+    bot.answer_callback_query(callback_query_id=callback_query.id)
+    bot.send_message(
+        chat_id=callback_query.from_user.id,
+        text="simple callable with args: {0} {1}".format(value_str, value_int),
     )
 
 
 @router.callback_query_handler(callable_match=parse_callback_data, name="callable")
-def on_callable_match(bot: SimpleBot, callback_query: CallbackQuery, *callback_data_args):
+def on_callable_match(
+    bot: SimpleBot, callback_query: CallbackQuery, *callback_data_args
+):
     bot.answer_callback_query(callback_query_id=callback_query.id)
     bot.send_message(
         chat_id=callback_query.from_user.id,

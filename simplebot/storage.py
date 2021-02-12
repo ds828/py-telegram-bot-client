@@ -203,14 +203,14 @@ class RedisStorage(SimpleStorage):
     def set_value(self, key: str, field: str, value, expires: int) -> bool:
         self._redis.expire(key, expires)
         if value:
-            return bool(self._redis.hset(key, field, json.dumps({field: value})))
+            return bool(self._redis.hset(key, field, json.dumps((value,))))
         return bool(self._redis.hdel(key, field))
 
     def get_value(self, key: str, field: str, expires: int) -> Any:
         self._redis.expire(key, expires)
         value = self._redis.hget(key, field)
         if value:
-            return json.loads(value)[field]
+            return json.loads(value)[0]
         return None
 
     def delete_field(self, key: str, field: str, expires: int) -> bool:
@@ -223,7 +223,7 @@ class RedisStorage(SimpleStorage):
     def dict(self, key: str, expires: int) -> Dict:
         self._redis.expire(key, expires)
         return {
-            field: json.loads(value)[field]
+            field: json.loads(value)[0]
             for field, value in self._redis.hgetall(key).items()
         }
 
@@ -288,7 +288,6 @@ class SimpleSession:
         return self._local_data
 
     def __str__(self):
-        return pretty_json(self.data)
-
-    def __repr__(self):
-        return "{0}:{1}".format(self.id, self._expires)
+        return "Session(id={0}, data={1})".format(
+            self._session_id, pretty_json(self.data)
+        )

@@ -1,8 +1,10 @@
-import re
 import asyncio
-from typing import Iterable, Optional, Callable, Tuple, Union
+import re
 from enum import Enum
+from typing import Callable, Iterable, Optional, Tuple, Union
+
 from simplebot.base import CallbackQuery, MessageField, UpdateType
+from simplebot.utils import parse_callback_data
 
 
 class UpdateHandler:
@@ -173,13 +175,19 @@ class EditedChannelPostHandler(_MessageHandler):
 
 
 class CallbackQueryHandler(UpdateHandler):
-    __slots__ = ("_static_match", "_regex_patterns", "_callable_match", "_kwargs")
+    __slots__ = (
+        "_static_match",
+        "_regex_patterns",
+        "_callable_match",
+        "_kwargs",
+    )
 
     def __init__(
         self,
         callback: Callable,
         static_match: Optional[str] = None,
         regex_match: Optional[Iterable[str]] = None,
+        callback_query_name: Optional[str] = None,
         callable_match: Optional[Callable] = None,
         **kwargs
     ):
@@ -190,8 +198,12 @@ class CallbackQueryHandler(UpdateHandler):
             self._regex_patterns = tuple(
                 [re.compile(regex_str) for regex_str in regex_match]
             )
-        self._callable_match = callable_match
-        self._kwargs = kwargs
+        if isinstance(callback_query_name, str):
+            self._callable_match = parse_callback_data
+            self._kwargs = {"name": callback_query_name}
+        else:
+            self._callable_match = callable_match
+            self._kwargs = kwargs
 
     @property
     def static_match(self):
