@@ -608,23 +608,23 @@ class SimpleRouter:
     async def __call_callback_query_handler(
         self, update_type: UpdateType, bot: SimpleBot, callback_query: CallbackQuery
     ):
-        route = self._route_map.get(update_type.value, None)
-        if not route:
+        routes = self._route_map.get(update_type.value, None)
+        if not routes:
             return
-        if "any" in route:
-            await self.__call_handler(route["all"], bot, callback_query)
+        if "any" in routes:
+            await self.__call_handler(routes["any"], bot, callback_query)
             return
-        if "static" in route:
-            handler = route["static"].get(callback_query.data, None)
+        if "static" in routes:
+            handler = routes["static"].get(callback_query.data, None)
             if handler:
                 await self.__call_handler(handler, bot, callback_query)
                 return
-        for handler in route.get("regex", ()):
+        for handler in routes.get("regex", ()):
             result = handler.regex_match(callback_query)
             if result:
                 await handler(bot, callback_query, result)
                 return
-        for handler in route.get("callable", ()):
+        for handler in routes.get("callable", ()):
             result = handler.callable_match(callback_query)
             if result:
                 if isinstance(result, bool):
