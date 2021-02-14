@@ -2,6 +2,7 @@
 run in cli: python -m example.toggler.py
 """
 import logging
+from simplebot.utils import pretty_print
 from simplebot import bot_proxy, SimpleBot
 from simplebot.base import (
     CallbackQuery,

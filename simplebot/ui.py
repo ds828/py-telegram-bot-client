@@ -8,7 +8,12 @@ from datetime import datetime, date
 from simplebot.bot import SimpleBot
 from simplebot.router import SimpleRouter
 from simplebot.utils import build_callback_data, parse_callback_data
-from simplebot.base import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, SimpleBotException
+from simplebot.base import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    SimpleBotException,
+)
 
 
 class Keyboard:
@@ -127,7 +132,9 @@ class RadioGroup(Keyboard):
             )
             if radio_group.toggle(callback_data_args):
                 if toggle_callback:
-                    toggle_callback(bot, callback_query, *callback_data_args, selected=True)
+                    toggle_callback(
+                        bot, callback_query, *callback_data_args, selected=True
+                    )
                 bot.edit_message_reply_markup(
                     chat_id=callback_query.from_user.id,
                     message_id=callback_query.message.message_id,
@@ -143,7 +150,10 @@ class RadioGroup(Keyboard):
 
 class MultiSelect(RadioGroup):
     _emoji = ("✔", "")
-    def __init__(self, name: str, layout: Optional[List] = None, emoji: Optional[Tuple] = None):
+
+    def __init__(
+        self, name: str, layout: Optional[List] = None, emoji: Optional[Tuple] = None
+    ):
         super().__init__(name, layout=layout, emoji=emoji)
 
     def toggle(self, option_value: Tuple) -> bool:
@@ -152,13 +162,11 @@ class MultiSelect(RadioGroup):
             for button in line:
                 if "callback_data" in button:
                     if button["callback_data"] == target_option:
-                        if button["text"][0] == self._emoji[0]: # selected
-                            button["text"] = button["text"][1:] # make it unselect
+                        if button["text"][0] == self._emoji[0]:  # selected
+                            button["text"] = button["text"][1:]  # make it unselect
                             return False
                         # otherwise make it select
-                        button["text"] = "{0}{1}".format(
-                            self._emoji[0], button["text"]
-                        )
+                        button["text"] = "{0}{1}".format(self._emoji[0], button["text"])
                         return True
         raise SimpleBotException("option is not found")
 
@@ -180,7 +188,7 @@ class MultiSelect(RadioGroup):
         router: SimpleRouter,
         name: str,
         toggle_callback: Optional[Callable] = None,
-        emoji: Optional[Tuple]=None,
+        emoji: Optional[Tuple] = None,
     ):
         def on_select_button_click(
             bot: SimpleBot, callback_query: CallbackQuery, *callback_data_args
@@ -192,7 +200,9 @@ class MultiSelect(RadioGroup):
             )
             selected = mulit_select.toggle(callback_data_args)
             if toggle_callback:
-                toggle_callback(bot, callback_query, *callback_data_args, selected=selected)
+                toggle_callback(
+                    bot, callback_query, *callback_data_args, selected=selected
+                )
             bot.edit_message_reply_markup(
                 chat_id=callback_query.from_user.id,
                 message_id=callback_query.message.message_id,
@@ -206,6 +216,7 @@ class MultiSelect(RadioGroup):
 
 class Toggler(RadioGroup):
     _emoji = ("😀", "🙁")
+
     def __init__(
         self,
         name: str,
@@ -223,7 +234,7 @@ class Toggler(RadioGroup):
             for button in line:
                 if "callback_data" in button:
                     if button["callback_data"] == target_option:
-                        if button["text"][0] == self._emoji[0]: # status is on
+                        if button["text"][0] == self._emoji[0]:  # status is on
                             button["text"] = "{0}{1}".format(
                                 self._emoji[1], button["text"][1:]
                             )
@@ -235,13 +246,12 @@ class Toggler(RadioGroup):
                         return True
         raise SimpleBotException("option is not found")
 
-
     @staticmethod
     def set_auto_toggle(
         router: SimpleRouter,
         name: str,
         toggle_callback: Optional[Callable] = None,
-        emoji: Optional[Tuple]=None,
+        emoji: Optional[Tuple] = None,
     ):
         def on_toggle_button_click(
             bot: SimpleBot, callback_query: CallbackQuery, *callback_data_args
@@ -253,7 +263,12 @@ class Toggler(RadioGroup):
             )
             switch_status = toggler.toggle(callback_data_args)
             if toggle_callback:
-                toggle_callback(bot, callback_query, *callback_data_args, switch_status=switch_status)
+                toggle_callback(
+                    bot,
+                    callback_query,
+                    *callback_data_args,
+                    switch_status=switch_status
+                )
             bot.edit_message_reply_markup(
                 chat_id=callback_query.from_user.id,
                 message_id=callback_query.message.message_id,
@@ -264,7 +279,6 @@ class Toggler(RadioGroup):
             callback=on_toggle_button_click,
             callback_query_name=name,
         )
-
 
 
 # Not done yet

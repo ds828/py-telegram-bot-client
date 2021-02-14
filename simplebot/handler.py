@@ -38,6 +38,9 @@ class UpdateHandler:
     def __str__(self) -> str:
         return "{0}@{1}".format(self.update_types, self.name)
 
+    def __repr__(self) -> str:
+        return self.name
+
     async def __call__(self, *args, **kwargs):
         if asyncio.iscoroutinefunction(self._callback):
             return await self._callback(*args, **kwargs)
