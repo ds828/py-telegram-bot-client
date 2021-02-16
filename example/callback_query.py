@@ -5,11 +5,10 @@ from simplebot import bot_proxy, SimpleBot
 from simplebot.base import (
     CallbackQuery,
     InlineKeyboardButton,
-    InlineKeyboardMarkup,
     Message,
     MessageField,
 )
-from simplebot.ui import Keyboard
+from simplebot.ui import InlineKeyboard
 from simplebot.utils import build_callback_data, parse_callback_data
 
 from example.settings import BOT_TOKEN
@@ -22,7 +21,7 @@ example_bot.delete_webhook(drop_pending_updates=True)
 
 @router.message_handler(fields=(MessageField.TEXT,))
 def on_select(bot: SimpleBot, message: Message):
-    keyboard = Keyboard()
+    keyboard = InlineKeyboard()
     btn_0 = InlineKeyboardButton(text="static", callback_data="static")
     btn_1 = InlineKeyboardButton(text="regex", callback_data="regex-abc123")
     btn_2 = InlineKeyboardButton(
@@ -34,9 +33,7 @@ def on_select(bot: SimpleBot, message: Message):
     )
     keyboard.add_buttons(btn_0, btn_1, btn_2, btn_3)
     bot.send_message(
-        chat_id=message.chat.id,
-        text="select one",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard.layout),
+        chat_id=message.chat.id, text="select one", reply_markup=keyboard.markup()
     )
 
 
