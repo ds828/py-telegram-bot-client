@@ -10,7 +10,7 @@ from simplebot.base import (
     Message,
     MessageField,
 )
-from simplebot.ui import MultiSelect
+from simplebot.ui import InlineKeyboard
 from example.settings import BOT_TOKEN
 
 logger = logging.getLogger("simple-bot")
@@ -21,44 +21,46 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-def select_toggle_callback(
-    bot: SimpleBot, callback_query: CallbackQuery, *option, selected
-):
-    print(option, selected)
+def select_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
+    print("you select: ", option)
 
 
-MultiSelect.set_auto_toggle(
-    router, name="mulit-select", toggle_callback=select_toggle_callback
+def unselect_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
+    print("you unselect: ", option)
+
+
+InlineKeyboard.set_select_callback(
+    router,
+    name="select-group",
+    select_callback=select_callback,
+    unselect_callback=unselect_callback,
 )
 
 
 @router.message_handler(fields=(MessageField.TEXT,))
 def on_show_keyboard(bot: SimpleBot, message: Message):
-    multi_select = MultiSelect(name="mulit-select")
-    multi_select.add_options(
-        (True, "select1", "select-value1"),  # selected
+    keyboard = InlineKeyboard()
+    keyboard.add_select_group(
+        "select-group",
+        ("select1", "select-value1", True),  # selected
         ("select2", "select-value2"),
         ("select3", "select-value3"),
     )
-    multi_select.add_buttons(
-        InlineKeyboardButton(text="submit", callback_data="submit")
-    )
+    keyboard.add_buttons(InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(
         chat_id=message.chat.id,
         text="Your selections:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=multi_select.layout),
+        reply_markup=keyboard.markup(),
     )
 
 
 @router.callback_query_handler(static_match="submit")
 def on_submit(bot, callback_query):
-    multi_select = MultiSelect(
-        name="mulit-select", layout=callback_query.message.reply_markup.inline_keyboard
-    )
+    keyboard = InlineKeyboard(markup=callback_query.message.reply_markup)
     bot.send_message(
         chat_id=callback_query.from_user.id,
         text="you select: {0}".format(
-            multi_select.get_selected(),
+            keyboard.get_selected_selects("select-group"),
         ),
     )
 
