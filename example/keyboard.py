@@ -7,10 +7,9 @@ from simplebot.base import (
     Message,
     KeyboardButton,
     MessageField,
-    ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
 )
-from simplebot.ui import Keyboard
+from simplebot.ui import ReplyKeyboard
 from example.settings import BOT_TOKEN
 
 logger = logging.getLogger("simple-bot")
@@ -26,13 +25,13 @@ def on_show_keyboard(bot: SimpleBot, message: Message):
     btn_text = KeyboardButton("click me")
     btn_contact = KeyboardButton("share your contact", request_contact=True)
     btn_location = KeyboardButton("share your location", request_location=True)
-    keyboard = Keyboard()
+    keyboard = ReplyKeyboard()
     keyboard.add_buttons(btn_text, btn_contact, btn_location)
     keyboard.add_line(btn_text, btn_contact, btn_location)
     bot.send_message(
         chat_id=message.chat.id,
         text=message.text,
-        reply_markup=ReplyKeyboardMarkup(keyboard=keyboard.layout, selective=True),
+        reply_markup=keyboard.markup(selective=True),
     )
     bot.join_force_reply(user_id=message.from_user.id, callback=on_reply_button_click)
 

@@ -1,5 +1,4 @@
-from typing import Callable, Iterable, Tuple, Optional, List
-from datetime import datetime, date
+from typing import Callable, Tuple, Optional, List
 
 from simplebot.bot import SimpleBot
 from simplebot.router import SimpleRouter
@@ -8,15 +7,21 @@ from simplebot.base import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
     SimpleBotException,
 )
 
+_RADIO_EMOJI = ("🔘", "⚪")
+_SELECT_EMOJI = ("✔", "")
+_TOGGLER_EMOJI = ("🔓", "🔒")
 
-class Keyboard:
+
+class ReplyKeyboard:
     __slots__ = ("_layout",)
 
-    def __init__(self, layout: Optional[List] = None):
-        self._layout = layout or []
+    def __init__(self, markup: Optional[List] = None):
+        self._layout = markup["keyboard"] if markup else []
 
     def add_buttons(self, *buttons, col: int = 1):
         for idx in range(0, len(buttons), col):
@@ -25,286 +30,228 @@ class Keyboard:
     def add_line(self, *buttons):
         self._layout.append(tuple(buttons))
 
-    def add_keyboard(self, keyboard):
-        self._layout += keyboard.layout
+    def delete_line(self, line_idx: int):
+        del self._layout[line_idx]
 
     def delete_button(self, line_idx: int, col_idx: int):
         del self._layout[line_idx][col_idx]
 
-    @property
-    def layout(self):
-        return self._layout
+    def replace_button(self, line_idx: int, col_idx: int, button: KeyboardButton):
+        self._layout[line_idx][col_idx] = button
+
+    def markup(self, **kwargs):
+        return ReplyKeyboardMarkup(keyboard=self._layout, **kwargs)
 
 
-class RadioGroup(Keyboard):
-    __slots__ = ("_name",)
-    _emoji = ("🔘", "⚪")
+class InlineKeyboard(ReplyKeyboard):
 
-    def __init__(
-        self, name: str, layout: Optional[List] = None, emoji: Optional[Tuple] = None
-    ):
-        self._name = name
-        if emoji:
-            _emoji = emoji
-        if layout:
-            for line in layout:
-                for button in line:
-                    if parse_callback_data(button["callback_data"], name):
-                        super().__init__(layout=layout)
-                        return
-        super().__init__(layout=None)
+    def __init__(self, markup: Optional[List] = None):
+        self._layout = markup["inline_keyboard"] if markup else []
 
-    def add_options(self, *options: Iterable, col: int = 1):
+    def markup(self, **kwargs):
+        return InlineKeyboardMarkup(inline_keyboard=self._layout)
+
+    def add_radio_group(self, name: str, *options, col: int = 1, emoji=_RADIO_EMOJI):
+        # option: (text, value, selected: optional)
         for idx in range(0, len(options), col):
             self._layout.append(
                 [
                     InlineKeyboardButton(
                         text="{0}{1}".format(
-                            self._emoji[0] if option[0] is True else self._emoji[1],
-                            option[1] if option[0] is True else option[0],
+                            emoji[0]
+                            if len(option) == 3 and option[2] is True
+                            else emoji[1],
+                            option[0],
                         ),
-                        callback_data=build_callback_data(
-                            self._name,
-                            *(option[2:] if option[0] is True else option[1:])
-                        ),
+                        callback_data=build_callback_data(name, option[1]),
                     )
                     for option in options[idx : idx + col]
                 ]
             )
 
-    def toggle(self, option_value: tuple) -> bool:
-        toggled = False
-        toggled_option = build_callback_data(self._name, *option_value)
+    def get_selected_radio(self, name: str, emoji=_RADIO_EMOJI) -> Optional[Tuple]:
         for line in self._layout:
             for button in line:
-                if "callback_data" in button:
-                    if button["text"][0] not in self._emoji:
-                        continue
-                    if button["callback_data"].split("|")[0] != self._name:
-                        continue
-                    if button["callback_data"] == toggled_option:
-                        if button["text"][0] == self._emoji[1]:  # unselected
-                            button["text"] = "{0}{1}".format(
-                                self._emoji[0], button["text"][1:]
-                            )  # make it select
-                            toggled = True
-                        else:
-                            # already selected
-                            return False
-                    elif button["text"][0] == self._emoji[0]:  # selected
-                        button["text"] = "{0}{1}".format(
-                            self._emoji[1], button["text"][1:]
-                        )  # make it unselect
-                        toggled = True
-        return toggled
-
-    def get_selected(self) -> Optional[Tuple]:
-        for line in self._layout:
-            for button in line:
-                if "callback_data" in button and button["text"][0] == self._emoji[0]:
-                    if button["callback_data"].startswith(self._name):
-                        return parse_callback_data(button["callback_data"], self._name)
+                if "callback_data" in button and button["text"][0] == emoji[0]:
+                    if button["callback_data"].startswith(name):
+                        return parse_callback_data(button["callback_data"], name)
         return None
 
-    def delete_all(self):
-        if self._layout:
-            for line in self._layout:
-                for idx, button in enumerate(line):
-                    if parse_callback_data(button["callback_data"], self._name):
-                        del line[idx]
+    def click_radio(
+        self, name: str, option, emoji=_RADIO_EMOJI
+    ) -> bool:
+        changed = False
+        clicked_option = build_callback_data(name, option)
+        print(clicked_option)
+        for line in self._layout:
+            for button in line:
+                # the button is a inlinebutton
+                if "callback_data" in button:
+                    # it is a radio
+                    if button["text"][0] in emoji:
+                        # it is a radio I want
+                        if button["callback_data"].split("|")[0] == name:
+                            # it is the radio I click
+                            if button["callback_data"] == clicked_option:
+                                if button["text"][0] == emoji[0]:
+                                    return False
+                                button["text"] = "{0}{1}".format(
+                                    emoji[0], button["text"][1:]
+                                )  # make it select
+                                changed = True
+                            else:
+                                if button["text"][0] == emoji[0]:
+                                    button["text"] = "{0}{1}".format(
+                                        emoji[1], button["text"][1:]
+                                    )
+        return changed
 
     @staticmethod
-    def set_auto_toggle(
+    def set_radio_callback(
         router: SimpleRouter,
         name: str,
-        toggle_callback: Optional[Callable] = None,
-        emoji: Optional[Tuple] = None,
+        radio_callback: Optional[Callable] = None,
+        emoji=_RADIO_EMOJI,
     ):
-        def on_radio_button_click(bot, callback_query, *callback_data_args):
-            radio_group = RadioGroup(
-                name=name,
-                layout=callback_query.message.reply_markup.inline_keyboard,
-                emoji=emoji,
+        def on_radio_click(bot, callback_query, radio_option):
+            keyboard = InlineKeyboard(
+                markup=callback_query.message.reply_markup,
             )
-            if radio_group.toggle(callback_data_args):
-                if toggle_callback:
-                    toggle_callback(
-                        bot, callback_query, *callback_data_args, selected=True
-                    )
+            if keyboard.click_radio(name, radio_option, emoji=emoji):
+                if radio_callback:
+                    radio_callback(bot, callback_query, radio_option)
                 bot.edit_message_reply_markup(
                     chat_id=callback_query.from_user.id,
                     message_id=callback_query.message.message_id,
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=radio_group.layout
-                    ),
+                    reply_markup=keyboard.markup(),
                 )
 
         router.register_callback_query_handler(
-            callback=on_radio_button_click, callback_query_name=name
+            callback=on_radio_click, callback_query_name=name
         )
 
+    def add_select_group(self, name: str, *options, col: int = 1, emoji=_SELECT_EMOJI):
+        self.add_radio_group(name, *options, col=col, emoji=emoji)
 
-class MultiSelect(RadioGroup):
-    _emoji = ("✔", "")
+    def get_selected_selects(self, name: str, emoji=_SELECT_EMOJI) -> Tuple:
+        selected_options = []
+        for line in self._layout:
+            for button in line:
+                if "callback_data" in button and button["text"][0] == emoji[0]:
+                    if button["callback_data"].startswith(name):
+                        selected_options.append(
+                            parse_callback_data(button["callback_data"], name=name)
+                        )
+        return tuple(selected_options)
 
-    def __init__(
-        self, name: str, layout: Optional[List] = None, emoji: Optional[Tuple] = None
-    ):
-        super().__init__(name, layout=layout, emoji=emoji)
-
-    def toggle(self, option_value: Tuple) -> bool:
-        target_option = build_callback_data(self._name, *option_value)
+    def click_select(self, name: str, option, emoji=_SELECT_EMOJI):
+        toggled_option = build_callback_data(name, option)
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
-                    if button["callback_data"] == target_option:
-                        if button["text"][0] == self._emoji[0]:  # selected
+                    if button["callback_data"] == toggled_option:
+                        if button["text"][0] == emoji[0]:  # selected
                             button["text"] = button["text"][1:]  # make it unselect
                             return False
                         # otherwise make it select
-                        button["text"] = "{0}{1}".format(self._emoji[0], button["text"])
+                        button["text"] = "{0}{1}".format(emoji[0], button["text"])
                         return True
-        raise SimpleBotException("option is not found")
-
-    def get_selected(self) -> Tuple:
-        selected = []
-        for line in self._layout:
-            for button in line:
-                if "callback_data" in button and button["text"][0] == self._emoji[0]:
-                    if button["callback_data"].startswith(self._name):
-                        selected.append(
-                            parse_callback_data(
-                                button["callback_data"], name=self._name
-                            )
-                        )
-        return tuple(selected)
+        raise SimpleBotException("the option: {0} is not found".format(toggled_option))
 
     @staticmethod
-    def set_auto_toggle(
+    def set_select_callback(
         router: SimpleRouter,
         name: str,
-        toggle_callback: Optional[Callable] = None,
-        emoji: Optional[Tuple] = None,
+        select_callback: Optional[Callable] = None,
+        unselect_callback: Optional[Callable] = None,
+        emoji=_SELECT_EMOJI,
     ):
-        def on_select_button_click(
-            bot: SimpleBot, callback_query: CallbackQuery, *callback_data_args
+        def on_select_click(
+            bot: SimpleBot, callback_query: CallbackQuery, clicked_option
         ):
-            mulit_select = MultiSelect(
-                name=name,
-                layout=callback_query.message.reply_markup.inline_keyboard,
-                emoji=emoji,
+            keyboard = InlineKeyboard(
+                markup=callback_query.message.reply_markup,
             )
-            selected = mulit_select.toggle(callback_data_args)
-            if toggle_callback:
-                toggle_callback(
-                    bot, callback_query, *callback_data_args, selected=selected
-                )
+            selected = keyboard.click_select(name, clicked_option, emoji)
+            if selected:
+                if select_callback:
+                    select_callback(bot, callback_query, clicked_option)
+            elif unselect_callback:
+                unselect_callback(bot, callback_query, clicked_option)
+
             bot.edit_message_reply_markup(
                 chat_id=callback_query.from_user.id,
                 message_id=callback_query.message.message_id,
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=mulit_select.layout),
+                reply_markup=keyboard.markup(),
             )
 
         router.register_callback_query_handler(
-            callback=on_select_button_click,
+            callback=on_select_click,
             callback_query_name=name,
         )
 
+    def add_toggler(self, name: str, checked: bool = True, emoji=_TOGGLER_EMOJI):
+        select_emoji = emoji[1]
+        if checked:
+            select_emoji = emoji[0]
+        self.add_buttons(
+            InlineKeyboardButton(
+                text="{0}{1}".format(select_emoji, name), callback_data=name
+            )
+        )
 
-class Toggler(RadioGroup):
-    _emoji = ("😀", "🙁")
-
-    def __init__(
-        self,
-        name: str,
-        option_value: Optional[Tuple] = None,
-        layout: Optional[Iterable] = None,
-        emoji: Optional[Tuple] = None,
-    ):
-        super().__init__(name=name, layout=layout, emoji=emoji)
-        if option_value:
-            self.add_options(option_value)
-
-    def toggle(self, option_value: Tuple) -> bool:
-        target_option = build_callback_data(self._name, *option_value)
+    def toggle(self, name, emoji=_TOGGLER_EMOJI) -> bool:
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
-                    if button["callback_data"] == target_option:
-                        if button["text"][0] == self._emoji[0]:  # status is on
-                            button["text"] = "{0}{1}".format(
-                                self._emoji[1], button["text"][1:]
-                            )
+                    if button["callback_data"] == name:
+                        if button["text"][0] == emoji[0]:  # status is checked
+                            # make it be unchecked
+                            button["text"] = "{0}{1}".format(emoji[1], name)
                             return False
-                        # otherwise make it on
-                        button["text"] = "{0}{1}".format(
-                            self._emoji[0], button["text"][1:]
-                        )
+                        # otherwise make it be checked
+                        button["text"] = "{0}{1}".format(emoji[0], name)
                         return True
-        raise SimpleBotException("option is not found")
+        raise SimpleBotException("toggler name: {0} is not found".format(name))
+
+    def get_toggler_status(self, name: str, emoji=_TOGGLER_EMOJI):
+        for line in self._layout:
+            for button in line:
+                if "callback_data" in button:
+                    if button["callback_data"] == name:
+                        return button["text"][0] == emoji[0]
+        raise SimpleBotException("toggler name: {0} is not found".format(name))
 
     @staticmethod
-    def set_auto_toggle(
+    def set_toggle_callback(
         router: SimpleRouter,
         name: str,
-        toggle_callback: Optional[Callable] = None,
-        emoji: Optional[Tuple] = None,
+        toggle_on_callback: Optional[Callable] = None,
+        toggle_off_callback: Optional[Callable] = None,
+        emoji=_TOGGLER_EMOJI,
     ):
-        def on_toggle_button_click(
-            bot: SimpleBot, callback_query: CallbackQuery, *callback_data_args
+        def on_toggle_click(
+            bot: SimpleBot, callback_query: CallbackQuery
         ):
-            toggler = Toggler(
-                name=name,
-                layout=callback_query.message.reply_markup.inline_keyboard,
-                emoji=emoji,
+            keyboard = InlineKeyboard(
+                markup=callback_query.message.reply_markup,
             )
-            switch_status = toggler.toggle(callback_data_args)
-            if toggle_callback:
-                toggle_callback(
-                    bot,
-                    callback_query,
-                    *callback_data_args,
-                    switch_status=switch_status
-                )
+            checked = keyboard.toggle(name, emoji)
+            if checked:
+                if toggle_on_callback:
+                    toggle_on_callback(
+                        bot,
+                        callback_query,
+                    )
+            elif toggle_off_callback:
+                toggle_off_callback(bot, callback_query)
             bot.edit_message_reply_markup(
                 chat_id=callback_query.from_user.id,
                 message_id=callback_query.message.message_id,
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=toggler.layout),
+                reply_markup=keyboard.markup(),
             )
 
         router.register_callback_query_handler(
-            callback=on_toggle_button_click,
-            callback_query_name=name,
+            callback=on_toggle_click,
+            static_match=name,
         )
-
-
-# Not done yet
-class DateTimePicker(RadioGroup):
-    def __init__(
-        self,
-        name: str,
-        start_date: str = None,
-        end_date: str = None,
-        week_start: int = 0,
-        format: str = "dd/mm/yyyy",
-        disabled_days_of_week=None,
-        today_button: bool = True,
-        languages=None,
-        layout: Optional[List] = None,
-        emoji=("⭐", ""),
-    ):
-        super().__init__(name=name, layout=layout, emoji=emoji)
-        self._start_date = (
-            datetime.strptime(start_date, format) if start_date else date.today()
-        )
-        self._end_date = (
-            datetime.strptime(end_date, format) if end_date else date.today()
-        )
-        self._week_start = week_start
-        self._format = format
-        self._disabled_days_of_week = disabled_days_of_week
-        self._today_button = today_button
-        self._languages = languages
-
-    def next(self, days=7, col=1):
-        pass
