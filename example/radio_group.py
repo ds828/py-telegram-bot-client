@@ -21,11 +21,13 @@ example_bot.delete_webhook(drop_pending_updates=True)
 
 
 def radio_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
-    print("you select: ", option)
+    bot.send_message(
+        chat_id=callback_query.from_user.id, text="you click: {0}".format(option)
+    )
 
 
 InlineKeyboard.set_radio_callback(
-    router, name="radio-group", radio_callback=radio_callback
+    router, name="radio-group", radio_changed_callback=radio_callback
 )
 
 
@@ -43,11 +45,11 @@ def on_show_keyboard(bot: SimpleBot, message: Message):
 
 @router.callback_query_handler(static_match="submit")
 def on_submit(bot, callback_query):
-    keyboard = InlineKeyboard(markup=callback_query.message.reply_markup)
+    keyboard = InlineKeyboard(callback_query.message.reply_markup.inline_keyboard)
     bot.send_message(
         chat_id=callback_query.from_user.id,
         text="you select: {0}".format(
-            keyboard.get_selected_radio("radio-group"),
+            keyboard.get_radio_value("radio-group"),
         ),
     )
 

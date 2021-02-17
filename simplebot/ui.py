@@ -20,8 +20,8 @@ _TOGGLER_EMOJI = ("🔓", "🔒")
 class ReplyKeyboard:
     __slots__ = ("_layout",)
 
-    def __init__(self, markup: Optional[List] = None):
-        self._layout = markup["keyboard"] if markup else []
+    def __init__(self, keyboard: Optional[List] = None):
+        self._layout = keyboard or []
 
     def add_buttons(self, *buttons, col: int = 1):
         for idx in range(0, len(buttons), col):
@@ -45,11 +45,18 @@ class ReplyKeyboard:
 
 class InlineKeyboard(ReplyKeyboard):
 
-    def __init__(self, markup: Optional[List] = None):
-        self._layout = markup["inline_keyboard"] if markup else []
+    def __init__(self, keyboard: Optional[List] = None):
+        super().__init__(keyboard=keyboard)
 
     def markup(self, **kwargs):
         return InlineKeyboardMarkup(inline_keyboard=self._layout)
+
+    def has_button(self, name: str):
+        for line in self._layout:
+            for button in line:
+                if button["callback_data"].split("|")[0] == name:
+                    return True
+        return False
 
     def add_radio_group(self, name: str, *options, col: int = 1, emoji=_RADIO_EMOJI):
         # option: (text, value, selected: optional)
@@ -69,20 +76,28 @@ class InlineKeyboard(ReplyKeyboard):
                 ]
             )
 
-    def get_selected_radio(self, name: str, emoji=_RADIO_EMOJI) -> Optional[Tuple]:
+    def delete_radio_group(self, name: str):
+        for line_idx, line in enumerate(self._layout):
+            for btn_idx, button in enumerate(line):
+                # the button is a inlinebutton
+                if "callback_data" in button:
+                    if button["callback_data"].split("|")[0] == name:
+                        del self._layout[line_idx][btn_idx]
+
+
+    def get_radio_value(self, name: str, emoji=_RADIO_EMOJI) -> Optional[Tuple]:
         for line in self._layout:
             for button in line:
                 if "callback_data" in button and button["text"][0] == emoji[0]:
                     if button["callback_data"].startswith(name):
-                        return parse_callback_data(button["callback_data"], name)
+                        return parse_callback_data(button["callback_data"], name)[0]
         return None
 
-    def click_radio(
+    def change_radio_status(
         self, name: str, option, emoji=_RADIO_EMOJI
     ) -> bool:
         changed = False
         clicked_option = build_callback_data(name, option)
-        print(clicked_option)
         for line in self._layout:
             for button in line:
                 # the button is a inlinebutton
@@ -110,16 +125,16 @@ class InlineKeyboard(ReplyKeyboard):
     def set_radio_callback(
         router: SimpleRouter,
         name: str,
-        radio_callback: Optional[Callable] = None,
+        radio_changed_callback: Optional[Callable] = None,
         emoji=_RADIO_EMOJI,
     ):
         def on_radio_click(bot, callback_query, radio_option):
             keyboard = InlineKeyboard(
-                markup=callback_query.message.reply_markup,
+                keyboard=callback_query.message.reply_markup.inline_keyboard,
             )
-            if keyboard.click_radio(name, radio_option, emoji=emoji):
-                if radio_callback:
-                    radio_callback(bot, callback_query, radio_option)
+            if keyboard.change_radio_status(name, radio_option, emoji=emoji):
+                if radio_changed_callback:
+                    radio_changed_callback(bot, callback_query, radio_option)
                 bot.edit_message_reply_markup(
                     chat_id=callback_query.from_user.id,
                     message_id=callback_query.message.message_id,
@@ -133,18 +148,18 @@ class InlineKeyboard(ReplyKeyboard):
     def add_select_group(self, name: str, *options, col: int = 1, emoji=_SELECT_EMOJI):
         self.add_radio_group(name, *options, col=col, emoji=emoji)
 
-    def get_selected_selects(self, name: str, emoji=_SELECT_EMOJI) -> Tuple:
+    def get_select_value(self, name: str, emoji=_SELECT_EMOJI) -> Tuple:
         selected_options = []
         for line in self._layout:
             for button in line:
                 if "callback_data" in button and button["text"][0] == emoji[0]:
                     if button["callback_data"].startswith(name):
                         selected_options.append(
-                            parse_callback_data(button["callback_data"], name=name)
+                            parse_callback_data(button["callback_data"], name=name)[0]
                         )
         return tuple(selected_options)
 
-    def click_select(self, name: str, option, emoji=_SELECT_EMOJI):
+    def change_select_status(self, name: str, option, emoji=_SELECT_EMOJI):
         toggled_option = build_callback_data(name, option)
         for line in self._layout:
             for button in line:
@@ -162,23 +177,22 @@ class InlineKeyboard(ReplyKeyboard):
     def set_select_callback(
         router: SimpleRouter,
         name: str,
-        select_callback: Optional[Callable] = None,
-        unselect_callback: Optional[Callable] = None,
+        selected_callback: Optional[Callable] = None,
+        unselected_callback: Optional[Callable] = None,
         emoji=_SELECT_EMOJI,
     ):
         def on_select_click(
             bot: SimpleBot, callback_query: CallbackQuery, clicked_option
         ):
             keyboard = InlineKeyboard(
-                markup=callback_query.message.reply_markup,
+                keyboard=callback_query.message.reply_markup.inline_keyboard,
             )
-            selected = keyboard.click_select(name, clicked_option, emoji)
+            selected = keyboard.change_select_status(name, clicked_option, emoji)
             if selected:
-                if select_callback:
-                    select_callback(bot, callback_query, clicked_option)
-            elif unselect_callback:
-                unselect_callback(bot, callback_query, clicked_option)
-
+                if selected_callback:
+                    selected_callback(bot, callback_query, clicked_option)
+            elif unselected_callback:
+                unselected_callback(bot, callback_query, clicked_option)
             bot.edit_message_reply_markup(
                 chat_id=callback_query.from_user.id,
                 message_id=callback_query.message.message_id,
@@ -214,7 +228,7 @@ class InlineKeyboard(ReplyKeyboard):
                         return True
         raise SimpleBotException("toggler name: {0} is not found".format(name))
 
-    def get_toggler_status(self, name: str, emoji=_TOGGLER_EMOJI):
+    def get_toggler_value(self, name: str, emoji=_TOGGLER_EMOJI):
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
@@ -234,7 +248,7 @@ class InlineKeyboard(ReplyKeyboard):
             bot: SimpleBot, callback_query: CallbackQuery
         ):
             keyboard = InlineKeyboard(
-                markup=callback_query.message.reply_markup,
+                keyboard=callback_query.message.reply_markup.inline_keyboard,
             )
             checked = keyboard.toggle(name, emoji)
             if checked:
