@@ -1,12 +1,11 @@
 """
-run in cli: python -m example.multi_select.py
+run in cli: python -m example.select_group.py
 """
 import logging
 from simplebot import bot_proxy, SimpleBot
 from simplebot.base import (
     CallbackQuery,
     InlineKeyboardButton,
-    InlineKeyboardMarkup,
     Message,
     MessageField,
 )
@@ -22,18 +21,22 @@ example_bot.delete_webhook(drop_pending_updates=True)
 
 
 def select_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
-    print("you select: ", option)
+    bot.send_message(
+        chat_id=callback_query.from_user.id, text="you select: {0}".format(option)
+    )
 
 
 def unselect_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
-    print("you unselect: ", option)
+    bot.send_message(
+        chat_id=callback_query.from_user.id, text="you unselect: {0}".format(option)
+    )
 
 
 InlineKeyboard.set_select_callback(
     router,
     name="select-group",
-    select_callback=select_callback,
-    unselect_callback=unselect_callback,
+    selected_callback=select_callback,
+    unselected_callback=unselect_callback,
 )
 
 
@@ -56,11 +59,11 @@ def on_show_keyboard(bot: SimpleBot, message: Message):
 
 @router.callback_query_handler(static_match="submit")
 def on_submit(bot, callback_query):
-    keyboard = InlineKeyboard(markup=callback_query.message.reply_markup)
+    keyboard = InlineKeyboard(callback_query.message.reply_markup.inline_keyboard)
     bot.send_message(
         chat_id=callback_query.from_user.id,
         text="you select: {0}".format(
-            keyboard.get_selected_selects("select-group"),
+            keyboard.get_select_value("select-group"),
         ),
     )
 
