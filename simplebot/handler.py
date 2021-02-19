@@ -13,9 +13,11 @@ class UpdateHandler:
     def __init__(
         self,
         callback: Callable,
-        update_types: Optional[Iterable[Union[str, UpdateType]]] = ("any",),
+        update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
     ):
         self._callback = callback
+        if update_types is None:
+            update_types = ("any",)
         self._update_types = tuple(
             map(
                 lambda update_type: update_type.value
