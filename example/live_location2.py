@@ -16,7 +16,7 @@ example_bot.delete_webhook(drop_pending_updates=True)
 @router.message_handler(fields=(MessageField.LOCATION,))
 def on_share_user_location(bot: SimpleBot, message: Message):
     if "live_period" in message.location:
-        # filter off live location messages
+        # we do not need live location messages
         return
     # the bot sends a shareing live locations message with a faked location
     sent_message = bot.send_location(

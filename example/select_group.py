@@ -32,7 +32,7 @@ def unselect_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
     )
 
 
-InlineKeyboard.set_select_callback(
+InlineKeyboard.auto_select(
     router,
     name="select-group",
     selected_callback=select_callback,

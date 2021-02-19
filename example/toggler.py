@@ -28,7 +28,7 @@ def toggle_off_callback(bot: SimpleBot, callback_query: CallbackQuery):
     bot.send_message(chat_id=callback_query.from_user.id, text="toggler is off")
 
 
-InlineKeyboard.set_toggle_callback(
+InlineKeyboard.auto_toggle(
     router,
     name="toggler",
     toggle_on_callback=toggle_on_callback,
