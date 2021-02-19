@@ -122,7 +122,7 @@ class InlineKeyboard(ReplyKeyboard):
         return changed
 
     @staticmethod
-    def set_radio_callback(
+    def auto_radio(
         router: SimpleRouter,
         name: str,
         radio_changed_callback: Optional[Callable] = None,
@@ -174,7 +174,7 @@ class InlineKeyboard(ReplyKeyboard):
         raise SimpleBotException("the option: {0} is not found".format(toggled_option))
 
     @staticmethod
-    def set_select_callback(
+    def auto_select(
         router: SimpleRouter,
         name: str,
         selected_callback: Optional[Callable] = None,
@@ -237,7 +237,7 @@ class InlineKeyboard(ReplyKeyboard):
         raise SimpleBotException("toggler name: {0} is not found".format(name))
 
     @staticmethod
-    def set_toggle_callback(
+    def auto_toggle(
         router: SimpleRouter,
         name: str,
         toggle_on_callback: Optional[Callable] = None,

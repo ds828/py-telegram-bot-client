@@ -26,7 +26,7 @@ def radio_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
     )
 
 
-InlineKeyboard.set_radio_callback(
+InlineKeyboard.auto_radio(
     router, name="radio-group", radio_changed_callback=radio_callback
 )
 
