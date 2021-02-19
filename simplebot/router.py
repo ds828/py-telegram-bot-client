@@ -93,19 +93,19 @@ class SimpleRouter:
                 "bind a %s %s: '%s@%s'",
                 interceptor.type,
                 interceptor.__class__.__name__,
-                interceptor.name,
+                interceptor,
                 self.name,
             )
 
     def register_error_handler(self, handler: ErrorHandler):
         if "error" not in self._route_map:
-            self._route_map["error"] = defaultdict(set)
+            self._route_map["error"] = defaultdict(list)
         for update_type in handler.update_types:
-            self._route_map["error"][update_type].add(handler)
+            self._route_map["error"][update_type].append(handler)
             logger.info(
-                "bind a ErrorHandler on %s Update: '%s@%s'",
+                "bind a ErrorHandler on %s Update: %s@%s",
                 update_type,
-                handler.name,
+                handler,
                 self.name,
             )
 
@@ -118,9 +118,9 @@ class SimpleRouter:
     def __add_or_group(self, update_type: str, handler: _MessageHandler):
         route = self._route_map[update_type]
         if "or" not in route:
-            route["or"] = defaultdict(set)
+            route["or"] = defaultdict(list)
         for field in handler.message_fields:
-            route["or"][field].add(handler)
+            route["or"][field].append(handler)
 
     def __add_message_handler(self, handler: MessageHandler):
         update_type = handler.update_types[0]
@@ -133,7 +133,7 @@ class SimpleRouter:
                 logger.warning(
                     "You are overwritting a message handler: %s on any updatetypes with %s",
                     route["any"],
-                    handler.name,
+                    handler,
                 )
             route["any"] = handler
             return
@@ -177,18 +177,18 @@ class SimpleRouter:
             route["static"][handler.static_match] = handler
         if has_regex_match:
             if "regex" not in route:
-                route["regex"] = set()
-            route["regex"].add(handler)
+                route["regex"] =[]
+            route["regex"].append(handler)
         if has_callable_match:
             if "callable" not in route:
-                route["callable"] = set()
-            route["callable"].add(handler)
+                route["callable"] = []
+            route["callable"].append(handler)
         if not has_static_match and not has_regex_match and not has_callable_match:
             if "any" in route:
                 logger.warning(
                     "You are overwritting a callback_query handler: %s on any updatetypes with %s",
                     route["any"],
-                    handler.name,
+                    handler,
                 )
             route["any"] = handler
 
@@ -197,7 +197,7 @@ class SimpleRouter:
             raise SimpleBotException("need a UpdateHandler")
         for update_type in handler.update_types:
             logger.info(
-                "bind a %s Handler: '%s@%s'", update_type, handler.name, self.name
+                "bind a %s Handler: '%s@%s'", update_type, handler, self.name
             )
             if update_type == UpdateType.COMMAND.value:
                 self.__add_command_handler(handler)
@@ -221,7 +221,7 @@ class SimpleRouter:
                 self.__add_edited_channel_post_handler(handler)
                 continue
             # for others update handlers
-            self._route_map[update_type] = handler.name
+            self._route_map[update_type] = handler
 
     def register_force_reply_handler(self, callback: Callable):
         self.register_handler(ForceReplyHandler(callback=callback))

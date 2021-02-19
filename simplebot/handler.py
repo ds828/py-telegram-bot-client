@@ -35,9 +35,6 @@ class UpdateHandler:
     def name(self):
         return "{0}.{1}".format(self._callback.__module__, self._callback.__name__)
 
-    def __str__(self) -> str:
-        return "{0}@{1}".format(self.update_types, self.name)
-
     def __repr__(self) -> str:
         return self.name
 

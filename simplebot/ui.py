@@ -44,7 +44,6 @@ class ReplyKeyboard:
 
 
 class InlineKeyboard(ReplyKeyboard):
-
     def __init__(self, keyboard: Optional[List] = None):
         super().__init__(keyboard=keyboard)
 
@@ -54,8 +53,10 @@ class InlineKeyboard(ReplyKeyboard):
     def has_button(self, name: str):
         for line in self._layout:
             for button in line:
-                if button["callback_data"].split("|")[0] == name:
-                    return True
+                if "callback_data" in button:
+                    callback_query_name_arg = button["callback_data"].split("|")
+                    if callback_query_name_arg and callback_query_name_arg[0] == name:
+                        return True
         return False
 
     def add_radio_group(self, name: str, *options, col: int = 1, emoji=_RADIO_EMOJI):
@@ -84,7 +85,6 @@ class InlineKeyboard(ReplyKeyboard):
                     if button["callback_data"].split("|")[0] == name:
                         del self._layout[line_idx][btn_idx]
 
-
     def get_radio_value(self, name: str, emoji=_RADIO_EMOJI) -> Optional[Tuple]:
         for line in self._layout:
             for button in line:
@@ -93,9 +93,7 @@ class InlineKeyboard(ReplyKeyboard):
                         return parse_callback_data(button["callback_data"], name)[0]
         return None
 
-    def change_radio_status(
-        self, name: str, option, emoji=_RADIO_EMOJI
-    ) -> bool:
+    def change_radio_status(self, name: str, option, emoji=_RADIO_EMOJI) -> bool:
         changed = False
         clicked_option = build_callback_data(name, option)
         for line in self._layout:
@@ -244,9 +242,7 @@ class InlineKeyboard(ReplyKeyboard):
         toggle_off_callback: Optional[Callable] = None,
         emoji=_TOGGLER_EMOJI,
     ):
-        def on_toggle_click(
-            bot: SimpleBot, callback_query: CallbackQuery
-        ):
+        def on_toggle_click(bot: SimpleBot, callback_query: CallbackQuery):
             keyboard = InlineKeyboard(
                 keyboard=callback_query.message.reply_markup.inline_keyboard,
             )
