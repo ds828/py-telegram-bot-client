@@ -1,4 +1,3 @@
-from datetime import datetime, date
 from typing import Callable, Tuple, Optional, List
 
 from simplebot.bot import SimpleBot
