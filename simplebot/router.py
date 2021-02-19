@@ -164,7 +164,7 @@ class SimpleRouter:
     def __add_force_reply_handler(self, handler: Dict):
         if UpdateType.FORCE_REPLY.value not in self._route_map:
             self._route_map[UpdateType.FORCE_REPLY.value] = {}
-        self._route_map[UpdateType.FORCE_REPLY.value][handler.name] = handler
+        self._route_map[UpdateType.FORCE_REPLY.value][str(handler)] = handler
 
     def __add_callback_query_handler(self, handler: CallbackQueryHandler):
         if UpdateType.CALLBACK_QUERY.value not in self._route_map:
