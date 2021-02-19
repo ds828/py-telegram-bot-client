@@ -1,13 +1,5 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-from typing import Iterable, Tuple, Optional, List
-=======
-from typing import Callable, Iterable, Tuple, Optional, List
 from datetime import datetime, date
->>>>>>> dev
-=======
 from typing import Callable, Tuple, Optional, List
->>>>>>> dev
 
 from simplebot.bot import SimpleBot
 from simplebot.router import SimpleRouter
@@ -213,24 +205,6 @@ class InlineKeyboard(ReplyKeyboard):
             callback_query_name=name,
         )
 
-<<<<<<< HEAD
-class Toggler(RadioGroup):
-    _emoji = ("😀", "🙁")
-
-    def __init__(
-        self,
-        name: str,
-        option_value: Optional[Tuple] = None,
-        layout: Optional[Iterable] = None,
-        emoji: Optional[Tuple] = None,
-    ):
-        super().__init__(name=name, layout=layout, emoji=emoji)
-        if option_value:
-            self.add_options(option_value)
-
-    def toggle(self, option_value: Tuple) -> bool:
-        target_option = build_callback_data(self._name, *option_value)
-=======
     def add_toggler(self, name: str, checked: bool = True, emoji=_TOGGLER_EMOJI):
         select_emoji = emoji[1]
         if checked:
@@ -242,7 +216,6 @@ class Toggler(RadioGroup):
         )
 
     def toggle(self, name, emoji=_TOGGLER_EMOJI) -> bool:
->>>>>>> dev
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
