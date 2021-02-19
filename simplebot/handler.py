@@ -13,10 +13,9 @@ class UpdateHandler:
     def __init__(
         self,
         callback: Callable,
-        update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
+        update_types: Optional[Iterable[Union[str, UpdateType]]] = ("any",),
     ):
-        if update_types is None:
-            update_types = ("any",)
+        self._callback = callback
         self._update_types = tuple(
             map(
                 lambda update_type: update_type.value
@@ -25,18 +24,13 @@ class UpdateHandler:
                 update_types,
             )
         )
-        self._callback = callback
 
     @property
     def update_types(self):
         return self._update_types
 
-    @property
-    def name(self):
-        return "{0}.{1}".format(self._callback.__module__, self._callback.__name__)
-
     def __repr__(self) -> str:
-        return self.name
+        return "{0}.{1}".format(self._callback.__module__, self._callback.__name__)
 
     async def __call__(self, *args, **kwargs):
         if asyncio.iscoroutinefunction(self._callback):
