@@ -129,7 +129,7 @@ class SimpleRouter:
         route = self._route_map[update_type]
         message_fields = handler.message_fields
         if message_fields is None:
-            if "any" in route:
+    if "any" in route:
                 logger.warning(
                     "You are overwritting a message handler: %s on any updatetypes with %s",
                     route["any"],
@@ -563,6 +563,10 @@ class SimpleRouter:
     async def __call_edited_message_handler(
         self, update_type: UpdateType, bot: SimpleBot, edited_message: Message
     ):
+        if await self.__call_command_handler(bot, edited_message):
+            return
+        if await self.__call_force_reply_handler(bot,edited_message):
+            return
         await self.__call_message_like_handler(update_type, bot, edited_message)
         return
 
