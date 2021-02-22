@@ -98,6 +98,18 @@ class SimpleBot:
             self._bot_me = self.get_me()
         return self._bot_me
 
+    @property
+    def username(self):
+        return self.me.username
+
+    @property
+    def first_name(self):
+        return self.me.first_name
+
+    @property
+    def last_name(self):
+        return self.me.last_name
+
     async def dispatch(self, update: Update):
         logger.debug(
             """

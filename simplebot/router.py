@@ -563,7 +563,7 @@ class SimpleRouter:
     async def __call_edited_message_handler(
         self, update_type: UpdateType, bot: SimpleBot, edited_message: Message
     ):
-        await self.__call_message_handler(update_type, bot, edited_message)
+        await self.__call_message_like_handler(update_type, bot, edited_message)
         return
 
     async def __call_message_like_handler(
