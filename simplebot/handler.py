@@ -93,7 +93,10 @@ class CommandHandler(UpdateHandler):
 
 
 class ForceReplyHandler(UpdateHandler):
-    def __init__(self, callback: Callable):
+    def __init__(
+        self,
+        callback: Callable,
+    ):
         super().__init__(callback=callback, update_types=(UpdateType.FORCE_REPLY,))
 
 
