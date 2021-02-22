@@ -129,7 +129,7 @@ class SimpleRouter:
         route = self._route_map[update_type]
         message_fields = handler.message_fields
         if message_fields is None:
-    if "any" in route:
+            if "any" in route:
                 logger.warning(
                     "You are overwritting a message handler: %s on any updatetypes with %s",
                     route["any"],
