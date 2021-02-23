@@ -46,7 +46,8 @@ def i18n():
             def _(text, lang_code=data.from_user.language_code):
                 return bot.get_text(lang_code, text)
 
-            return method(bot, data, *args, _, **kwargs)
+            kwargs.update({"_": _})
+            return method(bot, data, *args, **kwargs)
 
         return wrapper
 
