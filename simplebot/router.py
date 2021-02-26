@@ -112,8 +112,8 @@ class SimpleRouter:
     def __add_and_group(self, update_type: str, handler: _MessageHandler):
         route = self._route_map[update_type]
         if "and" not in route:
-            route["and"] = set()
-        route["and"].add((handler.message_fields, handler))
+            route["and"] = []
+        route["and"].append((handler.message_fields, handler))
 
     def __add_or_group(self, update_type: str, handler: _MessageHandler):
         route = self._route_map[update_type]
@@ -137,13 +137,12 @@ class SimpleRouter:
                 )
             route["any"] = handler
             return
-        if isinstance(message_fields, set):
-            if len(message_fields) == 1:
-                self.__add_or_group(update_type, handler)
-            else:
-                self.__add_and_group(update_type, handler)
+        if len(message_fields) == 1:
+            self.__add_or_group(update_type, handler)
             return
-        if isinstance(message_fields, (list, tuple)):
+        if isinstance(message_fields, set):
+            self.__add_and_group(update_type, handler)
+        else:
             self.__add_or_group(update_type, handler)
 
     def __add_edited_message_handler(self, handler: EditedMessageHandler):
@@ -177,7 +176,7 @@ class SimpleRouter:
             route["static"][handler.static_match] = handler
         if has_regex_match:
             if "regex" not in route:
-                route["regex"] =[]
+                route["regex"] = []
             route["regex"].append(handler)
         if has_callable_match:
             if "callable" not in route:
@@ -196,9 +195,7 @@ class SimpleRouter:
         if not isinstance(handler, UpdateHandler):
             raise SimpleBotException("need a UpdateHandler")
         for update_type in handler.update_types:
-            logger.info(
-                "bind a %s Handler: '%s@%s'", update_type, handler, self.name
-            )
+            logger.info("bind a %s Handler: '%s@%s'", update_type, handler, self.name)
             if update_type == UpdateType.COMMAND.value:
                 self.__add_command_handler(handler)
                 continue
@@ -351,7 +348,8 @@ class SimpleRouter:
         return decorator
 
     def message_handler(
-        self, fields: Optional[Iterable[Union[str, MessageField]]] = None
+        self,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
         def decorator(callback):
             self.register_message_handler(callback, fields)
@@ -360,7 +358,8 @@ class SimpleRouter:
         return decorator
 
     def edited_message_handler(
-        self, fields: Optional[Iterable[Union[str, MessageField]]] = None
+        self,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
         def decorator(callback):
             self.register_edited_message_handler(callback, fields)
@@ -369,7 +368,8 @@ class SimpleRouter:
         return decorator
 
     def channel_post_handler(
-        self, fields: Optional[Iterable[Union[str, MessageField]]] = None
+        self,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
         def decorator(callback):
             self.register_channel_post_handler(callback, fields)
@@ -378,7 +378,8 @@ class SimpleRouter:
         return decorator
 
     def edited_channel_post_handler(
-        self, fields: Optional[Iterable[Union[str, MessageField]]] = None
+        self,
+        fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
         def decorator(callback):
             self.register_edited_channel_post_handler(callback, fields)
@@ -565,7 +566,7 @@ class SimpleRouter:
     ):
         if await self.__call_command_handler(bot, edited_message):
             return
-        if await self.__call_force_reply_handler(bot,edited_message):
+        if await self.__call_force_reply_handler(bot, edited_message):
             return
         await self.__call_message_like_handler(update_type, bot, edited_message)
         return
