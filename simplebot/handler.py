@@ -134,7 +134,9 @@ class MessageHandler(_MessageHandler):
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
         super().__init__(
-            callback=callback, update_type=UpdateType.MESSAGE, fields=fields
+            callback=callback,
+            update_type=UpdateType.MESSAGE,
+            fields=fields,
         )
 
 
@@ -145,7 +147,9 @@ class EditedMessageHandler(_MessageHandler):
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
         super().__init__(
-            callback=callback, update_type=UpdateType.EDITED_MESSAGE, fields=fields
+            callback=callback,
+            update_type=UpdateType.EDITED_MESSAGE,
+            fields=fields,
         )
 
 
@@ -156,7 +160,9 @@ class ChannelPostHandler(_MessageHandler):
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
         super().__init__(
-            callback=callback, update_type=UpdateType.CHANNEL_POST, fields=fields
+            callback=callback,
+            update_type=UpdateType.CHANNEL_POST,
+            fields=fields,
         )
 
 
