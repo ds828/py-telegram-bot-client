@@ -20,7 +20,7 @@ def pretty_print(data: Dict):
     _pp.pprint(data)
 
 
-def pretty_json(data: Dict) -> str:
+def pretty_format(data: Dict) -> str:
     return _pp.pformat(data)
 
 

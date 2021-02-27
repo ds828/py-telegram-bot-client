@@ -5,7 +5,6 @@ except ImportError:
 
 import logging
 from io import BytesIO
-import string
 from typing import Iterable, Union, Optional, List, Tuple, Dict, Any, Callable
 import socket
 import urllib3
@@ -20,7 +19,7 @@ from simplebot.base import (
     Update,
     SimpleObject,
 )
-from simplebot.utils import exclude_none, pretty_json
+from simplebot.utils import exclude_none, pretty_format
 
 logger = logging.getLogger("simple-bot")
 
@@ -153,7 +152,7 @@ class TelegramBotAPI:
 %s
 ----------------------- JSON RESPONSE  END  ---------------------------
         """,
-            pretty_json(json_response),
+            pretty_format(json_response),
         )
         if response.status == 200:
             result = json_response["result"]
@@ -183,7 +182,7 @@ class TelegramBotAPI:
                     form_data["thumb"] = value.attach_str
                 else:
                     attached_files.append((name, value.file_tuple))
-                    del form_data[name] 
+                    del form_data[name]
         return "".join(api_name.split("_")).lower(), form_data, attached_files
 
     def __call_api(

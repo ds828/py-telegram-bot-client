@@ -52,8 +52,9 @@ class ErrorHandler(UpdateHandler):
         super().__init__(callback, update_types)
         self._errors = errors if errors else (Exception,)
 
-    def include(self, error):
-        return isinstance(error, self._errors)
+    @property
+    def error(self):
+        return self._errors
 
 
 class InterceptorType(Enum):
@@ -201,11 +202,13 @@ class CallbackQueryHandler(UpdateHandler):
         self._regex_patterns = None
         if regex_match:
             self._regex_patterns = tuple(
-                [re.compile(regex_str) for regex_str in regex_match]
+                re.compile(regex_str) for regex_str in regex_match
             )
-        if isinstance(callback_query_name, str):
+        if callback_query_name:
+            assert callback_query_name, str
             self._callable_match = parse_callback_data
-            self._kwargs = {"name": callback_query_name}
+            kwargs.update({"name": callback_query_name})
+            self._kwargs = kwargs
         else:
             self._callable_match = callable_match
             self._kwargs = kwargs

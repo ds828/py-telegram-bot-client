@@ -16,12 +16,11 @@ def on_force_reply(bot: SimpleBot, message: Message):
     bot.send_message(
         chat_id=message.chat.id, text="reply something", reply_markup=ForceReply()
     )
-    # join a force reply callback
-    bot.join_force_reply(message.from_user.id, on_froce_reply_callback, 123, "value")
+    bot.join_force_reply(message.from_user.id, on_callback_reply, 123, "value")
 
 
 @router.force_reply_handler()
-def on_froce_reply_callback(
+def on_callback_reply(
     bot: SimpleBot, message: Message, force_reply_arg_1, force_reply_arg_2
 ):
     bot.reply_message(
