@@ -8,7 +8,11 @@ import logging
 from simplebot.api import SimpleRequest, TelegramBotAPI
 from simplebot.storage import MemoryStorage, SimpleSession, SimpleStorage
 from simplebot.base import SimpleBotException, Update, Message, InputFile
-from simplebot.utils import build_force_reply_data, parse_force_reply_data, pretty_json
+from simplebot.utils import (
+    build_force_reply_data,
+    parse_force_reply_data,
+    pretty_format,
+)
 
 logger = logging.getLogger("simple-bot")
 
@@ -93,22 +97,30 @@ class SimpleBot:
         return self._bot_id
 
     @property
-    def me(self):
+    def user(self):
         if self._bot_me is None:
             self._bot_me = self.get_me()
         return self._bot_me
 
     @property
     def username(self):
-        return self.me.username
+        return self.user.username
 
     @property
     def first_name(self):
-        return self.me.first_name
+        return self.user.first_name
 
     @property
     def last_name(self):
-        return self.me.last_name
+        return self.user.last_name
+
+    @property
+    def next_call(self):
+        return self.router.next_call
+
+    @property
+    def stop_call(self):
+        return self.router.stop_call
 
     async def dispatch(self, update: Update):
         logger.debug(
@@ -117,7 +129,7 @@ class SimpleBot:
 %s
 ----------------------- UPDATE  END  ---------------------------
 """,
-            pretty_json(update),
+            pretty_format(update),
         )
         await self._router.route(self, update)
 
@@ -131,9 +143,9 @@ class SimpleBot:
         force_reply_callback_name = "{0}.{1}".format(
             callback.__module__, callback.__name__
         )
-        if not self.router.has_force_reply_handler(force_reply_callback_name):
+        if not self.router.has_force_reply_callback(force_reply_callback_name):
             raise SimpleBotException(
-                "{0} is not a force reply handler".format(force_reply_callback_name)
+                "{0} is not a force reply callback".format(force_reply_callback_name)
             )
         field = self._force_reply_key_format.format(user_id)
         session = self.get_session(user_id)
@@ -233,7 +245,7 @@ class SimpleBot:
         """
         if not timeout:
             logger.warning(
-                "Timeout in seconds for long polling. Defaults to 0, i.e. usual short polling. Should be positive, short polling should be used for testing purposes only."
+                "You are using 0 as timeout in seconds for long polling which should be used for testing purposes only."
             )
         while True:
             updates = self._bot_api.get_updates(

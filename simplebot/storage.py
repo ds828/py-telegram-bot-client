@@ -7,7 +7,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-from simplebot.utils import pretty_json
+from simplebot.utils import pretty_format
 
 
 class SimpleStorage:
@@ -289,5 +289,5 @@ class SimpleSession:
 
     def __str__(self):
         return "Session(id={0}, data={1})".format(
-            self._session_id, pretty_json(self.data)
+            self._session_id, pretty_format(self.data)
         )
