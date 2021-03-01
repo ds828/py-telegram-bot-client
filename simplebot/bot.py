@@ -42,17 +42,19 @@ class SimpleBot:
                 "wrong token format: {0}".format(token)) from error
         self._token = token
         self._router = router
-        if http_request is None:
-            http_request = SimpleRequest()
-        assert isinstance(http_request, SimpleRequest)
-        self._bot_api = TelegramBotAPI(http_request)
-        if storage is None:
+        if storage:
+            assert isinstance(storage, SimpleStorage), True
+        else:
             logger.warning(
                 "You are using a memory storage which can not be persisted.")
             storage = MemoryStorage()
-        assert isinstance(storage, SimpleStorage), True
         self._storage = storage
         self._i18n_source = i18n_source
+        if http_request:
+            assert isinstance(http_request, SimpleRequest), True
+        else:
+            http_request = SimpleRequest()
+        self._bot_api = TelegramBotAPI(http_request)
         self.last_update_id = 0
         self._bot_me = None
 
