@@ -17,22 +17,21 @@ class UpdateHandler:
     ):
         self._callback = callback
         if update_types is None:
-            update_types = ("any",)
+            update_types = ("any", )
         self._update_types = tuple(
             map(
                 lambda update_type: update_type.value
-                if isinstance(update_type, UpdateType)
-                else update_type,
+                if isinstance(update_type, UpdateType) else update_type,
                 update_types,
-            )
-        )
+            ))
 
     @property
     def update_types(self):
         return self._update_types
 
     def __repr__(self) -> str:
-        return "{0}.{1}".format(self._callback.__module__, self._callback.__name__)
+        return "{0}.{1}".format(self._callback.__module__,
+                                self._callback.__name__)
 
     async def __call__(self, *args, **kwargs):
         if asyncio.iscoroutinefunction(self._callback):
@@ -41,7 +40,7 @@ class UpdateHandler:
 
 
 class ErrorHandler(UpdateHandler):
-    __slots__ = ("_errors",)
+    __slots__ = ("_errors", )
 
     def __init__(
         self,
@@ -50,7 +49,7 @@ class ErrorHandler(UpdateHandler):
         errors: Optional[Iterable[Exception]] = None,
     ):
         super().__init__(callback, update_types)
-        self._errors = errors if errors else (Exception,)
+        self._errors = errors if errors else (Exception, )
 
     @property
     def error(self):
@@ -63,7 +62,7 @@ class InterceptorType(Enum):
 
 
 class Interceptor(UpdateHandler):
-    __slots__ = ("_inter_type",)
+    __slots__ = ("_inter_type", )
 
     def __init__(
         self,
@@ -72,9 +71,8 @@ class Interceptor(UpdateHandler):
         update_types: Optional[Iterable[Union[str, UpdateType]]] = None,
     ):
         super().__init__(callback, update_types=update_types)
-        self._inter_type = (
-            inter_type.value if isinstance(inter_type, InterceptorType) else inter_type
-        )
+        self._inter_type = (inter_type.value if isinstance(
+            inter_type, InterceptorType) else inter_type)
 
     @property
     def type(self) -> str:
@@ -82,10 +80,11 @@ class Interceptor(UpdateHandler):
 
 
 class CommandHandler(UpdateHandler):
-    __slots__ = ("_cmds",)
+    __slots__ = ("_cmds", )
 
     def __init__(self, callback: Callable, cmds: Iterable):
-        super().__init__(callback=callback, update_types=(UpdateType.COMMAND,))
+        super().__init__(callback=callback,
+                         update_types=(UpdateType.COMMAND, ))
         self._cmds = cmds
 
     @property
@@ -98,11 +97,12 @@ class ForceReplyHandler(UpdateHandler):
         self,
         callback: Callable,
     ):
-        super().__init__(callback=callback, update_types=(UpdateType.FORCE_REPLY,))
+        super().__init__(callback=callback,
+                         update_types=(UpdateType.FORCE_REPLY, ))
 
 
 class _MessageHandler(UpdateHandler):
-    __slots__ = ("_message_fields",)
+    __slots__ = ("_message_fields", )
 
     def __init__(
         self,
@@ -110,16 +110,13 @@ class _MessageHandler(UpdateHandler):
         update_type: Union[str, UpdateType],
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
-        super().__init__(callback=callback, update_types=(update_type,))
+        super().__init__(callback=callback, update_types=(update_type, ))
         if fields:
-            self._message_fields = type(fields)(
-                map(
-                    lambda field: field.value
-                    if isinstance(field, MessageField)
-                    else field,
-                    fields,
-                )
-            )
+            self._message_fields = type(fields)(map(
+                lambda field: field.value
+                if isinstance(field, MessageField) else field,
+                fields,
+            ))
         else:
             self._message_fields = fields
 
@@ -188,22 +185,20 @@ class CallbackQueryHandler(UpdateHandler):
         "_kwargs",
     )
 
-    def __init__(
-        self,
-        callback: Callable,
-        static_match: Optional[str] = None,
-        regex_match: Optional[Iterable[str]] = None,
-        callback_query_name: Optional[str] = None,
-        callable_match: Optional[Callable] = None,
-        **kwargs
-    ):
-        super().__init__(callback=callback, update_types=(UpdateType.CALLBACK_QUERY,))
+    def __init__(self,
+                 callback: Callable,
+                 static_match: Optional[str] = None,
+                 regex_match: Optional[Iterable[str]] = None,
+                 callback_query_name: Optional[str] = None,
+                 callable_match: Optional[Callable] = None,
+                 **kwargs):
+        super().__init__(callback=callback,
+                         update_types=(UpdateType.CALLBACK_QUERY, ))
         self._static_match = static_match
         self._regex_patterns = None
         if regex_match:
             self._regex_patterns = tuple(
-                re.compile(regex_str) for regex_str in regex_match
-            )
+                re.compile(regex_str) for regex_str in regex_match)
         if callback_query_name:
             assert callback_query_name, str
             self._callable_match = parse_callback_data
@@ -245,29 +240,32 @@ class InlineQueryHandler(UpdateHandler):
         self,
         callback: Callable,
     ):
-        super().__init__(callback=callback, update_types=(UpdateType.INLINE_QUERY,))
+        super().__init__(callback=callback,
+                         update_types=(UpdateType.INLINE_QUERY, ))
 
 
 class ChosenInlineResultHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_types=(UpdateType.CHOSEN_INLINE_RESULT,))
+        super().__init__(callback,
+                         update_types=(UpdateType.CHOSEN_INLINE_RESULT, ))
 
 
 class ShippingQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_types=(UpdateType.SHIPPING_QUERY,))
+        super().__init__(callback, update_types=(UpdateType.SHIPPING_QUERY, ))
 
 
 class PreCheckoutQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_types=(UpdateType.PRE_CHECKOUT_QUERY,))
+        super().__init__(callback,
+                         update_types=(UpdateType.PRE_CHECKOUT_QUERY, ))
 
 
 class PollHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_types=(UpdateType.POLL,))
+        super().__init__(callback, update_types=(UpdateType.POLL, ))
 
 
 class PollAnswerHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_types=(UpdateType.POLL_ANSWER,))
+        super().__init__(callback, update_types=(UpdateType.POLL_ANSWER, ))

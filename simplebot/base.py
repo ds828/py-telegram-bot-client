@@ -1,7 +1,7 @@
 import random
 import string
 from enum import Enum
-from typing import Any, Union, Optional, List, Iterable
+from typing import Any, Iterable, List, Optional, Union
 
 try:
     import ujson as json
@@ -128,9 +128,10 @@ class MIMEType(str, Enum):
 class InputFile:
     __slots__ = ("_file_name", "_file", "_mime_type", "_attach_key")
 
-    def __init__(
-        self, file_name: str, file: Union[str, bytes], mime_type: Optional[str] = None
-    ):
+    def __init__(self,
+                 file_name: str,
+                 file: Union[str, bytes],
+                 mime_type: Optional[str] = None):
         self._file_name = file_name
         if not isinstance(file, (str, bytes)):
             raise ValueError("file must be a string or bytes")
@@ -163,8 +164,8 @@ class InputFile:
     def attach_key(self):
         if self._attach_key is None:
             self._attach_key = "".join(
-                random.choice(string.ascii_letters + string.digits) for _ in range(6)
-            )
+                random.choice(string.ascii_letters + string.digits)
+                for _ in range(6))
         return self._attach_key
 
     @property
@@ -174,7 +175,10 @@ class InputFile:
 
 class SimpleObject(dict):
     def __init__(self, **kwargs):
-        data = {name: self.__recurse_init(value) for name, value in kwargs.items()}
+        data = {
+            name: self.__recurse_init(value)
+            for name, value in kwargs.items()
+        }
         if "from" in data:
             data["from_user"] = data["from"]
             del data["from"]
@@ -208,35 +212,11 @@ class SimpleObject(dict):
         return self
 
 
-Update = (
-    Message
-) = (
-    CallbackQuery
-) = (
-    ChosenInlineResult
-) = (
-    InlineQuery
-) = (
+Update = (Message) = (CallbackQuery) = (ChosenInlineResult) = (InlineQuery) = (
     MessageEntity
-) = (
-    File
-) = (
-    User
-) = (
-    WebhookInfo
-) = (
-    PhotoSize
-) = (
-    StickerSet
-) = (
+) = (File) = (User) = (WebhookInfo) = (PhotoSize) = (StickerSet) = (
     Location
-) = (
-    ShippingAddress
-) = (
-    OrderInfo
-) = (
-    EncryptedPassportElement
-) = (
+) = (ShippingAddress) = (OrderInfo) = (EncryptedPassportElement) = (
     EncryptedCredentials
 ) = (
     PassportFile
@@ -335,7 +315,8 @@ class InputMedia(SimpleObject):
             self._attached_files.append((thumb.attach_key, thumb.file_tuple))
             self["thumb"] = thumb.attach_str
         self._media_data = {
-            name: value for name, value in self.items() if name != "_attached_files"
+            name: value
+            for name, value in self.items() if name != "_attached_files"
         }
 
     @property
@@ -357,51 +338,27 @@ class InputMediaPhoto(InputMedia):
 
 
 class InputMediaVideo(InputMedia):
-    def __init__(
-        self,
-        media: Union[InputFile, str],
-        thumb: Optional[Union[InputFile, str]],
-        **kwargs
-    ):
-        super().__init__(
-            type="video", media=media, thumb=thumb, **kwargs
-        )
+    def __init__(self, media: Union[InputFile, str],
+                 thumb: Optional[Union[InputFile, str]], **kwargs):
+        super().__init__(type="video", media=media, thumb=thumb, **kwargs)
 
 
 class InputMediaAnimation(InputMedia):
-    def __init__(
-        self,
-        media: Union[InputFile, str],
-        thumb: Optional[Union[InputFile, str]],
-        **kwargs
-    ):
-        super().__init__(
-            type="animation", media=media, thumb=thumb, **kwargs
-        )
+    def __init__(self, media: Union[InputFile, str],
+                 thumb: Optional[Union[InputFile, str]], **kwargs):
+        super().__init__(type="animation", media=media, thumb=thumb, **kwargs)
 
 
 class InputMediaAudio(InputMedia):
-    def __init__(
-        self,
-        media: Union[InputFile, str],
-        thumb: Optional[Union[InputFile, str]],
-        **kwargs
-    ):
-        super().__init__(
-            type="audio", media=media, thumb=thumb, **kwargs
-        )
+    def __init__(self, media: Union[InputFile, str],
+                 thumb: Optional[Union[InputFile, str]], **kwargs):
+        super().__init__(type="audio", media=media, thumb=thumb, **kwargs)
 
 
 class InputMediaDocument(InputMedia):
-    def __init__(
-        self,
-        media: Union[InputFile, str],
-        thumb: Optional[Union[InputFile, str]],
-        **kwargs
-    ):
-        super().__init__(
-            type="document", media=media, thumb=thumb, **kwargs
-        )
+    def __init__(self, media: Union[InputFile, str],
+                 thumb: Optional[Union[InputFile, str]], **kwargs):
+        super().__init__(type="document", media=media, thumb=thumb, **kwargs)
 
 
 class InlineKeyboardButton(SimpleObject):
@@ -437,9 +394,7 @@ class ReplyKeyboardMarkup(MarkupObject):
 
 class ReplyKeyboardRemove(MarkupObject):
     def __init__(self, remove_keyboard: bool = True, **kwargs):
-        super().__init__(
-            remove_keyboard=remove_keyboard, **kwargs
-        )
+        super().__init__(remove_keyboard=remove_keyboard, **kwargs)
 
 
 class ForceReply(MarkupObject):
@@ -452,218 +407,201 @@ InputMessageContent = SimpleObject
 
 class InputTextMessageContent(InputMessageContent):
     def __init__(self, message_text: str, **kwargs):
-        super().__init__(
-            message_text=message_text, **kwargs
-        )
+        super().__init__(message_text=message_text, **kwargs)
 
 
 class InputLocationMessageContent(InputMessageContent):
     def __init__(self, latitude: float, longitude: float, **kwargs):
-        super().__init__(
-            latitude=latitude, longitude=longitude, **kwargs
-        )
+        super().__init__(latitude=latitude, longitude=longitude, **kwargs)
 
 
 class InputVenueMessageContent(InputMessageContent):
-    def __init__(
-        self, latitude: float, longitude: float, title: str, address: str, **kwargs
-    ):
-        super().__init__(
-            latitude=latitude,
-            longitude=longitude,
-            title=title,
-            address=address,
-            **kwargs
-        )
+    def __init__(self, latitude: float, longitude: float, title: str,
+                 address: str, **kwargs):
+        super().__init__(latitude=latitude,
+                         longitude=longitude,
+                         title=title,
+                         address=address,
+                         **kwargs)
 
 
 class InputContactMessageContent(InputMessageContent):
     def __init__(self, phone_number: str, first_name: str, **kwargs):
-        super().__init__(
-            phone_number=phone_number, first_name=first_name, **kwargs
-        )
+        super().__init__(phone_number=phone_number,
+                         first_name=first_name,
+                         **kwargs)
 
 
 InlineQueryResult = SimpleObject
 
 
 class InlineQueryResultArticle(InlineQueryResult):
-    def __init__(
-        self,
-        id: str,
-        title: float,
-        input_message_content: InputMessageContent,
-        **kwargs
-    ):
-        super().__init__(
-            type="article",
-            id=id,
-            title=title,
-            input_message_content=input_message_content,
-            **kwargs
-        )
+    def __init__(self, id: str, title: float,
+                 input_message_content: InputMessageContent, **kwargs):
+        super().__init__(type="article",
+                         id=id,
+                         title=title,
+                         input_message_content=input_message_content,
+                         **kwargs)
 
 
 class InlineQueryResultPhoto(InlineQueryResult):
     def __init__(self, id: str, photo_url: str, thumb_url: str, **kwargs):
-        super().__init__(
-            type="photo", id=id, photo_url=photo_url, thumb_url=thumb_url, **kwargs
-        )
+        super().__init__(type="photo",
+                         id=id,
+                         photo_url=photo_url,
+                         thumb_url=thumb_url,
+                         **kwargs)
 
 
 class InlineQueryResultGif(InlineQueryResult):
     def __init__(self, id: str, gif_url: str, thumb_url: str, **kwargs):
-        super().__init__(
-            type="gif", id=id, gif_url=gif_url, thumb_url=thumb_url, **kwargs
-        )
+        super().__init__(type="gif",
+                         id=id,
+                         gif_url=gif_url,
+                         thumb_url=thumb_url,
+                         **kwargs)
 
 
 class InlineQueryResultMpeg4Gif(InlineQueryResult):
     def __init__(self, id: str, mpeg4_url: str, **kwargs):
-        super().__init__(
-            type="mpeg4_gif", id=id, mpeg4_url=mpeg4_url, **kwargs
-        )
+        super().__init__(type="mpeg4_gif",
+                         id=id,
+                         mpeg4_url=mpeg4_url,
+                         **kwargs)
 
 
 class InlineQueryResultAudio(SimpleObject):
     def __init__(self, id: str, audio_url: str, file: str, **kwargs):
-        super().__init__(
-            type="audio", id=id, audio_url=audio_url, file=file, **kwargs
-        )
+        super().__init__(type="audio",
+                         id=id,
+                         audio_url=audio_url,
+                         file=file,
+                         **kwargs)
 
 
 class InlineQueryResultVoice(SimpleObject):
     def __init__(self, id: str, voice_url: str, title: str, **kwargs):
-        super().__init__(
-            type="voice", id=id, voice_url=voice_url, title=title, **kwargs
-        )
+        super().__init__(type="voice",
+                         id=id,
+                         voice_url=voice_url,
+                         title=title,
+                         **kwargs)
 
 
 class InlineQueryResultDocument(SimpleObject):
-    def __init__(
-        self, id: str, title: str, document_url: str, mime_type: str, **kwargs
-    ):
-        super().__init__(
-            type="document",
-            id=id,
-            title=title,
-            document_url=document_url,
-            mime_type=mime_type,
-            **kwargs
-        )
+    def __init__(self, id: str, title: str, document_url: str, mime_type: str,
+                 **kwargs):
+        super().__init__(type="document",
+                         id=id,
+                         title=title,
+                         document_url=document_url,
+                         mime_type=mime_type,
+                         **kwargs)
 
 
 class InlineQueryResultLocation(SimpleObject):
-    def __init__(
-        self, id: str, latitude: float, longitude: float, title: str, **kwargs
-    ):
-        super().__init__(
-            type="location",
-            id=id,
-            latitude=latitude,
-            longitude=longitude,
-            title=title,
-            **kwargs
-        )
+    def __init__(self, id: str, latitude: float, longitude: float, title: str,
+                 **kwargs):
+        super().__init__(type="location",
+                         id=id,
+                         latitude=latitude,
+                         longitude=longitude,
+                         title=title,
+                         **kwargs)
 
 
 class InlineQueryResultVenue(InlineQueryResult):
-    def __init__(
-        self,
-        id: str,
-        latitude: float,
-        longitude: float,
-        title: str,
-        address: str,
-        **kwargs
-    ):
-        super().__init__(
-            type="venue",
-            id=id,
-            latitude=latitude,
-            longitude=longitude,
-            title=title,
-            address=address,
-            **kwargs
-        )
+    def __init__(self, id: str, latitude: float, longitude: float, title: str,
+                 address: str, **kwargs):
+        super().__init__(type="venue",
+                         id=id,
+                         latitude=latitude,
+                         longitude=longitude,
+                         title=title,
+                         address=address,
+                         **kwargs)
 
 
 class InlineQueryResultContact(SimpleObject):
     def __init__(self, id: str, phone_number: str, first_name: str, **kwargs):
-        super().__init__(
-            type="contact",
-            id=id,
-            phone_number=phone_number,
-            first_name=first_name,
-            **kwargs
-        )
+        super().__init__(type="contact",
+                         id=id,
+                         phone_number=phone_number,
+                         first_name=first_name,
+                         **kwargs)
 
 
 class InlineQueryResultGame(SimpleObject):
     def __init__(self, id: str, game_short_name: str, **kwargs):
-        super().__init__(
-            type="game", id=id, game_short_name=game_short_name, **kwargs
-        )
+        super().__init__(type="game",
+                         id=id,
+                         game_short_name=game_short_name,
+                         **kwargs)
 
 
 class InlineQueryResultCachedPhoto(SimpleObject):
     def __init__(self, id: str, photo_file_id: str, **kwargs):
-        super().__init__(
-            type="photo", id=id, photo_file_id=photo_file_id, **kwargs
-        )
+        super().__init__(type="photo",
+                         id=id,
+                         photo_file_id=photo_file_id,
+                         **kwargs)
 
 
 class InlineQueryResultCachedGif(SimpleObject):
     def __init__(self, id: str, gif_file_id: str, **kwargs):
-        super().__init__(
-            type="git", id=id, gif_file_id=gif_file_id, **kwargs
-        )
+        super().__init__(type="git", id=id, gif_file_id=gif_file_id, **kwargs)
 
 
 class InlineQueryResultCachedMpeg4Gif(SimpleObject):
     def __init__(self, id: str, mpeg4_file_id: str, **kwargs):
-        super().__init__(
-            type="mpeg4_gif", id=id, mpeg4_file_id=mpeg4_file_id, **kwargs
-        )
+        super().__init__(type="mpeg4_gif",
+                         id=id,
+                         mpeg4_file_id=mpeg4_file_id,
+                         **kwargs)
 
 
 class InlineQueryResultCachedSticker(SimpleObject):
     def __init__(self, id: str, sticker_file_id: str, **kwargs):
-        super().__init__(
-            type="sticker", id=id, sticker_file_id=sticker_file_id, **kwargs
-        )
+        super().__init__(type="sticker",
+                         id=id,
+                         sticker_file_id=sticker_file_id,
+                         **kwargs)
 
 
 class InlineQueryResultCachedDocument(SimpleObject):
     def __init__(self, id: str, title: str, document_file_id: str, **kwargs):
-        super().__init__(
-            type="document",
-            id=id,
-            title=title,
-            document_file_id=document_file_id,
-            **kwargs
-        )
+        super().__init__(type="document",
+                         id=id,
+                         title=title,
+                         document_file_id=document_file_id,
+                         **kwargs)
 
 
 class InlineQueryResultCachedVideo(SimpleObject):
     def __init__(self, id: str, title: str, video_file_id: str, **kwargs):
-        super().__init__(
-            type="video", id=id, title=title, video_file_id=video_file_id, **kwargs
-        )
+        super().__init__(type="video",
+                         id=id,
+                         title=title,
+                         video_file_id=video_file_id,
+                         **kwargs)
 
 
 class InlineQueryResultCachedVoice(SimpleObject):
     def __init__(self, id: str, title: str, voice_file_id: str, **kwargs):
-        super().__init__(
-            type="voice", id=id, title=title, voice_file_id=voice_file_id, **kwargs
-        )
+        super().__init__(type="voice",
+                         id=id,
+                         title=title,
+                         voice_file_id=voice_file_id,
+                         **kwargs)
 
 
 class InlineQueryResultCachedAudio(SimpleObject):
     def __init__(self, id: str, audio_file_id: str, **kwargs):
-        super().__init__(
-            type="audio", id=id, audio_file_id=audio_file_id, **kwargs
-        )
+        super().__init__(type="audio",
+                         id=id,
+                         audio_file_id=audio_file_id,
+                         **kwargs)
 
 
 class UserProfilePhotos(SimpleObject):
@@ -682,32 +620,24 @@ class BotCommand(SimpleObject):
 
 
 class Animation(SimpleObject):
-    def __init__(
-        self,
-        file_id: str,
-        file_unique_id: str,
-        width: int,
-        length: int,
-        duration: int,
-        **kwargs
-    ):
-        super().__init__(
-            file_id=file_id,
-            file_unique_id=file_unique_id,
-            width=width,
-            length=length,
-            duration=duration,
-            **kwargs
-        )
+    def __init__(self, file_id: str, file_unique_id: str, width: int,
+                 length: int, duration: int, **kwargs):
+        super().__init__(file_id=file_id,
+                         file_unique_id=file_unique_id,
+                         width=width,
+                         length=length,
+                         duration=duration,
+                         **kwargs)
 
 
 class MaskPosition(SimpleObject):
-    def __init__(
-        self, point: str, x_shift: float, y_shift: float, scale: float, **kwargs
-    ):
-        super().__init__(
-            point=point, x_shift=x_shift, y_shift=y_shift, scale=scale, **kwargs
-        )
+    def __init__(self, point: str, x_shift: float, y_shift: float,
+                 scale: float, **kwargs):
+        super().__init__(point=point,
+                         x_shift=x_shift,
+                         y_shift=y_shift,
+                         scale=scale,
+                         **kwargs)
 
     @property
     def param(self):
@@ -715,16 +645,13 @@ class MaskPosition(SimpleObject):
 
 
 class Sticker(SimpleObject):
-    def __init__(
-        self, file_id: str, file_unique_id: str, width: int, length: int, **kwargs
-    ):
-        super().__init__(
-            file_id=file_id,
-            file_unique_id=file_unique_id,
-            width=width,
-            length=length,
-            **kwargs
-        )
+    def __init__(self, file_id: str, file_unique_id: str, width: int,
+                 length: int, **kwargs):
+        super().__init__(file_id=file_id,
+                         file_unique_id=file_unique_id,
+                         width=width,
+                         length=length,
+                         **kwargs)
 
 
 class LabeledPrice(SimpleObject):
@@ -733,10 +660,9 @@ class LabeledPrice(SimpleObject):
 
 
 class ShippingOption(SimpleObject):
-    def __init__(self, id: str, title: str, prices: List[LabeledPrice], **kwargs):
-        super().__init__(
-            id=id, title=title, prices=prices, **kwargs
-        )
+    def __init__(self, id: str, title: str, prices: List[LabeledPrice],
+                 **kwargs):
+        super().__init__(id=id, title=title, prices=prices, **kwargs)
 
 
 class ChatPermissions(SimpleObject):
@@ -795,12 +721,12 @@ class PassportElementError(SimpleObject):
         "element_hash",
     )
 
-    def __init__(self, source: str, type: Union[str, PassportElementType], **kwargs):
+    def __init__(self, source: str, type: Union[str, PassportElementType],
+                 **kwargs):
         super().__init__(
             source=source,
             type=type.value if isinstance(type, PassportElementType) else type,
-            **kwargs
-        )
+            **kwargs)
 
 
 class PassportElementErrorDataField(PassportElementError):
@@ -811,36 +737,40 @@ class PassportElementErrorDataField(PassportElementError):
         data_hash: str,
         message: str,
     ):
-        super().__init__(
-            "data", type, field_name=field_name, data_hash=data_hash, message=message
-        )
+        super().__init__("data",
+                         type,
+                         field_name=field_name,
+                         data_hash=data_hash,
+                         message=message)
 
 
 class PassportElementErrorFrontSide(PassportElementError):
-    def __init__(
-        self, type: Union[str, PassportElementType], file_hash: str, message: str
-    ):
-        super().__init__("front_side", type, file_hash=file_hash, message=message)
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
+                 message: str):
+        super().__init__("front_side",
+                         type,
+                         file_hash=file_hash,
+                         message=message)
 
 
 class PassportElementErrorReverseSide(PassportElementError):
-    def __init__(
-        self, type: Union[str, PassportElementType], file_hash: str, message: str
-    ):
-        super().__init__("reverse_side", type, file_hash=file_hash, message=message)
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
+                 message: str):
+        super().__init__("reverse_side",
+                         type,
+                         file_hash=file_hash,
+                         message=message)
 
 
 class PassportElementErrorSelfie(PassportElementError):
-    def __init__(
-        self, type: Union[str, PassportElementType], file_hash: str, message: str
-    ):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
+                 message: str):
         super().__init__("selfie", type, file_hash=file_hash, message=message)
 
 
 class PassportElementErrorFile(PassportElementError):
-    def __init__(
-        self, type: Union[str, PassportElementType], file_hash: str, message: str
-    ):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
+                 message: str):
         super().__init__("file", type, file_hash=file_hash, message=message)
 
 
@@ -851,14 +781,19 @@ class PassportElementErrorFiles(PassportElementError):
         file_hashes: Iterable[str],
         message: str,
     ):
-        super().__init__("files", type, file_hashes=file_hashes, message=message)
+        super().__init__("files",
+                         type,
+                         file_hashes=file_hashes,
+                         message=message)
 
 
 class PassportElementErrorTranslationFile(PassportElementError):
-    def __init__(
-        self, type: Union[str, PassportElementType], file_hash: str, message: str
-    ):
-        super().__init__("translation_file", type, file_hash=file_hash, message=message)
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
+                 message: str):
+        super().__init__("translation_file",
+                         type,
+                         file_hash=file_hash,
+                         message=message)
 
 
 class PassportElementErrorTranslationFiles(PassportElementError):
@@ -868,15 +803,16 @@ class PassportElementErrorTranslationFiles(PassportElementError):
         file_hashes: Iterable[str],
         message: str,
     ):
-        super().__init__(
-            "translation_files", type, file_hashes=file_hashes, message=message
-        )
+        super().__init__("translation_files",
+                         type,
+                         file_hashes=file_hashes,
+                         message=message)
 
 
 class PassportElementErrorUnspecified(PassportElementError):
-    def __init__(
-        self, type: Union[str, PassportElementType], element_hash: str, message: str
-    ):
-        super().__init__(
-            "unspecified", type, element_hash=element_hash, message=message
-        )
+    def __init__(self, type: Union[str, PassportElementType],
+                 element_hash: str, message: str):
+        super().__init__("unspecified",
+                         type,
+                         element_hash=element_hash,
+                         message=message)

@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import asyncio
-import os
-from typing import Iterable, Optional, Tuple, Callable, Dict
 import logging
+import os
+from typing import Callable, Dict, Iterable, Optional, Tuple
 
 from simplebot.api import SimpleRequest, TelegramBotAPI
+from simplebot.base import InputFile, Message, SimpleBotException, Update
 from simplebot.storage import MemoryStorage, SimpleSession, SimpleStorage
-from simplebot.base import SimpleBotException, Update, Message, InputFile
-from simplebot.utils import (
-    build_force_reply_data,
-    parse_force_reply_data,
-    pretty_format,
-)
+from simplebot.utils import (build_force_reply_data, parse_force_reply_data,
+                             pretty_format)
 
 logger = logging.getLogger("simple-bot")
 
@@ -41,17 +38,20 @@ class SimpleBot:
         try:
             self._bot_id = int(token.split(":")[0])
         except IndexError as error:
-            raise SimpleBotException("wrong token format: {0}".format(token)) from error
+            raise SimpleBotException(
+                "wrong token format: {0}".format(token)) from error
         self._token = token
         self._router = router
-        self._bot_api = TelegramBotAPI(
-            http_request if isinstance(http_request, SimpleRequest) else SimpleRequest()
-        )
+        if http_request is None:
+            http_request = SimpleRequest()
+        assert isinstance(http_request, SimpleRequest)
+        self._bot_api = TelegramBotAPI(http_request)
         if storage is None:
-            logger.warning("You are using a memory storage which can not be persisted.")
-        self._storage = (
-            storage if isinstance(storage, SimpleStorage) else MemoryStorage()
-        )
+            logger.warning(
+                "You are using a memory storage which can not be persisted.")
+            storage = MemoryStorage()
+        assert isinstance(storage, SimpleStorage), True
+        self._storage = storage
         self._i18n_source = i18n_source
         self.last_update_id = 0
         self._bot_me = None
@@ -67,15 +67,12 @@ class SimpleBot:
                     message (Message): message sent from the replying user
                     kwargs: other kwargs of sendXXX api method
                 """
-                kwargs.update(
-                    {
-                        "chat_id": message.chat.id,
-                        "reply_to_message_id": message.message_id,
-                    }
-                )
-                return getattr(
-                    self._bot_api, "send{0}".format(api_name.split("reply")[1])
-                )(self.token, **kwargs)
+                kwargs.update({
+                    "chat_id": message.chat.id,
+                    "reply_to_message_id": message.message_id,
+                })
+                return getattr(self._bot_api, "send{0}".format(
+                    api_name.split("reply")[1]))(self.token, **kwargs)
 
             return reply_method
 
@@ -140,23 +137,23 @@ class SimpleBot:
         *force_reply_args,
         expires: int = 1800,
     ):
-        force_reply_callback_name = "{0}.{1}".format(
-            callback.__module__, callback.__name__
-        )
+        force_reply_callback_name = "{0}.{1}".format(callback.__module__,
+                                                     callback.__name__)
         if not self.router.has_force_reply_callback(force_reply_callback_name):
             raise SimpleBotException(
-                "{0} is not a force reply callback".format(force_reply_callback_name)
-            )
+                "{0} is not a force reply callback".format(
+                    force_reply_callback_name))
         field = self._force_reply_key_format.format(user_id)
         session = self.get_session(user_id)
         if not force_reply_args:
-            session.set(
-                field, build_force_reply_data(force_reply_callback_name), expires
-            )
+            session.set(field,
+                        build_force_reply_data(force_reply_callback_name),
+                        expires)
         else:
             session.set(
                 field,
-                build_force_reply_data(force_reply_callback_name, *force_reply_args),
+                build_force_reply_data(force_reply_callback_name,
+                                       *force_reply_args),
                 expires,
             )
 
@@ -167,8 +164,7 @@ class SimpleBot:
     def get_force_reply(self, user_id: int) -> Tuple:
         session = self.get_session(user_id)
         force_reply_data = session.get(
-            self._force_reply_key_format.format(user_id), None
-        )
+            self._force_reply_key_format.format(user_id), None)
         if not force_reply_data:
             return None, None
         return parse_force_reply_data(force_reply_data)

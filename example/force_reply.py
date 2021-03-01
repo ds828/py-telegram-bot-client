@@ -32,4 +32,4 @@ def on_callback_reply(
     bot.force_reply_done(message.from_user.id)
 
 
-example_bot.run_polling(timeout=10)
+example_bot.run_polling(timeout=8)
