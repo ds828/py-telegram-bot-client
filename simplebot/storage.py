@@ -2,10 +2,11 @@ try:
     import ujson as json
 except ImportError:
     import json
+
 import os
 import sqlite3
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from simplebot.utils import pretty_format
 
@@ -28,7 +29,7 @@ class SimpleStorage:
 
 
 class MemoryStorage(SimpleStorage):
-    __slots__ = ("_data",)
+    __slots__ = ("_data", )
 
     def __init__(self):
         self._data = {}
@@ -38,10 +39,13 @@ class MemoryStorage(SimpleStorage):
             self.delete_field(key, field, expires)
             return True
         current_time = int(datetime.now().timestamp())
-        if key not in self._data or self._data[key].get("expires", 0) < current_time:
+        if key not in self._data or self._data[key].get("expires",
+                                                        0) < current_time:
             self._data[key] = {
                 "expires": current_time + expires,
-                "data": {field: value},
+                "data": {
+                    field: value
+                },
             }
             return True
         data = self._data[key]
@@ -51,7 +55,8 @@ class MemoryStorage(SimpleStorage):
 
     def get_value(self, key: str, field: str, expires: int) -> Any:
         current_time = int(datetime.now().timestamp())
-        if key not in self._data or self._data[key].get("expires", 0) < current_time:
+        if key not in self._data or self._data[key].get("expires",
+                                                        0) < current_time:
             self.delete_key(key)
             return None
         data = self._data[key]
@@ -60,7 +65,8 @@ class MemoryStorage(SimpleStorage):
 
     def delete_field(self, key: str, field: str, expires: int) -> bool:
         current_time = int(datetime.now().timestamp())
-        if key not in self._data or self._data[key].get("expires", 0) < current_time:
+        if key not in self._data or self._data[key].get("expires",
+                                                        0) < current_time:
             self.delete_key(key)
             return False
         data = self._data[key]
@@ -77,7 +83,8 @@ class MemoryStorage(SimpleStorage):
 
     def dict(self, key: str, expires: int) -> Dict:
         current_time = int(datetime.now().timestamp())
-        if key not in self._data or self._data[key].get("expires", 0) < current_time:
+        if key not in self._data or self._data[key].get("expires",
+                                                        0) < current_time:
             self.delete_key(key)
             return {}
         self._data[key]["expires"] = current_time + expires
@@ -85,13 +92,12 @@ class MemoryStorage(SimpleStorage):
 
 
 class SQLiteStorage(SimpleStorage):
-    __slots__ = ("_db_conn",)
+    __slots__ = ("_db_conn", )
 
     def __init__(self, db_file: Optional[str] = None):
         if db_file is None:
             self._db_conn = sqlite3.connect(
-                "file:memory?cache=shared&mode=memory", uri=True
-            )
+                "file:memory?cache=shared&mode=memory", uri=True)
         else:
             db_path = os.path.dirname(db_file)
             if not os.path.exists(db_path):
@@ -99,25 +105,23 @@ class SQLiteStorage(SimpleStorage):
             self._db_conn = sqlite3.connect(db_file)
         self._db_conn.row_factory = sqlite3.Row
         with self._db_conn:
-            self._db_conn.execute(
-                """
+            self._db_conn.execute("""
                 CREATE TABLE IF NOT EXISTS `t_storage` (
                     `key`        TEXT NOT NULL UNIQUE,
                     `data`       TEXT NOT NULL,
                     `expires`    INTEGER NOT NULL,
                     PRIMARY KEY(`key`)
                     )
-                """
-            )
+                """)
 
     def __del__(self):
         self._db_conn.close()
 
-    def set_value(self, key: str, field: str, value: str, expires: int) -> bool:
+    def set_value(self, key: str, field: str, value: str,
+                  expires: int) -> bool:
         with self._db_conn:
             cur = self._db_conn.execute(
-                "SELECT data, expires from t_storage WHERE key=?", (key,)
-            )
+                "SELECT data, expires from t_storage WHERE key=?", (key, ))
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
             if row_data and row_data["expires"] >= current_time:
@@ -144,8 +148,7 @@ class SQLiteStorage(SimpleStorage):
     def get_value(self, key: str, field: str, expires: int) -> Any:
         with self._db_conn:
             cur = self._db_conn.execute(
-                "SELECT data, expires from t_storage WHERE key=?", (key,)
-            )
+                "SELECT data, expires from t_storage WHERE key=?", (key, ))
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
             if row_data and row_data["expires"] >= current_time:
@@ -159,8 +162,7 @@ class SQLiteStorage(SimpleStorage):
     def delete_field(self, key: str, field: str, expires: int) -> bool:
         with self._db_conn:
             cur = self._db_conn.execute(
-                "SELECT data, expires from t_storage WHERE key=?", (key,)
-            )
+                "SELECT data, expires from t_storage WHERE key=?", (key, ))
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
             if row_data and row_data["expires"] >= current_time:
@@ -176,13 +178,13 @@ class SQLiteStorage(SimpleStorage):
 
     def delete_key(self, key: str):
         with self._db_conn:
-            self._db_conn.execute("DELETE from t_storage WHERE key=? ", (key,))
+            self._db_conn.execute("DELETE from t_storage WHERE key=? ",
+                                  (key, ))
 
     def dict(self, key: str, expires: int) -> Dict:
         with self._db_conn:
             cur = self._db_conn.execute(
-                "SELECT data, expires from t_storage WHERE key=?", (key,)
-            )
+                "SELECT data, expires from t_storage WHERE key=?", (key, ))
             row_data = cur.fetchone()
             current_time = int(datetime.now().timestamp())
             if row_data and row_data["expires"] >= current_time:
@@ -195,7 +197,7 @@ class SQLiteStorage(SimpleStorage):
 
 
 class RedisStorage(SimpleStorage):
-    __slots__ = ("_redis",)
+    __slots__ = ("_redis", )
 
     def __init__(self, redis):
         self._redis = redis
@@ -203,7 +205,7 @@ class RedisStorage(SimpleStorage):
     def set_value(self, key: str, field: str, value, expires: int) -> bool:
         self._redis.expire(key, expires)
         if value:
-            return bool(self._redis.hset(key, field, json.dumps((value,))))
+            return bool(self._redis.hset(key, field, json.dumps((value, ))))
         return bool(self._redis.hdel(key, field))
 
     def get_value(self, key: str, field: str, expires: int) -> Any:
@@ -229,12 +231,15 @@ class RedisStorage(SimpleStorage):
 
 
 class SimpleSession:
-    __slots__ = ("_user_id", "_storage", "_session_id", "_expires", "_local_data")
+    __slots__ = ("_user_id", "_storage", "_session_id", "_expires",
+                 "_local_data")
     _session_key_format = "bot:session:{0}:{1}"
 
-    def __init__(
-        self, bot_id: int, user_id: int, storage: SimpleStorage, expires: int = 1800
-    ) -> None:
+    def __init__(self,
+                 bot_id: int,
+                 user_id: int,
+                 storage: SimpleStorage,
+                 expires: int = 1800) -> None:
         self._user_id = user_id
         self._storage = storage
         self._session_id = self._session_key_format.format(bot_id, user_id)
@@ -270,7 +275,8 @@ class SimpleSession:
     def delete(self, field: str) -> bool:
         if field in self._local_data:
             del self._local_data[field]
-        return self._storage.delete_field(self._session_id, field, self._expires)
+        return self._storage.delete_field(self._session_id, field,
+                                          self._expires)
 
     def __delitem__(self, field: str):
         self.delete(field)
@@ -288,6 +294,5 @@ class SimpleSession:
         return self._local_data
 
     def __str__(self):
-        return "Session(id={0}, data={1})".format(
-            self._session_id, pretty_format(self.data)
-        )
+        return "Session(id={0}, data={1})".format(self._session_id,
+                                                  pretty_format(self.data))

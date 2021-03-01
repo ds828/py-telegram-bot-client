@@ -1,7 +1,7 @@
 import pprint
 from functools import wraps
 from io import StringIO
-from typing import Iterable, Pattern, Dict, Tuple
+from typing import Dict, Iterable, Pattern, Tuple
 
 try:
     import ujson as json

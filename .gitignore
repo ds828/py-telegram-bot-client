@@ -136,3 +136,4 @@ supervisor.conf
 pyrightconfig.json
 .pylintrc
 example/settings.py
+tags
