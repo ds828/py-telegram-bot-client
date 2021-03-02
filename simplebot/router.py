@@ -571,7 +571,14 @@ class SimpleRouter:
     async def __call_edited_message_handler(self, update_type: UpdateType,
                                             bot: SimpleBot,
                                             edited_message: Message):
-        await self.__call_message_handler(update_type, bot, edited_message)
+        if await self.__call_command_handler(bot,
+                                             edited_message) is self.next_call:
+            # for edited messages, their fields should be text ONLY for force_reply
+            if edited_message.text and await self.__call_force_reply_handler(
+                    bot, edited_message) is self.stop_call:
+                return
+            await self.__call_message_like_handler(update_type, bot,
+                                                   edited_message)
 
     async def __call_channel_post_handler(self, update_type: UpdateType,
                                           bot: SimpleBot, message: Message):
