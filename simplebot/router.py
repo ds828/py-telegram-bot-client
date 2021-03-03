@@ -673,9 +673,9 @@ class SimpleRouter:
     def has_force_reply_callback(self, callback_name: str) -> bool:
         return self.get_force_reply_handler(callback_name) is not None
 
-    @property
-    def route_map(self):
-        return "\n{0}".format(pretty_format(self._route_map))
+    def __repr__(self):
+        return "\nname: {0}\n{1}".format(self.name,
+                                         pretty_format(self._route_map))
 
     @classmethod
     def parse_update_type_and_data(
