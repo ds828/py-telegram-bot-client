@@ -2,6 +2,11 @@ import logging
 from collections import defaultdict
 from typing import Callable, Dict, Iterable, Optional, Tuple, Union
 
+try:
+    import ujson as json
+except ImportError:
+    import json
+
 from simplebot.base import (CallbackQuery, ChosenInlineResult, InlineQuery,
                             Message, MessageField, Poll, PollAnswer,
                             PreCheckoutQuery, ShippingQuery,
@@ -155,24 +160,28 @@ class SimpleRouter:
         if UpdateType.CALLBACK_QUERY.value not in self._route_map:
             self._route_map[UpdateType.CALLBACK_QUERY.value] = {}
         route = self._route_map[UpdateType.CALLBACK_QUERY.value]
-        has_static_match, has_regex_match, has_callable_match = handler.have_matches
-        if has_static_match:
-            if "static" not in route:
-                route["static"] = {}
-            route["static"][handler.static_match] = handler
+        has_all_match, has_start_match, has_regex_match, has_callable_match = handler.have_matches
+        if has_all_match:
+            if "all_match" not in route:
+                route["all_match"] = {}
+            route["all_match"][handler.all_match] = handler
+        if has_start_match:
+            if "start_match" not in route:
+                route["start_match"] = {}
+            route["start_match"][handler.start_match] = handler
         if has_regex_match:
-            if "regex" not in route:
-                route["regex"] = []
-            route["regex"].append(handler)
+            if "regex_match" not in route:
+                route["regex_match"] = []
+            route["regex_match"].append(handler)
         if has_callable_match:
-            if "callable" not in route:
-                route["callable"] = []
-            route["callable"].append(handler)
-        if not has_static_match and not has_regex_match and not has_callable_match:
-            if "any" in route:
+            if "callable_match" not in route:
+                route["callable_match"] = []
+            route["callable_match"].append(handler)
+        if not has_all_match and not has_start_match and not has_regex_match and not has_callable_match:
+            if "any_match" in route:
                 logger.warning(
                     "You are overwritting a callback_query handler: %s on any updatetypes with %s",
-                    route["any"],
+                    route["any_match"],
                     handler,
                 )
             route["any"] = handler
@@ -260,16 +269,16 @@ class SimpleRouter:
     def register_callback_query_handler(
             self,
             callback: Callable,
-            static_match: Optional[str] = None,
+            all_match: Optional[str] = None,
+            start_match: Optional[str] = None,
             regex_match: Optional[Iterable[str]] = None,
-            callback_query_name: Optional[str] = None,
             callable_match: Optional[Callable] = None,
             **kwargs):
         self.register_handler(
             CallbackQueryHandler(callback=callback,
-                                 static_match=static_match,
+                                 all_match=all_match,
+                                 start_match=start_match,
                                  regex_match=regex_match,
-                                 callback_query_name=callback_query_name,
                                  callable_match=callable_match,
                                  **kwargs))
 
@@ -387,15 +396,14 @@ class SimpleRouter:
         return decorator
 
     def callback_query_handler(self,
-                               static_match: Optional[str] = None,
+                               all_match: Optional[str] = None,
+                               start_match: Optional[str] = None,
                                regex_match: Optional[Iterable[str]] = None,
-                               callback_query_name: Optional[str] = None,
                                callable_match: Optional[Callable] = None,
                                **kwargs):
         def decorator(callback):
-            self.register_callback_query_handler(callback, static_match,
-                                                 regex_match,
-                                                 callback_query_name,
+            self.register_callback_query_handler(callback, all_match,
+                                                 start_match, regex_match,
                                                  callable_match, **kwargs)
             return callback
 
@@ -595,20 +603,28 @@ class SimpleRouter:
         routes = self._route_map.get(update_type.value, None)
         if not routes:
             return
-        if ("any" in routes and await self.__call_handler(
-                routes["any"], bot, callback_query) is self.stop_call):
+        if ("any_match" in routes and await self.__call_handler(
+                routes["any_match"], bot, callback_query) is self.stop_call):
             return
-        if "static" in routes:
-            handler = routes["static"].get(callback_query.data, None)
+        if "all_match" in routes:
+            handler = routes["all_match"].get(callback_query.data, None)
             if (handler and await self.__call_handler(
                     handler, bot, callback_query) is self.stop_call):
                 return
-        for handler in routes.get("regex", ()):
+        if "start_match" in routes:
+            start_and_args = callback_query.data.split("|")
+            handler = routes["start_match"].get(start_and_args[0], None)
+            if (handler and await self.__call_handler(
+                    handler, bot, callback_query,
+                    *json.loads(start_and_args[1] if len(start_and_args) ==
+                                2 else None)) is self.stop_call):
+                return
+        for handler in routes.get("regex_match", ()):
             result = handler.regex_match(callback_query)
             if result and await handler(bot, callback_query,
                                         result) is self.stop_call:
                 return
-        for handler in routes.get("callable", ()):
+        for handler in routes.get("callable_match", ()):
             result = handler.callable_match(callback_query)
             if result:
                 if (isinstance(result, bool) and await self.__call_handler(

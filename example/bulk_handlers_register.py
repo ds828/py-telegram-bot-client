@@ -1,14 +1,11 @@
 """
 run in terminal: python -m example.bluk_handlers_register.py
 """
-from example.settings import BOT_TOKEN
-from simplebot import bot_proxy, SimpleBot
-from simplebot.base import (
-    BotCommand,
-    Message,
-    MessageField,
-)
+from simplebot import SimpleBot, bot_proxy
+from simplebot.base import BotCommand, Message, MessageField
 from simplebot.handler import CommandHandler, MessageHandler
+
+from example.settings import BOT_TOKEN
 
 
 def on_mycmd(bot: SimpleBot, message: Message):
@@ -21,7 +18,7 @@ def on_message(bot: SimpleBot, message: Message):
 
 handlers = (
     CommandHandler(callback=on_mycmd, cmds=("/mycmd1", "/mycmd2")),
-    MessageHandler(callback=on_message, message_fields=(MessageField.TEXT,)),
+    MessageHandler(callback=on_message, fields=(MessageField.TEXT, )),
 )
 # define a named router
 # router = bot_proxy.router(name="my_router", handlers=handlers)
