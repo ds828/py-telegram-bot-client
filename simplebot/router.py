@@ -616,8 +616,8 @@ class SimpleRouter:
             handler = routes["start_match"].get(start_and_args[0], None)
             if (handler and await self.__call_handler(
                     handler, bot, callback_query,
-                    *json.loads(start_and_args[1] if len(start_and_args) ==
-                                2 else None)) is self.stop_call):
+                    *json.loads(start_and_args[1])
+                    if len(start_and_args) == 2 else None) is self.stop_call):
                 return
         for handler in routes.get("regex_match", ()):
             result = handler.regex_match(callback_query)
