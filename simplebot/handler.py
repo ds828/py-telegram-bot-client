@@ -179,7 +179,8 @@ class EditedChannelPostHandler(_MessageHandler):
 
 class CallbackQueryHandler(UpdateHandler):
     __slots__ = (
-        "_static_match",
+        "_all_match",
+        "_start_match",
         "_regex_patterns",
         "_callable_match",
         "_kwargs",
@@ -187,42 +188,39 @@ class CallbackQueryHandler(UpdateHandler):
 
     def __init__(self,
                  callback: Callable,
-                 static_match: Optional[str] = None,
+                 all_match: Optional[str] = None,
+                 start_match: Optional[str] = None,
                  regex_match: Optional[Iterable[str]] = None,
-                 callback_query_name: Optional[str] = None,
                  callable_match: Optional[Callable] = None,
                  **kwargs):
         super().__init__(callback=callback,
                          update_types=(UpdateType.CALLBACK_QUERY, ))
-        self._static_match = static_match
-        self._regex_patterns = None
-        if regex_match:
-            self._regex_patterns = tuple(
-                re.compile(regex_str) for regex_str in regex_match)
-        if callback_query_name:
-            assert callback_query_name, str
-            self._callable_match = parse_callback_data
-            kwargs.update({"name": callback_query_name})
-            self._kwargs = kwargs
-        else:
-            self._callable_match = callable_match
-            self._kwargs = kwargs
-
-    @property
-    def static_match(self):
-        return self._static_match
+        self._all_match = all_match
+        self._start_match = start_match
+        self._regex_patterns = tuple(
+            re.compile(regex_str)
+            for regex_str in regex_match) if regex_match else ()
+        self._callable_match = callable_match
+        self._kwargs = kwargs
 
     @property
     def have_matches(self) -> Tuple[bool, bool, bool]:
         return (
-            bool(self._static_match),
+            bool(self._all_match),
+            bool(self._start_match),
             bool(self._regex_patterns),
             bool(self._callable_match),
         )
 
+    @property
+    def all_match(self):
+        return self._all_match
+
+    @property
+    def start_match(self):
+        return self._start_match
+
     def regex_match(self, callback_query: CallbackQuery):
-        if not self._regex_patterns:
-            return None
         for pattern in self._regex_patterns:
             result = pattern.match(callback_query.data)
             if result:
