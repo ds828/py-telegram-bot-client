@@ -160,31 +160,31 @@ class SimpleRouter:
         if UpdateType.CALLBACK_QUERY.value not in self._route_map:
             self._route_map[UpdateType.CALLBACK_QUERY.value] = {}
         route = self._route_map[UpdateType.CALLBACK_QUERY.value]
-        has_all_match, has_start_match, has_regex_match, has_callable_match = handler.have_matches
-        if has_all_match:
-            if "all_match" not in route:
-                route["all_match"] = {}
-            route["all_match"][handler.all_match] = handler
-        if has_start_match:
-            if "start_match" not in route:
-                route["start_match"] = {}
-            route["start_match"][handler.start_match] = handler
-        if has_regex_match:
-            if "regex_match" not in route:
-                route["regex_match"] = []
-            route["regex_match"].append(handler)
-        if has_callable_match:
-            if "callable_match" not in route:
-                route["callable_match"] = []
-            route["callable_match"].append(handler)
-        if not has_all_match and not has_start_match and not has_regex_match and not has_callable_match:
-            if "any_match" in route:
+        has_callback_data, has_callback_data_name, has_callback_data_regex, has_callback_data_parse = handler.have_matchers
+        if has_callback_data:
+            if "callback_data" not in route:
+                route["callback_data"] = {}
+            route["callback_data"][handler.callback_data] = handler
+        if has_callback_data_name:
+            if "callback_data_name" not in route:
+                route["callback_data_name"] = {}
+            route["callback_data_name"][handler.callback_data_name] = handler
+        if has_callback_data_regex:
+            if "callback_data_regex" not in route:
+                route["callback_data_regex"] = []
+            route["callback_data_regex"].append(handler)
+        if has_callback_data_parse:
+            if "callback_data_parse" not in route:
+                route["callback_data_parse"] = []
+            route["callback_data_parse"].append(handler)
+        if handler.any_callback_data:
+            if "any_callback_data" in route:
                 logger.warning(
-                    "You are overwritting a callback_query handler: %s on any updatetypes with %s",
-                    route["any_match"],
+                    "You are overwritting a callback_query handler: %s on any callback data with %s",
+                    route["any_callback_data"],
                     handler,
                 )
-            route["any"] = handler
+            route["any_callback_data"] = handler
 
     def register_handler(self, handler: UpdateHandler):
         if not isinstance(handler, UpdateHandler):
@@ -269,17 +269,17 @@ class SimpleRouter:
     def register_callback_query_handler(
             self,
             callback: Callable,
-            all_match: Optional[str] = None,
-            start_match: Optional[str] = None,
-            regex_match: Optional[Iterable[str]] = None,
-            callable_match: Optional[Callable] = None,
+            callback_data: Optional[str] = None,
+            callback_data_name: Optional[str] = None,
+            callback_data_regex: Optional[Iterable[str]] = None,
+            callback_data_parse: Optional[Callable] = None,
             **kwargs):
         self.register_handler(
             CallbackQueryHandler(callback=callback,
-                                 all_match=all_match,
-                                 start_match=start_match,
-                                 regex_match=regex_match,
-                                 callable_match=callable_match,
+                                 callback_data=callback_data,
+                                 callback_data_name=callback_data_name,
+                                 callback_data_regex=callback_data_regex,
+                                 callback_data_parse=callback_data_parse,
                                  **kwargs))
 
     def register_shipping_query_handler(self, callback: Callable):
@@ -395,16 +395,18 @@ class SimpleRouter:
 
         return decorator
 
-    def callback_query_handler(self,
-                               all_match: Optional[str] = None,
-                               start_match: Optional[str] = None,
-                               regex_match: Optional[Iterable[str]] = None,
-                               callable_match: Optional[Callable] = None,
-                               **kwargs):
+    def callback_query_handler(
+            self,
+            callback_data: Optional[str] = None,
+            callback_data_name: Optional[str] = None,
+            callback_data_regex: Optional[Iterable[str]] = None,
+            callback_data_parse: Optional[Callable] = None,
+            **kwargs):
         def decorator(callback):
-            self.register_callback_query_handler(callback, all_match,
-                                                 start_match, regex_match,
-                                                 callable_match, **kwargs)
+            self.register_callback_query_handler(callback, callback_data,
+                                                 callback_data_name,
+                                                 callback_data_regex,
+                                                 callback_data_parse, **kwargs)
             return callback
 
         return decorator
@@ -603,29 +605,30 @@ class SimpleRouter:
         routes = self._route_map.get(update_type.value, None)
         if not routes:
             return
-        if ("any_match" in routes and await self.__call_handler(
-                routes["any_match"], bot, callback_query) is self.stop_call):
+        if ("any_callback_data" in routes and
+                await self.__call_handler(routes["any_callback_data"], bot,
+                                          callback_query) is self.stop_call):
             return
-        if "all_match" in routes:
-            handler = routes["all_match"].get(callback_query.data, None)
+        if "callback_data" in routes:
+            handler = routes["callback_data"].get(callback_query.data, None)
             if (handler and await self.__call_handler(
                     handler, bot, callback_query) is self.stop_call):
                 return
-        if "start_match" in routes:
+        if "callback_data_name" in routes:
             start_and_args = callback_query.data.split("|")
-            handler = routes["start_match"].get(start_and_args[0], None)
+            handler = routes["callback_data_name"].get(start_and_args[0], None)
             if (handler and await self.__call_handler(
                     handler, bot, callback_query,
                     *json.loads(start_and_args[1])
                     if len(start_and_args) == 2 else None) is self.stop_call):
                 return
-        for handler in routes.get("regex_match", ()):
-            result = handler.regex_match(callback_query)
+        for handler in routes.get("callback_data_regex", ()):
+            result = handler.callback_data_match(callback_query)
             if result and await handler(bot, callback_query,
                                         result) is self.stop_call:
                 return
-        for handler in routes.get("callable_match", ()):
-            result = handler.callable_match(callback_query)
+        for handler in routes.get("callback_data_parse", ()):
+            result = handler.callback_data_parse(callback_query)
             if result:
                 if (isinstance(result, bool) and await self.__call_handler(
                         handler, bot, callback_query) is self.stop_call):

@@ -58,13 +58,6 @@ def build_callback_data(name: str, *args) -> str:
     return "{0}|{1}".format(name, json.dumps(args))
 
 
-def parse_callback_data(callback_data: str, name: str):
-    name_args = callback_data.split("|")
-    if name_args[0] == name:
-        return tuple(json.loads(name_args[1]))
-    return None
-
-
 def build_force_reply_data(*args):
     return args
 

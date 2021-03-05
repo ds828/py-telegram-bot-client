@@ -54,7 +54,7 @@ def on_show_keyboard(bot: SimpleBot, message: Message):
     )
 
 
-@router.callback_query_handler(all_match="submit")
+@router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
     keyboard = InlineKeyboard(
         callback_query.message.reply_markup.inline_keyboard)
