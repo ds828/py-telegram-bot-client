@@ -4,7 +4,6 @@ from enum import Enum
 from typing import Callable, Iterable, Optional, Tuple, Union
 
 from simplebot.base import CallbackQuery, MessageField, UpdateType
-from simplebot.utils import parse_callback_data
 
 
 class UpdateHandler:
@@ -179,57 +178,63 @@ class EditedChannelPostHandler(_MessageHandler):
 
 class CallbackQueryHandler(UpdateHandler):
     __slots__ = (
-        "_all_match",
-        "_start_match",
-        "_regex_patterns",
-        "_callable_match",
+        "_callback_data",
+        "_callback_data_name",
+        "_callback_data_patterns",
+        "_callback_data_parse",
         "_kwargs",
     )
 
     def __init__(self,
                  callback: Callable,
-                 all_match: Optional[str] = None,
-                 start_match: Optional[str] = None,
-                 regex_match: Optional[Iterable[str]] = None,
-                 callable_match: Optional[Callable] = None,
+                 callback_data: Optional[str] = None,
+                 callback_data_name: Optional[str] = None,
+                 callback_data_regex: Optional[Iterable[str]] = None,
+                 callback_data_parse: Optional[Callable] = None,
                  **kwargs):
         super().__init__(callback=callback,
                          update_types=(UpdateType.CALLBACK_QUERY, ))
-        self._all_match = all_match
-        self._start_match = start_match
-        self._regex_patterns = tuple(
-            re.compile(regex_str)
-            for regex_str in regex_match) if regex_match else ()
-        self._callable_match = callable_match
+        self._callback_data = callback_data
+        self._callback_data_name = callback_data_name
+        self._callback_data_patterns = tuple(
+            re.compile(regex)
+            for regex in callback_data_regex) if callback_data_regex else ()
+        self._callback_data_parse = callback_data_parse
         self._kwargs = kwargs
 
     @property
-    def have_matches(self) -> Tuple[bool, bool, bool]:
+    def have_matchers(self) -> Tuple[bool, bool, bool, bool]:
         return (
-            bool(self._all_match),
-            bool(self._start_match),
-            bool(self._regex_patterns),
-            bool(self._callable_match),
+            bool(self._callback_data),
+            bool(self._callback_data_name),
+            bool(self._callback_data_patterns),
+            bool(self._callback_data_parse),
         )
 
     @property
-    def all_match(self):
-        return self._all_match
+    def any_callback_data(self):
+        one, two, three, four = self.have_matchers
+        return not one and not two and not three and not four
 
     @property
-    def start_match(self):
-        return self._start_match
+    def callback_data(self):
+        return self._callback_data
 
-    def regex_match(self, callback_query: CallbackQuery):
-        for pattern in self._regex_patterns:
+    @property
+    def callback_data_name(self):
+        return self._callback_data_name
+
+    def callback_data_match(self, callback_query: CallbackQuery):
+        for pattern in self._callback_data_patterns:
             result = pattern.match(callback_query.data)
             if result:
                 return result
         return None
 
-    def callable_match(self, callback_query: CallbackQuery):
-        if self._callable_match:
-            return self._callable_match(callback_query.data, **self._kwargs)
+    def callback_data_parse(self, callback_query: CallbackQuery):
+        if self._callback_data_parse:
+            return self._callback_data_parse(callback_query.data,
+                                             **self._kwargs)
         return False
 
 
