@@ -10,18 +10,6 @@ from simplebot.utils import build_callback_data, parse_callback_data
 _RADIO_EMOJI = ("🔘", "⚪")
 _SELECT_EMOJI = ("✔", "")
 _TOGGLER_EMOJI = ("🔓", "🔒")
-_ORDERED_SELECT_EMOJI = (
-    "\u0030\uFE0F\u20E3",
-    "\u0031\uFE0F\u20E3",
-    "\u0032\uFE0F\u20E3",
-    "\u0033\uFE0F\u20E3",
-    "\u0034\uFE0F\u20E3",
-    "\u0035\uFE0F\u20E3",
-    "\u0036\uFE0F\u20E3",
-    "\u0037\uFE0F\u20E3",
-    "\u0038\uFE0F\u20E3",
-    "\u0039\uFE0F\u20E3",
-)
 
 
 class ReplyKeyboard:
@@ -154,7 +142,7 @@ class InlineKeyboard(ReplyKeyboard):
                 )
 
         router.register_callback_query_handler(callback=on_radio_click,
-                                               callback_query_name=name)
+                                               callback_data_name=name)
 
     def add_select_group(self,
                          name: str,
@@ -218,7 +206,7 @@ class InlineKeyboard(ReplyKeyboard):
 
         router.register_callback_query_handler(
             callback=on_select_click,
-            callback_query_name=name,
+            callback_data_name=name,
         )
 
     def add_toggler(self,
@@ -282,69 +270,5 @@ class InlineKeyboard(ReplyKeyboard):
 
         router.register_callback_query_handler(
             callback=on_toggle_click,
-            static_match=name,
-        )
-
-    def add_ordered_select_group(self,
-                                 name: str,
-                                 *options,
-                                 col: int = 1,
-                                 emoji=_ORDERED_SELECT_EMOJI):
-        def get_emoji(index):
-            if index < 10:
-                return emoji[index]
-            return "".join([emoji[int(char)] for char in str(index)])
-
-        # option: (text, value, index: optional[int])
-        for idx in range(0, len(options), col):
-            self._layout.append([
-                InlineKeyboardButton(
-                    text="{0}{1}".format(
-                        get_emoji(option[2]) if len(option) == 3 else "",
-                        option[0],
-                    ),
-                    callback_data=build_callback_data(name, option[1]),
-                ) for option in options[idx:idx + col]
-            ])
-
-    def change_ordered_select_status(self,
-                                     name: str,
-                                     option,
-                                     emoji=_ORDERED_SELECT_EMOJI):
-        toggled_option = build_callback_data(name, option)
-        for line in self._layout:
-            for button in line:
-                if "callback_data" in button:
-                    if button["callback_data"] == toggled_option:
-                        print(button["text"][0:3] in emoji)
-                        return False
-                        # otherwise make it select
-                        button["text"] = "{0}{1}".format(
-                            emoji[0], button["text"])
-                        return True
-        raise SimpleBotException(
-            "the option: {0} is not found".format(toggled_option))
-
-        return True
-
-    @staticmethod
-    def auto_ordered_select(router: SimpleRouter,
-                            name: str,
-                            emoji=_ORDERED_SELECT_EMOJI):
-        def on_select_click(bot: SimpleBot, callback_query: CallbackQuery,
-                            clicked_option):
-            keyboard = InlineKeyboard(
-                keyboard=callback_query.message.reply_markup.inline_keyboard, )
-            selected = keyboard.change_ordered_select_status(
-                name, clicked_option, emoji)
-            return
-            bot.edit_message_reply_markup(
-                chat_id=callback_query.from_user.id,
-                message_id=callback_query.message.message_id,
-                reply_markup=keyboard.markup(),
-            )
-
-        router.register_callback_query_handler(
-            callback=on_select_click,
-            callback_query_name=name,
+            callback_data=name,
         )

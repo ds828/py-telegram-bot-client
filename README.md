@@ -7,17 +7,17 @@ The reason for writing this bot utility is that I wish to run multi telegram bot
 
 This is a simple echo bot.
 
-    
+
 	from simplebot import bot_proxy
 	from simplebot.base import MessageField, ParseMode
-	
+
 	# define a unnamed router
 	router = bot_proxy.router()
 	# define a bot with the router
 	my_bot = bot_proxy.create_bot(token=<BOT_TOKEN>, router=router)
 	# delete webhook if did or not
 	my_bot.delete_webhook(drop_pending_updates=True)
-	
+
 	# decorate a handler callback on incoming message updates that have a text field
 	@router.message_handler(fields=(MessageField.TEXT,))
 	def on_echo_text(bot, message):
@@ -29,8 +29,8 @@ This is a simple echo bot.
 		    )
 	    # pin the sent message
 	    bot.pin_chat_message(chat_id=message.chat.id, message_id=sent_message.message_id)
-	    
-	# run polling to fetch updates in every 10s    
+
+	# run polling to fetch updates in every 10s
 	my_bot.run_polling(timeout=10)
 
 
@@ -51,7 +51,7 @@ For those sendXXX APIs, such as sendMessage, sendDocument, sendLocation etc. **S
 
 In my case, I use [fastapi](https://fastapi.tiangolo.com/) and [uvicron](https://www.uvicorn.org/) to provide a HTTP interface to receive updates from the official Telegram Bot Server. For development and testing, [ngrok](https://ngrok.com/) give a HTTPs URL on my localhost server with a real-time HTTP traffic tunnel.
 
-	
+
 	# run in terminal and get a https tunnel on port 8000 in Austrlia
 	ngrok http 8000 --region=au
 
@@ -77,7 +77,7 @@ source code:
 	    bot.reply_message(message, text="I receive: <strong>{0}</strong>".format(message.text), parse_mode=ParseMode.HTML)
 
 	app = FastAPI()
-	
+
 	# waiting for incoming updates and dispatch them
 	@app.post("/bot/{bot_token}", status_code=status.HTTP_200_OK)
 	async def process_telegram_update(bot_token: str, request: Request):
@@ -108,7 +108,7 @@ source code:
 	        text="I receive: <strong>{0}</strong> from router1".format(message.text),
 	        parse_mode=ParseMode.HTML,
 	    )
-	   
+
 	# bind a handler on router2
 	@router2.message_handler(fields=(MessageField.TEXT,))
 	def on_router2_echo(bot, message):
@@ -117,9 +117,9 @@ source code:
 	        text="I receive: <strong>{0}</strong> from router2".format(message.text),
 	        parse_mode=ParseMode.HTML,
 	    )
-	    
+
 	app = FastAPI()
-	
+
 	# waiting for incoming updates and dispatch them
 	@app.post("/bot/{bot_token}", status_code=status.HTTP_200_OK)
 	async def process_telegram_update(bot_token: str, request: Request):
@@ -140,7 +140,7 @@ good way to register one callback on multi routers
 
 	def on_message(bot, message):
 	    pass
-		
+
 	router1.register_message_handler(callback=on_message, fields=(MessageField.TEXT,))
 	router2.register_message_handler(callback=on_message, fields=(MessageField.TEXT,))
 
@@ -175,18 +175,4 @@ good way to register one callback on multi routers
 	example_bot.set_my_commands(commands=(cmd1, cmd2))
 	example_bot.run_polling(timeout=10)
 
-## Handlers define
-|handler         |decorator                      |function                     |
-|----------------|-------------------------------|-----------------------------|
-|CallbackQueryHandler(callback: Callable, static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|@router.callback_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|router.register_callback_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|
-|ChannelPostHandler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|@router.channel_post_handler(fields: Optional[Iterable[Union[str, MessageField]]])|router.register(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|
-|CommandHandler(callback: Callable, cmds: Iterable[str])|@router.command_handler(cmds: Iterable[str])|router.register_command_handler(callback: Callable, cmds: Iterable[str]) |
-|MessageHandler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|@router.message_handler(fields: Optional[Iterable[Union[str, MessageField]]])         |router.register_message_handler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|
-|ForceReplyHandler(callback: Callable)|@router.force_reply_handler()|router.register_force_reply_handler(callback: Callable)|
-|EditedMessageHandler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|@router.edited_message_handler(fields: Optional[Iterable[Union[str, MessageField]]])|router.register_edited_message_handler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|
-|EditedChannelPostHandler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|@router.edited_channel_post_handler(fields: Optional[Iterable[Union[str, MessageField]]])|router.register_edited_channel_post_handler(callback: Callable, fields: Optional[Iterable[Union[str, MessageField]]])|
-|ErrorHandler(callback: Callable, update_types: Optional[Iterable[Union[str, UpdateType]]], error_type = Exception)|@router.error_handler(update_types: Optional[Iterable[Union[str, UpdateType]]], error_type = Exception)|router.register_error_handler(callback: Callable, update_types: Optional[Iterable[Union[str, UpdateType]]], exceptions = Optional[Iterable[Exception]])|
-|ForceReplyHandler(callback: Callable)|@router.force_reply_handler()|router.register_force_reply_handler(callback: Callable)|
-|InlineQueryHandler(callback: Callable, static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|@router.inline_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|router.register_inline_query_handler(static_match: Optional[str] = None, regex_match: Optional[Iterable[str]] = None, callable_match: Optional[Callable] = None)|
-
-
+## Please try examples for more detail
