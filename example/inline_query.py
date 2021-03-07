@@ -5,10 +5,10 @@ and /setinlinefeedback to enable chosen_inline_result
 """
 from simplebot import SimpleBot, bot_proxy
 from simplebot.base import (CallbackQuery, ChosenInlineResult,
-                            InlineKeyboardButton, InlineKeyboardMarkup,
-                            InlineQuery, InlineQueryResultPhoto)
-from simplebot.ui import InlineKeyboard, Keyboard
-from simplebot.utils import build_callback_data, parse_callback_data
+                            InlineKeyboardButton, InlineQuery,
+                            InlineQueryResultPhoto)
+from simplebot.ui import InlineKeyboard
+from simplebot.utils import build_callback_data
 
 from example.settings import BOT_TOKEN
 
