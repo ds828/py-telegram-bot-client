@@ -18,14 +18,18 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-def select_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
-    bot.send_message(chat_id=callback_query.from_user.id,
-                     text="you select: {0}".format(option))
+def select_callback(bot: SimpleBot, callback_query: CallbackQuery, text,
+                    option):
+    text = "you select: text={0} option={1}".format(text, option)
+    bot.send_message(chat_id=callback_query.from_user.id, text=text)
+    return text
 
 
-def unselect_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
+def unselect_callback(bot: SimpleBot, callback_query: CallbackQuery, text,
+                      option):
     bot.send_message(chat_id=callback_query.from_user.id,
-                     text="you unselect: {0}".format(option))
+                     text="you unselect: text={0} option={1}".format(
+                         text, option))
 
 
 InlineKeyboard.auto_select(
@@ -58,10 +62,13 @@ def on_show_keyboard(bot: SimpleBot, message: Message):
 def on_submit(bot, callback_query):
     keyboard = InlineKeyboard(
         callback_query.message.reply_markup.inline_keyboard)
+    message_text = "\n".join([
+        "you select item: text={0}, option={1}".format(text, option)
+        for text, option in keyboard.get_select_value("select-group")
+    ])
     bot.send_message(
         chat_id=callback_query.from_user.id,
-        text="you select: {0}".format(
-            keyboard.get_select_value("select-group"), ),
+        text=message_text or "nothing selected",
     )
 
 

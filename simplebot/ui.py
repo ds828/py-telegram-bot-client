@@ -90,15 +90,15 @@ class InlineKeyboard(ReplyKeyboard):
             for button in line:
                 if "callback_data" in button and button["text"][0] == emoji[0]:
                     if button["callback_data"].startswith(name):
-                        return parse_callback_data(button["callback_data"],
-                                                   name)[0]
-        return None
+                        return button["text"][1:], parse_callback_data(
+                            button["callback_data"], name)[0]
+        return None, None
 
     def change_radio_status(self,
                             name: str,
                             option,
-                            emoji=_RADIO_EMOJI) -> bool:
-        changed = False
+                            emoji=_RADIO_EMOJI) -> Optional[str]:
+        changed_item_name = None
         clicked_option = build_callback_data(name, option)
         for line in self._layout:
             for button in line:
@@ -111,16 +111,17 @@ class InlineKeyboard(ReplyKeyboard):
                             # it is the radio I click
                             if button["callback_data"] == clicked_option:
                                 if button["text"][0] == emoji[0]:
-                                    return False
+                                    return None
+                                changed_item_name = button["text"][1:]
                                 button["text"] = "{0}{1}".format(
                                     emoji[0],
                                     button["text"][1:])  # make it select
-                                changed = True
                             else:
+                                # make others be unselected
                                 if button["text"][0] == emoji[0]:
                                     button["text"] = "{0}{1}".format(
                                         emoji[1], button["text"][1:])
-        return changed
+        return changed_item_name
 
     @staticmethod
     def auto_radio(
@@ -132,12 +133,18 @@ class InlineKeyboard(ReplyKeyboard):
         def on_radio_click(bot, callback_query, radio_option):
             keyboard = InlineKeyboard(
                 keyboard=callback_query.message.reply_markup.inline_keyboard, )
-            if keyboard.change_radio_status(name, radio_option, emoji=emoji):
+            selected_item_name = keyboard.change_radio_status(name,
+                                                              radio_option,
+                                                              emoji=emoji)
+            if selected_item_name:
+                message_text = None
                 if radio_changed_callback:
-                    radio_changed_callback(bot, callback_query, radio_option)
-                bot.edit_message_reply_markup(
+                    message_text = radio_changed_callback(
+                        bot, callback_query, selected_item_name, radio_option)
+                bot.edit_message_text(
                     chat_id=callback_query.from_user.id,
                     message_id=callback_query.message.message_id,
+                    text=message_text or callback_query.message.text,
                     reply_markup=keyboard.markup(),
                 )
 
@@ -158,8 +165,9 @@ class InlineKeyboard(ReplyKeyboard):
                 if "callback_data" in button and button["text"][0] == emoji[0]:
                     if button["callback_data"].startswith(name):
                         selected_options.append(
-                            parse_callback_data(button["callback_data"],
-                                                name=name)[0])
+                            (button["text"][1:],
+                             parse_callback_data(button["callback_data"],
+                                                 name=name)[0]))
         return tuple(selected_options)
 
     def change_select_status(self, name: str, option, emoji=_SELECT_EMOJI):
@@ -171,11 +179,11 @@ class InlineKeyboard(ReplyKeyboard):
                         if button["text"][0] == emoji[0]:  # selected
                             button["text"] = button["text"][
                                 1:]  # make it unselect
-                            return False
+                            return False, button["text"]
                         # otherwise make it select
                         button["text"] = "{0}{1}".format(
                             emoji[0], button["text"])
-                        return True
+                        return True, button["text"][1:]
         raise SimpleBotException(
             "the option: {0} is not found".format(toggled_option))
 
@@ -191,16 +199,20 @@ class InlineKeyboard(ReplyKeyboard):
                             clicked_option):
             keyboard = InlineKeyboard(
                 keyboard=callback_query.message.reply_markup.inline_keyboard, )
-            selected = keyboard.change_select_status(name, clicked_option,
-                                                     emoji)
+            selected, item_name = keyboard.change_select_status(
+                name, clicked_option, emoji)
+            message_text = None
             if selected:
                 if selected_callback:
-                    selected_callback(bot, callback_query, clicked_option)
+                    message_text = selected_callback(bot, callback_query,
+                                                     item_name, clicked_option)
             elif unselected_callback:
-                unselected_callback(bot, callback_query, clicked_option)
-            bot.edit_message_reply_markup(
+                message_text = unselected_callback(bot, callback_query,
+                                                   item_name, clicked_option)
+            bot.edit_message_text(
                 chat_id=callback_query.from_user.id,
                 message_id=callback_query.message.message_id,
+                text=message_text or callback_query.message.text,
                 reply_markup=keyboard.markup(),
             )
 

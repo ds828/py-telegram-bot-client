@@ -18,9 +18,11 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-def radio_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
-    bot.send_message(chat_id=callback_query.from_user.id,
-                     text="you click: {0}".format(option))
+def radio_callback(bot: SimpleBot, callback_query: CallbackQuery, text,
+                   option):
+    text = "You click: text={0} option={1}".format(text, option)
+    bot.send_message(chat_id=callback_query.from_user.id, text=text)
+    return text
 
 
 InlineKeyboard.auto_radio(router,
@@ -46,8 +48,8 @@ def on_submit(bot, callback_query):
         callback_query.message.reply_markup.inline_keyboard)
     bot.send_message(
         chat_id=callback_query.from_user.id,
-        text="you select: {0}".format(
-            keyboard.get_radio_value("radio-group"), ),
+        text="you select item: text={0}, option={1}".format(
+            *keyboard.get_radio_value("radio-group"), ),
     )
 
 
