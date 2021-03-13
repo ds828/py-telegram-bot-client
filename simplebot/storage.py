@@ -281,6 +281,11 @@ class SimpleSession:
     def __delitem__(self, field: str):
         self.delete(field)
 
+    def pop(self, field: str, default=None):
+        value = self.get(field, default)
+        del self[field]
+        return value
+
     def __contains__(self, field: str):
         return self.get(field) is not None
 
