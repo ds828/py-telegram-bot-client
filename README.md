@@ -19,7 +19,7 @@ This is a simple echo bot.
 	my_bot.delete_webhook(drop_pending_updates=True)
 
 	# decorate a handler callback on incoming message updates that have a text field
-	@router.message_handler(fields=(MessageField.TEXT,))
+	@router.message_handler(fields=MessageField.TEXT)
 	def on_echo_text(bot, message):
 	    # receive and reply
 	    sent_message = bot.send_message(
@@ -72,7 +72,7 @@ source code:
 	bot1.setup_webhook(WEBHOOK_URL.format(<BOT1_TOKEN>))
 	bot2.setup_webhook(WEBHOOK_URL.format(<BOT2_TOKEN>))
 
-	@router.message_handler(fields=(MessageField.TEXT,))
+	@router.message_handler(fields=MessageField.TEXT)
 	def on_echo_text(bot, message):
 	    bot.reply_message(message, text="I receive: <strong>{0}</strong>".format(message.text), parse_mode=ParseMode.HTML)
 
@@ -101,7 +101,7 @@ source code:
 	bot2.setup_webhook(WEBHOOK_URL.format(<BOT2_TOKEN>))
 
 	# bind a handler on router1
-	@router1.message_handler(fields=(MessageField.TEXT,))
+	@router1.message_handler(fields=MessageField.TEXT)
 	def on_router1_echo(bot, message):
 	    bot.reply_message(
 	        message,
@@ -110,7 +110,7 @@ source code:
 	    )
 
 	# bind a handler on router2
-	@router2.message_handler(fields=(MessageField.TEXT,))
+	@router2.message_handler(fields=MessageField.TEXT)
 	def on_router2_echo(bot, message):
 	    bot.reply_message(
 	        message,
@@ -131,7 +131,7 @@ source code:
 
 
 ### decorator
-	@router.message(fields=(MessageField.TEXT,))
+	@router.message_handler(fields=MessageField.TEXT)
 	def on_message(bot, message):
 		pass
 
@@ -141,8 +141,20 @@ good way to register one callback on multi routers
 	def on_message(bot, message):
 	    pass
 
-	router1.register_message_handler(callback=on_message, fields=(MessageField.TEXT,))
-	router2.register_message_handler(callback=on_message, fields=(MessageField.TEXT,))
+	router1.register_message_handler(callback=on_message, fields=MessageField.TEXT)
+	router2.register_message_handler(callback=on_message, fields=MessageField.TEXT)
+
+### route for multi message fields
+	@router.message_handler(fields=MessageField.TEXT | MessageField.LOCATION)
+	def on_any_message_fields(bot: SimpleBot, message: Message):
+	    # call when a message include 'text' OR 'location' fields
+	    pass
+
+	@router.message_handler(fields=MessageField.ANIMATION & MessageField.DOCUMENT)
+	def on_all_message_fields(bot: SimpleBot, message: Message):
+	    # call when a message include 'animation' AND 'document' fields
+	    pass
+
 
 ### All-in
 	from simplebot import bot_proxy, SimpelBot

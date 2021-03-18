@@ -2,8 +2,9 @@
 run in terminal: python -m example.live_location2.py
 """
 import random
-from simplebot import bot_proxy, SimpleBot
-from simplebot.base import MessageField, Message
+
+from simplebot import SimpleBot, bot_proxy
+from simplebot.base import Message, MessageField
 
 from example.settings import BOT_TOKEN
 
@@ -13,7 +14,7 @@ example_bot.delete_webhook(drop_pending_updates=True)
 
 
 # for testing, a user share his location to touch off the bot to share live loctions
-@router.message_handler(fields=(MessageField.LOCATION,))
+@router.message_handler(fields=MessageField.LOCATION)
 def on_share_user_location(bot: SimpleBot, message: Message):
     if "live_period" in message.location:
         # we do not need live location messages
@@ -32,7 +33,7 @@ def on_share_user_location(bot: SimpleBot, message: Message):
 
 # next, the user's telegram app will show a sharing locations between him and the bot.
 # if the user shares his live locations, here is to simulate the bot's movement
-@router.edited_message_handler(fields=(MessageField.LOCATION,))
+@router.edited_message_handler(fields=MessageField.LOCATION)
 def on_live_location(bot: SimpleBot, edited_message: Message):
     session = bot.get_session(edited_message.chat.id)
     message_id = session["message_id"]

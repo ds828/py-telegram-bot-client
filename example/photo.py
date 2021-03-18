@@ -3,8 +3,9 @@ run in terminal: python -m example.photo.py
 """
 import os
 
-from simplebot import bot_proxy, SimpleBot
-from simplebot.base import MessageField, ParseMode, Message, InputFile
+from simplebot import SimpleBot, bot_proxy
+from simplebot.base import InputFile, Message, MessageField, ParseMode
+
 from example.settings import BOT_TOKEN
 
 router = bot_proxy.router()
@@ -12,7 +13,7 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-@router.message_handler(fields=(MessageField.PHOTO,))
+@router.message_handler(fields=MessageField.PHOTO)
 def on_photo_received(bot: SimpleBot, message: Message):
     # get the largest photo
     file_id = message.photo[-1].file_id
@@ -22,13 +23,15 @@ def on_photo_received(bot: SimpleBot, message: Message):
     save_path = "sample"
     save_to_file = os.path.join(save_path, str(bot.id), file_obj.file_path)
     # download it
-    bot.download_file(src_file_path=file_obj.file_path, save_to_file=save_to_file)
+    bot.download_file(src_file_path=file_obj.file_path,
+                      save_to_file=save_to_file)
     # reply
     photo = InputFile("sample.jpg", save_to_file)
     bot.send_photo(
         chat_id=message.chat.id,
         photo=photo,
-        caption="<b>{0}</b>".format(message.caption) if message.caption else None,
+        caption="<b>{0}</b>".format(message.caption)
+        if message.caption else None,
         parse_mode=ParseMode.HTML,
         disable_notification=True,
         reply_to_message_id=message.message_id,

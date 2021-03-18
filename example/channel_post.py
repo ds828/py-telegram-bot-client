@@ -17,7 +17,7 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-@router.channel_post_handler(fields=(MessageField.TEXT, ))
+@router.channel_post_handler(fields=MessageField.TEXT)
 def on_channel_post(bot: SimpleBot, message: Message):
     bot.reply_message(
         message,
@@ -27,7 +27,7 @@ def on_channel_post(bot: SimpleBot, message: Message):
     )
 
 
-@router.edited_channel_post_handler(fields=(MessageField.TEXT, ))
+@router.edited_channel_post_handler(fields=MessageField.TEXT)
 def on_edited_channel_post(bot: SimpleBot, message: Message):
     bot.reply_message(
         message,

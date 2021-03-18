@@ -23,7 +23,7 @@ def parse_callback_data(callback_data: str, name: str):
     return None
 
 
-@router.message_handler(fields=(MessageField.TEXT, ))
+@router.message_handler(fields=MessageField.TEXT)
 def on_select(bot: SimpleBot, message: Message):
     keyboard = InlineKeyboard()
     btn_0 = InlineKeyboardButton(text="match all callback data",

@@ -29,15 +29,31 @@ class UpdateType(str, Enum):
     COMMAND = "command"
 
 
+class MessageFieldMeta(type):
+    def __init__(self, value) -> None:
+        self._or_list = [
+            value,
+        ]
+        self._and_set = {
+            value,
+        }
+
+    def __or__(self, other_field):
+        return self._or_list.append(other_field)
+
+    def __and__(self, other_field):
+        return self._and_set.add(other_field)
+
+
 class MessageField(str, Enum):
     MESSAGE_ID = "message_id"
-    from_USER = "from_user"
+    FROM_USER = "from_user"
     SENDER_CHAT = "sender_chat"
     DATE = "date"
     CHAT = "chat"
-    FORWARD_from = "forward_from"
-    FORWARD_from_CHAT = "forward_from_chat"
-    FORWARD_from_MESSAGE_ID = "forward_from_message_id"
+    FORWARD_FROM = "forward_FROM"
+    FORWARD_FROM_CHAT = "forward_FROM_chat"
+    FORWARD_FROM_MESSAGE_ID = "forward_FROM_message_id"
     FORWARD_SIGNATURE = "forward_signature"
     FORWARD_SENDER_NAME = "forward_sender_name"
     FORWARD_DATE = "forward_date"
@@ -73,7 +89,7 @@ class MessageField(str, Enum):
     SUPERGROUP_CHAT_CREATED = "supergroup_chat_created"
     CHANNEL_CHAT_CREATED = "channel_chat_created"
     MIGRATE_TO_CHAT_ID = "migrate_to_chat_id"
-    MIGRATE_from_CHAT_ID = "migrate_from_chat_id"
+    MIGRATE_FROM_CHAT_ID = "migrate_FROM_chat_id"
     PINNED_MESSAGE = "pinned_message"
     INVOICE = "invoice"
     SUCCESSFUL_PAYMENT = "successful_payment"
@@ -81,6 +97,28 @@ class MessageField(str, Enum):
     PASSPORT_DATA = "passport_data"
     PROXIMITY_ALERT_TRIGGERED = "proximity_alert_triggered"
     REPLY_MARKUP = "reply_markup"
+
+    __slots__ = ("_field_set", "_fields_or")
+
+    def __init__(self, value) -> None:
+        super().__init__()
+        self._fields_or = True
+        self._field_set = {
+            value,
+        }
+
+    def __or__(self, other_field):
+        self._field_set.add(other_field.value)
+        return self
+
+    def __and__(self, other_field):
+        self._fields_or = False
+        self._field_set.add(other_field.value)
+        return self
+
+    @property
+    def fields(self) -> Iterable:
+        return tuple(self._field_set) if self._fields_or else self._field_set
 
 
 class ParseMode(str, Enum):

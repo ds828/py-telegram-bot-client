@@ -113,7 +113,7 @@ def on_pre_checkout_query(bot: SimpleBot,
                                   ok=True)
 
 
-@router.message_handler(fields=(MessageField.SUCCESSFUL_PAYMENT, ))
+@router.message_handler(fields=MessageField.SUCCESSFUL_PAYMENT)
 def on_successful_payment(bot: SimpleBot, message: Message):
     # Once your bot receives this message, it should proceed with delivering the goods or services purchased by the user.
     pretty_print(message.successful_payment)

@@ -40,7 +40,7 @@ InlineKeyboard.auto_select(
 )
 
 
-@router.message_handler(fields=(MessageField.TEXT, ))
+@router.message_handler(fields=MessageField.TEXT)
 def on_show_keyboard(bot: SimpleBot, message: Message):
     keyboard = InlineKeyboard()
     keyboard.add_select_group(

@@ -3,8 +3,9 @@ run in terminal: python -m example.async_handler.py
 """
 import asyncio
 
-from simplebot import bot_proxy, SimpleBot
-from simplebot.base import MessageField, Message, ParseMode
+from simplebot import SimpleBot, bot_proxy
+from simplebot.base import Message, MessageField, ParseMode
+
 from example.settings import BOT_TOKEN
 
 router = bot_proxy.router()
@@ -12,7 +13,7 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-@router.message_handler(message_type=MessageType.TEXT)
+@router.message_handler(fields=MessageField.TEXT)
 async def on_echo_text(bot: SimpleBot, message: Message):
     bot.reply_message(message, text="I will reply in 3s.")
     await asyncio.sleep(3)

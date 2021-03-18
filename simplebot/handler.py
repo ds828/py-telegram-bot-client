@@ -110,12 +110,8 @@ class _MessageHandler(UpdateHandler):
         fields: Optional[Iterable[Union[str, MessageField]]] = None,
     ):
         super().__init__(callback=callback, update_types=(update_type, ))
-        if fields:
-            self._message_fields = type(fields)(map(
-                lambda field: field.value
-                if isinstance(field, MessageField) else field,
-                fields,
-            ))
+        if isinstance(fields, MessageField):
+            self._message_fields = fields.fields
         else:
             self._message_fields = fields
 
