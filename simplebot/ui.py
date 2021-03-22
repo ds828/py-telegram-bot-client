@@ -223,20 +223,20 @@ class InlineKeyboard(ReplyKeyboard):
 
     def add_toggler(self,
                     name: str,
+                    option=None,
                     checked: bool = True,
                     emoji=_TOGGLER_EMOJI):
-        select_emoji = emoji[1]
-        if checked:
-            select_emoji = emoji[0]
+        select_emoji = emoji[0] if checked else emoji[1]
         self.add_buttons(
             InlineKeyboardButton(text="{0}{1}".format(select_emoji, name),
-                                 callback_data=name))
+                                 callback_data=build_callback_data(
+                                     name, option)))
 
     def toggle(self, name, emoji=_TOGGLER_EMOJI) -> bool:
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
-                    if button["callback_data"] == name:
+                    if button["callback_data"].startswith(name):
                         if button["text"][0] == emoji[0]:  # status is checked
                             # make it be unchecked
                             button["text"] = "{0}{1}".format(emoji[1], name)
@@ -250,8 +250,10 @@ class InlineKeyboard(ReplyKeyboard):
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
-                    if button["callback_data"] == name:
-                        return button["text"][0] == emoji[0]
+                    callback_data = button["callback_data"]
+                    if callback_data.startswith(name):
+                        return button["text"][0] == emoji[
+                            0], parse_callback_data(callback_data, name)[0]
         raise SimpleBotException("toggler name: {0} is not found".format(name))
 
     @staticmethod
@@ -262,18 +264,16 @@ class InlineKeyboard(ReplyKeyboard):
         toggle_off_callback: Optional[Callable] = None,
         emoji=_TOGGLER_EMOJI,
     ):
-        def on_toggle_click(bot: SimpleBot, callback_query: CallbackQuery):
+        def on_toggle_click(bot: SimpleBot, callback_query: CallbackQuery,
+                            option):
             keyboard = InlineKeyboard(
                 keyboard=callback_query.message.reply_markup.inline_keyboard, )
             checked = keyboard.toggle(name, emoji)
             if checked:
                 if toggle_on_callback:
-                    toggle_on_callback(
-                        bot,
-                        callback_query,
-                    )
+                    toggle_on_callback(bot, callback_query, option)
             elif toggle_off_callback:
-                toggle_off_callback(bot, callback_query)
+                toggle_off_callback(bot, callback_query, option)
             bot.edit_message_reply_markup(
                 chat_id=callback_query.from_user.id,
                 message_id=callback_query.message.message_id,
@@ -282,5 +282,5 @@ class InlineKeyboard(ReplyKeyboard):
 
         router.register_callback_query_handler(
             callback=on_toggle_click,
-            callback_data=name,
+            callback_data_name=name,
         )

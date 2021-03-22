@@ -18,13 +18,14 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-def toggle_on_callback(bot: SimpleBot, callback_query: CallbackQuery):
-    bot.send_message(chat_id=callback_query.from_user.id, text="toggler is on")
-
-
-def toggle_off_callback(bot: SimpleBot, callback_query: CallbackQuery):
+def toggle_on_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
     bot.send_message(chat_id=callback_query.from_user.id,
-                     text="toggler is off")
+                     text="toggler is on: {0}".format(option))
+
+
+def toggle_off_callback(bot: SimpleBot, callback_query: CallbackQuery, option):
+    bot.send_message(chat_id=callback_query.from_user.id,
+                     text="toggler is off: {0}".format(option))
 
 
 InlineKeyboard.auto_toggle(
@@ -46,7 +47,7 @@ def on_show_keyboard(bot: SimpleBot, message: Message):
                      reply_markup=keyboard.markup())
 
 
-@router.callback_query_handler(all_match="submit")
+@router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
     keyboard = InlineKeyboard(
         callback_query.message.reply_markup.inline_keyboard)
