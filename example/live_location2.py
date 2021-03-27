@@ -13,7 +13,7 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-# for testing, a user share his location to touch off the bot to share live loctions
+# for this testing, a user shares a current location to touch off the bot to share live loctions
 @router.message_handler(fields=MessageField.LOCATION)
 def on_share_user_location(bot: SimpleBot, message: Message):
     if "live_period" in message.location:

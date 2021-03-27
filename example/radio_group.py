@@ -27,7 +27,7 @@ def radio_callback(bot: SimpleBot, callback_query: CallbackQuery, text,
 
 InlineKeyboard.auto_radio(router,
                           name="radio-group",
-                          radio_changed_callback=radio_callback)
+                          changed_callback=radio_callback)
 
 
 @router.message_handler(fields=MessageField.TEXT)

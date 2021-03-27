@@ -127,20 +127,18 @@ class InlineKeyboard(ReplyKeyboard):
     def auto_radio(
         router: SimpleRouter,
         name: str,
-        radio_changed_callback: Optional[Callable] = None,
+        changed_callback: Optional[Callable] = None,
         emoji=_RADIO_EMOJI,
     ):
-        def on_radio_click(bot, callback_query, radio_option):
+        def on_radio_click(bot, callback_query, changed_radio_option):
             keyboard = InlineKeyboard(
                 keyboard=callback_query.message.reply_markup.inline_keyboard, )
-            selected_item_name = keyboard.change_radio_status(name,
-                                                              radio_option,
-                                                              emoji=emoji)
-            if selected_item_name:
-                message_text = None
-                if radio_changed_callback:
-                    message_text = radio_changed_callback(
-                        bot, callback_query, selected_item_name, radio_option)
+            changed_radio_text = keyboard.change_radio_status(
+                name, changed_radio_option, emoji=emoji)
+            if changed_radio_text:
+                message_text = changed_callback(
+                    bot, callback_query, changed_radio_text,
+                    changed_radio_option) if changed_callback else ""
                 bot.edit_message_text(
                     chat_id=callback_query.from_user.id,
                     message_id=callback_query.message.message_id,
@@ -191,24 +189,18 @@ class InlineKeyboard(ReplyKeyboard):
     def auto_select(
         router: SimpleRouter,
         name: str,
-        selected_callback: Optional[Callable] = None,
-        unselected_callback: Optional[Callable] = None,
+        clicked_callback: Optional[Callable] = None,
         emoji=_SELECT_EMOJI,
     ):
         def on_select_click(bot: SimpleBot, callback_query: CallbackQuery,
                             clicked_option):
             keyboard = InlineKeyboard(
                 keyboard=callback_query.message.reply_markup.inline_keyboard, )
-            selected, item_name = keyboard.change_select_status(
+            selected, clicked_text = keyboard.change_select_status(
                 name, clicked_option, emoji)
-            message_text = None
-            if selected:
-                if selected_callback:
-                    message_text = selected_callback(bot, callback_query,
-                                                     item_name, clicked_option)
-            elif unselected_callback:
-                message_text = unselected_callback(bot, callback_query,
-                                                   item_name, clicked_option)
+            message_text = clicked_callback(
+                bot, callback_query, clicked_text, clicked_option,
+                selected) if clicked_callback else None
             bot.edit_message_text(
                 chat_id=callback_query.from_user.id,
                 message_id=callback_query.message.message_id,
@@ -224,9 +216,9 @@ class InlineKeyboard(ReplyKeyboard):
     def add_toggler(self,
                     name: str,
                     option=None,
-                    checked: bool = True,
+                    toggle_status: bool = True,
                     emoji=_TOGGLER_EMOJI):
-        select_emoji = emoji[0] if checked else emoji[1]
+        select_emoji = emoji[0] if toggle_status else emoji[1]
         self.add_buttons(
             InlineKeyboardButton(text="{0}{1}".format(select_emoji, name),
                                  callback_data=build_callback_data(
@@ -260,23 +252,21 @@ class InlineKeyboard(ReplyKeyboard):
     def auto_toggle(
         router: SimpleRouter,
         name: str,
-        toggle_on_callback: Optional[Callable] = None,
-        toggle_off_callback: Optional[Callable] = None,
+        toggled_callback: Optional[Callable] = None,
         emoji=_TOGGLER_EMOJI,
     ):
         def on_toggle_click(bot: SimpleBot, callback_query: CallbackQuery,
-                            option):
+                            toggle_option):
             keyboard = InlineKeyboard(
                 keyboard=callback_query.message.reply_markup.inline_keyboard, )
-            checked = keyboard.toggle(name, emoji)
-            if checked:
-                if toggle_on_callback:
-                    toggle_on_callback(bot, callback_query, option)
-            elif toggle_off_callback:
-                toggle_off_callback(bot, callback_query, option)
-            bot.edit_message_reply_markup(
+            toggle_status = keyboard.toggle(name, emoji)
+            message_text = toggled_callback(
+                bot, callback_query, toggle_option,
+                toggle_status) if toggled_callback else ""
+            bot.edit_message_text(
                 chat_id=callback_query.from_user.id,
                 message_id=callback_query.message.message_id,
+                text=message_text or callback_query.message.text,
                 reply_markup=keyboard.markup(),
             )
 

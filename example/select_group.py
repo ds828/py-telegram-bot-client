@@ -19,24 +19,17 @@ example_bot.delete_webhook(drop_pending_updates=True)
 
 
 def select_callback(bot: SimpleBot, callback_query: CallbackQuery, text,
-                    option):
-    text = "you select: text={0} option={1}".format(text, option)
+                    option, selected):
+    text = "you {0}: text={1} option={2}".format(
+        "select" if selected else "unselect", text, option)
     bot.send_message(chat_id=callback_query.from_user.id, text=text)
     return text
-
-
-def unselect_callback(bot: SimpleBot, callback_query: CallbackQuery, text,
-                      option):
-    bot.send_message(chat_id=callback_query.from_user.id,
-                     text="you unselect: text={0} option={1}".format(
-                         text, option))
 
 
 InlineKeyboard.auto_select(
     router,
     name="select-group",
-    selected_callback=select_callback,
-    unselected_callback=unselect_callback,
+    clicked_callback=select_callback,
 )
 
 
