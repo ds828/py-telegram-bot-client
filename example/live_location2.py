@@ -37,7 +37,7 @@ def on_share_user_location(bot: SimpleBot, message: Message):
 def on_live_location(bot: SimpleBot, edited_message: Message):
     session = bot.get_session(edited_message.chat.id)
     message_id = session["message_id"]
-    # use the user's location to make some faked locations
+    # use the user's location to make some dummy locations
     if "live_period" in edited_message.location:
         print(edited_message.location, edited_message.edit_date)
         location = edited_message.location

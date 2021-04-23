@@ -16,17 +16,6 @@ example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-# when animation field is set, the document field will also be set
-# For this reason, pass all_in=True, so the handler will process the messages which have all fields
-# @router.message_handler(
-#     fields=set(
-#         (
-#             MessageField.ANIMATION,
-#             MessageField.DOCUMENT,
-#         )
-#     )
-# )
-# same with below
 @router.message_handler(fields=MessageField.ANIMATION & MessageField.DOCUMENT)
 def on_animation(bot: SimpleBot, message: Message):
     bot.send_message(
