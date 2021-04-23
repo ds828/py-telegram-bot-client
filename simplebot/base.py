@@ -25,6 +25,9 @@ class UpdateType(str, Enum):
     PRE_CHECKOUT_QUERY = "pre_checkout_query"
     POLL = "poll"
     POLL_ANSWER = "poll_answer"
+    MY_CHAT_MEMBER = "my_chat_member"
+    CHAT_MEMBER = "chat_member"
+    # customerize
     FORCE_REPLY = "force_reply"
     COMMAND = "command"
 
@@ -51,9 +54,9 @@ class MessageField(str, Enum):
     SENDER_CHAT = "sender_chat"
     DATE = "date"
     CHAT = "chat"
-    FORWARD_FROM = "forward_FROM"
-    FORWARD_FROM_CHAT = "forward_FROM_chat"
-    FORWARD_FROM_MESSAGE_ID = "forward_FROM_message_id"
+    FORWARD_FROM = "forward_from"
+    FORWARD_FROM_CHAT = "forward_from_chat"
+    FORWARD_FROM_MESSAGE_ID = "forward_from_message_id"
     FORWARD_SIGNATURE = "forward_signature"
     FORWARD_SENDER_NAME = "forward_sender_name"
     FORWARD_DATE = "forward_date"
@@ -88,14 +91,18 @@ class MessageField(str, Enum):
     GROUP_CHAT_CREATED = "group_chat_created"
     SUPERGROUP_CHAT_CREATED = "supergroup_chat_created"
     CHANNEL_CHAT_CREATED = "channel_chat_created"
+    MESSAGE_AUTO_DELETE_TIMER_CHANGED = "message_auto_delete_timer_changed"
     MIGRATE_TO_CHAT_ID = "migrate_to_chat_id"
-    MIGRATE_FROM_CHAT_ID = "migrate_FROM_chat_id"
+    MIGRATE_FROM_CHAT_ID = "migrate_from_chat_id"
     PINNED_MESSAGE = "pinned_message"
     INVOICE = "invoice"
     SUCCESSFUL_PAYMENT = "successful_payment"
     CONNECTED_WEBSITE = "connected_website"
     PASSPORT_DATA = "passport_data"
     PROXIMITY_ALERT_TRIGGERED = "proximity_alert_triggered"
+    VOICE_CHAT_STARTED = "voice_chat_started"
+    VOICE_CHAT_ENDED = "voice_chat_ended"
+    VOICE_CHAT_PARTICIPANTS_INVITED = "voice_chat_participants_invited"
     REPLY_MARKUP = "reply_markup"
 
     __slots__ = ("_field_set", "_fields_or")
@@ -231,6 +238,9 @@ class SimpleObject(dict):
         if isinstance(value, list):
             return [cls.__recurse_init(item) for item in value]
         return value
+
+    def __hash__(self):
+        return hash(tuple(self.items()))
 
     def __getattr__(self, name: str):
         return self.get(name, None)
