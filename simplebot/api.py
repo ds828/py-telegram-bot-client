@@ -170,7 +170,7 @@ class TelegramBotAPI:
                 else:
                     attached_files.append((name, value.file_tuple))
                     del form_data[name]
-        return "".join(api_name.split("_")).lower(), form_data, attached_files
+        return api_name.replace("_", "").lower(), form_data, attached_files
 
     def __call_api(
         self,
