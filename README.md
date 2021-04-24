@@ -1,4 +1,4 @@
-# Simple telegram bot
+# Simple Telegram Bot API Client
 
 A telegram bot API provider is written by **python3.5+**.
 The reason for writing this bot utility is that I wish to run multi telegram bots which could have same or different business logic **(route policy)** in one process . I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
@@ -187,4 +187,4 @@ good way to register one callback on multi routers
 	example_bot.set_my_commands(commands=(cmd1, cmd2))
 	example_bot.run_polling(timeout=10)
 
-## Please try examples for more detail
+## [Please try examples for more detail](https://github.com/songdi/simple-telegram-bot/tree/main/example)

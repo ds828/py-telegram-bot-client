@@ -9,6 +9,7 @@ from simplebot.handler import UpdateHandler
 from simplebot.router import SimpleRouter
 from simplebot.storage import SimpleStorage
 
+__version__ = '5.1'
 logger = logging.getLogger("simple-bot")
 formatter = logging.Formatter(
     '%(levelname)s %(asctime)s (%(filename)s:%(lineno)d): "%(message)s"')
