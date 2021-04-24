@@ -11,7 +11,6 @@ setup(
     version=__version__,
     description='A Telegram Bot API Client written in Python',
     long_description=long_description,
-    long_description_content_type="text/markdown",
     url='https://github.com/songdi/py-telegram-bot-client',
     author='Di SONG',
     author_email='songdi19@gmail.com',

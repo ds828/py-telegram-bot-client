@@ -1,8 +1,12 @@
+=====
+Telegram BOT Client
+=====
 A telegram bot API client is written in python3.5+ and currently compatible with Telegram Bot API v5.1 and later.
 
-The reason for writing this bot utility is that I wish to run multi telegram bots which could have same or different business logic **(route policy)** in one process . I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
+The reason for writing this bot utility is that I wish to run multi telegram bots which could have same or different business logic in one process . I reckon it is lightweight, fast, full implement and only urllib3 dependent.
 
-## This is a simple echo bot.
+This is a echo bot
+--------
 
 	from telegrambotclient import bot_client
 	from telegrambotclient.base import MessageField, ParseMode
@@ -29,4 +33,4 @@ The reason for writing this bot utility is that I wish to run multi telegram bot
 	# run polling to fetch updates in every 10s
 	my_bot.run_polling(timeout=10)
 
-## [Please try more examples](https://github.com/songdi/py-telegram-bot-client/tree/main/example)
+`try examples for more <https://github.com/songdi/py-telegram-bot-client/tree/main/example>`.
