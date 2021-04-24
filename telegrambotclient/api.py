@@ -16,7 +16,7 @@ from telegrambotclient.base import (InputFile, InputMedia, LabeledPrice,
                                     Update)
 from telegrambotclient.utils import exclude_none, pretty_format
 
-logger = logging.getLogger("simple-bot")
+logger = logging.getLogger("telegram-bot-client")
 
 
 class TelegramBotAPIException(TelegramBotException):

@@ -695,8 +695,8 @@ class TelegramRouter:
         return self.get_force_reply_handler(callback_name) is not None
 
     def __repr__(self):
-        return "\nname: {0}\n{1}".format(self.name,
-                                         pretty_format(self._route_map))
+        return "\nrouter name: {0}\nroute_map: {1}".format(
+            self.name, pretty_format(self._route_map))
 
     @classmethod
     def parse_update_type_and_data(
