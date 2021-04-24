@@ -1,6 +1,6 @@
 # Telegram Bot API Client
 
-A telegram bot API client is written by **python3.5+**.
+A telegram bot API client is written in **python3.5+**.
 The reason for writing this bot utility is that I wish to run multi telegram bots which could have same or different business logic **(route policy)** in one process . I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 
 # Quick to go
@@ -36,7 +36,7 @@ This is a simple echo bot.
 
 ## Call telegram bot APIs
 
-*****telegrambotclient** has same parameter signatures with official Telegram Bot APIs. Please see [official Telegram Bot API document](ttps://core.telegram.org/bots/api) when calling simple bot APIs.
+telegrambotclient has same parameter signatures with official Telegram Bot APIs. Please see [official Telegram Bot API document](ttps://core.telegram.org/bots/api) when calling telegram bot APIs.
 
 ### Quick to reply
 
