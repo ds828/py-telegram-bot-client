@@ -132,3 +132,4 @@ dmypy.json
 #this project
 pyrightconfig.json
 .pylintrc
+.github
