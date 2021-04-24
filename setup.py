@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup
 
-from simplebot import __version__
+from simpletelegrambot import __version__
 
 with open("README.md", 'r') as f:
     long_description = f.read()
@@ -14,6 +14,7 @@ setup(
     url='https://github.com/songdi/simple-telegram-bot',
     author='Di SONG',
     author_email='songdi19@gmail.com',
-    packages=['simplebot'],
+    packages=['simpletelegrambot'],
     install_requires=['urllib3', 'redis', 'ujson'],
+    python_requires=">=3.5",
 )
