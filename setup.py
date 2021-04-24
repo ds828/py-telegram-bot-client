@@ -7,7 +7,7 @@ with open("README.md", 'r') as f:
     long_description = f.read()
 
 setup(
-    name='simplebot',
+    name='simple-telegram-bot',
     version=__version__,
     description='A Telegram Bot API Client written by Python',
     long_description=long_description,
