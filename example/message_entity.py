@@ -1,19 +1,18 @@
 """
-run in terminal: python -m example.message_entity.py
+run in terminal: python -m example.message_entity
 """
-from simplebot import SimpleBot, bot_proxy
-from simplebot.base import (BoldEntity, BotCommandEntity, CashTagEntity,
-                            CodeEntity, EmailEntity, HashTagEntity,
-                            ItalicEntity, MentionEntity, Message,
-                            PhoneNumberEntity, PreEntity, StrikeThroughEntity,
-                            TextLinkEntity, TextMentionEntity, UnderLineEntity,
-                            URLEntity)
-from simplebot.utils import compose_message_entities
+from telegrambotclient import TelegramBot, bot_client
+from telegrambotclient.base import (
+    BoldEntity, BotCommandEntity, CashTagEntity, CodeEntity, EmailEntity,
+    HashTagEntity, ItalicEntity, MentionEntity, Message, PhoneNumberEntity,
+    PreEntity, StrikeThroughEntity, TextLinkEntity, TextMentionEntity,
+    UnderLineEntity, URLEntity)
+from telegrambotclient.utils import compose_message_entities
 
 from example.settings import BOT_TOKEN
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 text_entities1 = ("plain text", ("strong text", BoldEntity()),
@@ -36,7 +35,7 @@ text_entities1 = ("plain text", ("strong text", BoldEntity()),
 
 
 @router.message_handler()
-def on_reply(bot: SimpleBot, message: Message):
+def on_reply(bot: TelegramBot, message: Message):
     text, entities = compose_message_entities(text_entities1, sep="\n")
     print(text, entities)
     bot.send_message(chat_id=message.chat.id, text=text, entities=entities)

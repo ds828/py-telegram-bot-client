@@ -10,15 +10,16 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import urllib3
 
-from simplebot.base import (InputFile, InputMedia, LabeledPrice, Message,
-                            PassportElementError, SimpleBotException,
-                            SimpleObject, Update)
-from simplebot.utils import exclude_none, pretty_format
+from telegrambotclient.base import (InputFile, InputMedia, LabeledPrice,
+                                    Message, PassportElementError,
+                                    TelegramBotException, TelegramObject,
+                                    Update)
+from telegrambotclient.utils import exclude_none, pretty_format
 
 logger = logging.getLogger("simple-bot")
 
 
-class SimpleBotAPIException(SimpleBotException):
+class TelegramBotAPIException(TelegramBotException):
     __slots__ = ("_status_code", "_ok", "_error_code", "_description")
 
     def __init__(self, status_code: int, ok: bool, error_code: int,
@@ -47,16 +48,16 @@ class SimpleBotAPIException(SimpleBotException):
 
     def __str__(self) -> str:
         return """
------------------------ SimpleBotAPIException BEGIN-------------------------
+----------------------- TelegramBotAPIException BEGIN-------------------------
 status: {0}
 ok: {1}
 error_code: {2}
 description: {3}
------------------------ SimpleBotAPIException END --------------------------
+----------------------- TelegramBotAPIException END --------------------------
 """.format(self.status_code, self.ok, self.error_code, self.description)
 
 
-class SimpleRequest:
+class TelegramBotAPICaller:
     __slots__ = ("_pool", )
     _json_header = {"Content-Type": "application/json"}
 
@@ -82,13 +83,13 @@ class SimpleRequest:
                                                      block=block,
                                                      **other_pool_kwargs)
         else:
-            raise SimpleBotException(
+            raise TelegramBotException(
                 "Telegram Bot API's URL only supports https://")
 
-    def request(self,
-                api_url: str,
-                data: Optional[Dict] = None,
-                files: Optional[List] = None) -> Any:
+    def call(self,
+             api_url: str,
+             data: Optional[Dict] = None,
+             files: Optional[List] = None) -> Any:
         if data is None:
             data = {}
         if not files:
@@ -106,7 +107,7 @@ class SimpleRequest:
         response = self._pool.request("GET", file_url, preload_content=False)
         try:
             if response.status != 200:
-                raise SimpleBotException("""
+                raise TelegramBotException("""
 HTTP Status Code: {0}
 Reason: {1}""".format(response.status, response.reason))
             with BytesIO() as _:
@@ -122,15 +123,15 @@ class TelegramBotAPI:
     __version__ = "Telegram Bot API 5.1 and later"
     _api_url = "/bot{0}/{1}"
     _download_file_url = "/file/bot{0}/{1}"
-    __slots__ = ("_http", )
+    __slots__ = ("_api_caller", )
 
-    def __init__(self, http_request: Optional[SimpleRequest] = None):
-        self._http = http_request or SimpleRequest()
+    def __init__(self, http_request: Optional[TelegramBotAPICaller] = None):
+        self._api_caller = http_request or TelegramBotAPICaller()
 
     @staticmethod
     def __check_response(response):
         if response.status == 500:
-            raise SimpleBotException(response.data)
+            raise TelegramBotException(response.data)
         json_response = json.loads(response.data.decode("utf-8"))
         logger.debug(
             """
@@ -143,9 +144,9 @@ class TelegramBotAPI:
         if response.status == 200:
             result = json_response["result"]
             if isinstance(result, dict):
-                return SimpleObject(**result)
+                return TelegramObject(**result)
             return result
-        raise SimpleBotAPIException(
+        raise TelegramBotAPIException(
             status_code=response.status,
             ok=json_response["ok"],
             error_code=json_response["error_code"],
@@ -158,7 +159,7 @@ class TelegramBotAPI:
         form_data = exclude_none(**kwargs)
         attached_files = None
         for name, value in form_data.copy().items():
-            if isinstance(value, SimpleObject):
+            if isinstance(value, TelegramObject):
                 form_data[name] = value.param
                 continue
             if isinstance(value, InputFile):
@@ -180,8 +181,8 @@ class TelegramBotAPI:
         files: Optional[List] = None,
     ):
         return self.__check_response(
-            self._http.request(self._api_url.format(token, api_name), data,
-                               files))
+            self._api_caller.call(self._api_url.format(token, api_name), data,
+                                  files))
 
     def __getattr__(self, api_name: str) -> Callable:
         def bot_api_method(token: str, **kwargs):
@@ -226,7 +227,7 @@ class TelegramBotAPI:
                 data=form_data,
                 files=attached_files + files if attached_files else files,
             )
-        raise SimpleBotException("'media' must include 2-10 items")
+        raise TelegramBotException("'media' must include 2-10 items")
 
     def edit_message_media(self,
                            token: str,
@@ -236,7 +237,7 @@ class TelegramBotAPI:
                            media: Optional[InputMedia] = None,
                            **kwargs) -> Message:
         if not media:
-            raise SimpleBotException("'media' is required")
+            raise TelegramBotException("'media' is required")
         real_api_name, form_data, attached_files = self.__prepare_request_data(
             "editMessageMedia",
             chat_id=chat_id,
@@ -313,12 +314,12 @@ class TelegramBotAPI:
 
         if ok:
             if "shipping_options" not in kwargs:
-                raise SimpleBotException(
+                raise TelegramBotException(
                     "'shipping_options' is required when ok is True")
             kwargs["shipping_options"] = json.dumps(kwargs["shipping_options"])
         else:
             if "error_message" not in kwargs:
-                raise SimpleBotException(
+                raise TelegramBotException(
                     "'error_message' is required when ok is False")
         real_api_name, form_data, attached_files = self.__prepare_request_data(
             "answerShippingQuery",

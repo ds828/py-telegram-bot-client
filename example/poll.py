@@ -2,21 +2,22 @@
 run in terminal: python -m example.poll.py
 """
 import logging
+
+from telegrambotclient import bot_client
+from telegrambotclient.base import Message, Poll, PollAnswer, PollType
+
 from example.settings import BOT_TOKEN
-from simplebot import bot_proxy, SimpleBot
-from simplebot.base import Message, Poll, PollAnswer, PollType
 
-
-logger = logging.getLogger("simple-bot")
+logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-@router.command_handler(cmds=("/vote",))
-def on_show_vote_poll(bot: SimpleBot, message: Message):
+@router.command_handler(cmds=("/vote", ))
+def on_show_vote_poll(bot, message: Message):
     bot.send_poll(
         chat_id=message.chat.id,
         question="regular vote",
@@ -25,12 +26,12 @@ def on_show_vote_poll(bot: SimpleBot, message: Message):
 
 
 @router.poll_handler()
-def on_poll_state(bot: SimpleBot, poll: Poll):
+def on_poll_state(bot, poll: Poll):
     print("receive a vote on {0}".format(poll.options))
 
 
-@router.command_handler(cmds=("/quiz",))
-def on_show_quiz_poll(bot: SimpleBot, message: Message):
+@router.command_handler(cmds=("/quiz", ))
+def on_show_quiz_poll(bot, message: Message):
     bot.send_poll(
         chat_id=message.chat.id,
         question="quiz",
@@ -42,10 +43,9 @@ def on_show_quiz_poll(bot: SimpleBot, message: Message):
 
 
 @router.poll_answer_handler()
-def on_poll_answer(bot: SimpleBot, poll_answer: PollAnswer):
-    bot.send_message(
-        chat_id=poll_answer.user.id, text="you select: {0}".format(poll_answer.option_ids)
-    )
+def on_poll_answer(bot, poll_answer: PollAnswer):
+    bot.send_message(chat_id=poll_answer.user.id,
+                     text="you select: {0}".format(poll_answer.option_ids))
     print(poll_answer)
 
 

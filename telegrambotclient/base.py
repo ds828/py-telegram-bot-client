@@ -9,7 +9,7 @@ except ImportError:
     import json
 
 
-class SimpleBotException(Exception):
+class TelegramBotException(Exception):
     pass
 
 
@@ -218,7 +218,7 @@ class InputFile:
         return "attach://{0}".format(self.attach_key)
 
 
-class SimpleObject(dict):
+class TelegramObject(dict):
     def __init__(self, **kwargs):
         data = {
             name: self.__recurse_init(value)
@@ -231,10 +231,10 @@ class SimpleObject(dict):
 
     @classmethod
     def __recurse_init(cls, value) -> Any:
-        if isinstance(value, SimpleObject):
+        if isinstance(value, TelegramObject):
             return value
         if isinstance(value, dict):
-            return SimpleObject(**value)
+            return TelegramObject(**value)
         if isinstance(value, list):
             return [cls.__recurse_init(item) for item in value]
         return value
@@ -272,7 +272,7 @@ Update = (Message) = (CallbackQuery) = (ChosenInlineResult) = (InlineQuery) = (
     CallbackGame
 ) = (
     GameHighScore
-) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = SimpleObject
+) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = TelegramObject
 
 
 class MentionEntity(MessageEntity):
@@ -350,7 +350,7 @@ class TextMentionEntity(MessageEntity):
         super().__init__(type="text_mention", user=user)
 
 
-class InputMedia(SimpleObject):
+class InputMedia(TelegramObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._attached_files = []
@@ -409,22 +409,22 @@ class InputMediaDocument(InputMedia):
         super().__init__(type="document", media=media, thumb=thumb, **kwargs)
 
 
-class InlineKeyboardButton(SimpleObject):
+class InlineKeyboardButton(TelegramObject):
     def __init__(self, text: str, **kwargs):
         super().__init__(text=text, **kwargs)
 
 
-class KeyboardButtonPollType(SimpleObject):
+class KeyboardButtonPollType(TelegramObject):
     def __init__(self, poll_type: Union[str, PollType]):
         super().__init__(type=poll_type)
 
 
-class KeyboardButton(SimpleObject):
+class KeyboardButton(TelegramObject):
     def __init__(self, text: str, **kwargs):
         super().__init__(text=text, **kwargs)
 
 
-class MarkupObject(SimpleObject):
+class MarkupObject(TelegramObject):
     @property
     def param(self):
         return json.dumps(self)
@@ -450,7 +450,7 @@ class ForceReply(MarkupObject):
         super().__init__(force_reply=force_reply, **kwargs)
 
 
-InputMessageContent = SimpleObject
+InputMessageContent = TelegramObject
 
 
 class InputTextMessageContent(InputMessageContent):
@@ -480,7 +480,7 @@ class InputContactMessageContent(InputMessageContent):
                          **kwargs)
 
 
-InlineQueryResult = SimpleObject
+InlineQueryResult = TelegramObject
 
 
 class InlineQueryResultArticle(InlineQueryResult):
@@ -519,7 +519,7 @@ class InlineQueryResultMpeg4Gif(InlineQueryResult):
                          **kwargs)
 
 
-class InlineQueryResultAudio(SimpleObject):
+class InlineQueryResultAudio(TelegramObject):
     def __init__(self, id: str, audio_url: str, file: str, **kwargs):
         super().__init__(type="audio",
                          id=id,
@@ -528,7 +528,7 @@ class InlineQueryResultAudio(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultVoice(SimpleObject):
+class InlineQueryResultVoice(TelegramObject):
     def __init__(self, id: str, voice_url: str, title: str, **kwargs):
         super().__init__(type="voice",
                          id=id,
@@ -537,7 +537,7 @@ class InlineQueryResultVoice(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultDocument(SimpleObject):
+class InlineQueryResultDocument(TelegramObject):
     def __init__(self, id: str, title: str, document_url: str, mime_type: str,
                  **kwargs):
         super().__init__(type="document",
@@ -548,7 +548,7 @@ class InlineQueryResultDocument(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultLocation(SimpleObject):
+class InlineQueryResultLocation(TelegramObject):
     def __init__(self, id: str, latitude: float, longitude: float, title: str,
                  **kwargs):
         super().__init__(type="location",
@@ -571,7 +571,7 @@ class InlineQueryResultVenue(InlineQueryResult):
                          **kwargs)
 
 
-class InlineQueryResultContact(SimpleObject):
+class InlineQueryResultContact(TelegramObject):
     def __init__(self, id: str, phone_number: str, first_name: str, **kwargs):
         super().__init__(type="contact",
                          id=id,
@@ -580,7 +580,7 @@ class InlineQueryResultContact(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultGame(SimpleObject):
+class InlineQueryResultGame(TelegramObject):
     def __init__(self, id: str, game_short_name: str, **kwargs):
         super().__init__(type="game",
                          id=id,
@@ -588,7 +588,7 @@ class InlineQueryResultGame(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultCachedPhoto(SimpleObject):
+class InlineQueryResultCachedPhoto(TelegramObject):
     def __init__(self, id: str, photo_file_id: str, **kwargs):
         super().__init__(type="photo",
                          id=id,
@@ -596,12 +596,12 @@ class InlineQueryResultCachedPhoto(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultCachedGif(SimpleObject):
+class InlineQueryResultCachedGif(TelegramObject):
     def __init__(self, id: str, gif_file_id: str, **kwargs):
         super().__init__(type="git", id=id, gif_file_id=gif_file_id, **kwargs)
 
 
-class InlineQueryResultCachedMpeg4Gif(SimpleObject):
+class InlineQueryResultCachedMpeg4Gif(TelegramObject):
     def __init__(self, id: str, mpeg4_file_id: str, **kwargs):
         super().__init__(type="mpeg4_gif",
                          id=id,
@@ -609,7 +609,7 @@ class InlineQueryResultCachedMpeg4Gif(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultCachedSticker(SimpleObject):
+class InlineQueryResultCachedSticker(TelegramObject):
     def __init__(self, id: str, sticker_file_id: str, **kwargs):
         super().__init__(type="sticker",
                          id=id,
@@ -617,7 +617,7 @@ class InlineQueryResultCachedSticker(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultCachedDocument(SimpleObject):
+class InlineQueryResultCachedDocument(TelegramObject):
     def __init__(self, id: str, title: str, document_file_id: str, **kwargs):
         super().__init__(type="document",
                          id=id,
@@ -626,7 +626,7 @@ class InlineQueryResultCachedDocument(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultCachedVideo(SimpleObject):
+class InlineQueryResultCachedVideo(TelegramObject):
     def __init__(self, id: str, title: str, video_file_id: str, **kwargs):
         super().__init__(type="video",
                          id=id,
@@ -635,7 +635,7 @@ class InlineQueryResultCachedVideo(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultCachedVoice(SimpleObject):
+class InlineQueryResultCachedVoice(TelegramObject):
     def __init__(self, id: str, title: str, voice_file_id: str, **kwargs):
         super().__init__(type="voice",
                          id=id,
@@ -644,7 +644,7 @@ class InlineQueryResultCachedVoice(SimpleObject):
                          **kwargs)
 
 
-class InlineQueryResultCachedAudio(SimpleObject):
+class InlineQueryResultCachedAudio(TelegramObject):
     def __init__(self, id: str, audio_file_id: str, **kwargs):
         super().__init__(type="audio",
                          id=id,
@@ -652,22 +652,22 @@ class InlineQueryResultCachedAudio(SimpleObject):
                          **kwargs)
 
 
-class UserProfilePhotos(SimpleObject):
+class UserProfilePhotos(TelegramObject):
     def __init__(self, total_count: int, photos: List[List[PhotoSize]]):
         super().__init__(total_count=total_count, photos=photos)
 
 
-class LoginUrl(SimpleObject):
+class LoginUrl(TelegramObject):
     def __init__(self, url: str, **kwargs):
         super().__init__(url=url, **kwargs)
 
 
-class BotCommand(SimpleObject):
+class BotCommand(TelegramObject):
     def __init__(self, command: str, description: str):
         super().__init__(command=command, description=description)
 
 
-class Animation(SimpleObject):
+class Animation(TelegramObject):
     def __init__(self, file_id: str, file_unique_id: str, width: int,
                  length: int, duration: int, **kwargs):
         super().__init__(file_id=file_id,
@@ -678,7 +678,7 @@ class Animation(SimpleObject):
                          **kwargs)
 
 
-class MaskPosition(SimpleObject):
+class MaskPosition(TelegramObject):
     def __init__(self, point: str, x_shift: float, y_shift: float,
                  scale: float, **kwargs):
         super().__init__(point=point,
@@ -692,7 +692,7 @@ class MaskPosition(SimpleObject):
         return json.dumps(self)
 
 
-class Sticker(SimpleObject):
+class Sticker(TelegramObject):
     def __init__(self, file_id: str, file_unique_id: str, width: int,
                  length: int, **kwargs):
         super().__init__(file_id=file_id,
@@ -702,18 +702,18 @@ class Sticker(SimpleObject):
                          **kwargs)
 
 
-class LabeledPrice(SimpleObject):
+class LabeledPrice(TelegramObject):
     def __init__(self, label: str, amount: int, **kwargs):
         super().__init__(label=label, amount=amount, **kwargs)
 
 
-class ShippingOption(SimpleObject):
+class ShippingOption(TelegramObject):
     def __init__(self, id: str, title: str, prices: List[LabeledPrice],
                  **kwargs):
         super().__init__(id=id, title=title, prices=prices, **kwargs)
 
 
-class ChatPermissions(SimpleObject):
+class ChatPermissions(TelegramObject):
     def __init__(
         self,
         can_send_messages: Optional[bool] = None,
@@ -757,7 +757,7 @@ class PassportElementType(str, Enum):
     EMAIL = "email"
 
 
-class PassportElementError(SimpleObject):
+class PassportElementError(TelegramObject):
     __slots__ = (
         "source",
         "type",

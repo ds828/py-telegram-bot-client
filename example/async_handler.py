@@ -1,20 +1,20 @@
 """
-run in terminal: python -m example.async_handler.py
+run in terminal: python -m example.async_handler
 """
 import asyncio
 
-from simplebot import SimpleBot, bot_proxy
-from simplebot.base import Message, MessageField, ParseMode
+from telegrambotclient import TelegramBot, bot_client
+from telegrambotclient.base import Message, MessageField, ParseMode
 
 from example.settings import BOT_TOKEN
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler(fields=MessageField.TEXT)
-async def on_echo_text(bot: SimpleBot, message: Message):
+async def on_echo_text(bot: TelegramBot, message: Message):
     bot.reply_message(message, text="I will reply in 3s.")
     await asyncio.sleep(3)
     bot.reply_message(

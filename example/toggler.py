@@ -1,24 +1,24 @@
 """
-run in cli: python -m example.toggler.py
+run in cli: python -m example.toggler
 """
 import logging
 
-from simplebot import SimpleBot, bot_proxy
-from simplebot.base import (CallbackQuery, InlineKeyboardButton, Message,
-                            MessageField)
-from simplebot.ui import InlineKeyboard
+from telegrambotclient import TelegramBot, bot_client
+from telegrambotclient.base import (CallbackQuery, InlineKeyboardButton,
+                                    Message, MessageField)
+from telegrambotclient.ui import InlineKeyboard
 
 from example.settings import BOT_TOKEN
 
-logger = logging.getLogger("simple-bot")
+logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-def on_toggle_callback(bot: SimpleBot, callback_query: CallbackQuery, option,
+def on_toggle_callback(bot: TelegramBot, callback_query: CallbackQuery, option,
                        toggle_status):
     bot.send_message(chat_id=callback_query.from_user.id,
                      text="toggler is {0}: {1}".format(
@@ -33,7 +33,7 @@ InlineKeyboard.auto_toggle(
 
 
 @router.message_handler(fields=MessageField.TEXT)
-def on_show_keyboard(bot: SimpleBot, message: Message):
+def on_show_keyboard(bot: TelegramBot, message: Message):
     keyboard = InlineKeyboard()
     keyboard.add_toggler("toggler", "toggle_value", toggle_status=True)
     keyboard.add_buttons(

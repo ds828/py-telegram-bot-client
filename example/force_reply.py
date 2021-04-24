@@ -1,18 +1,18 @@
 """
-run in terminal: python -m example.force_reply.py
+run in terminal: python -m example.force_reply
 """
-from simplebot import SimpleBot, bot_proxy
-from simplebot.base import ForceReply, Message, MessageField
+from telegrambotclient import TelegramBot, bot_client
+from telegrambotclient.base import ForceReply, Message, MessageField
 
 from example.settings import BOT_TOKEN
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler(fields=MessageField.TEXT)
-def on_force_reply(bot: SimpleBot, message: Message):
+def on_force_reply(bot: TelegramBot, message: Message):
     bot.send_message(chat_id=message.chat.id,
                      text="reply something",
                      reply_markup=ForceReply())
@@ -20,7 +20,7 @@ def on_force_reply(bot: SimpleBot, message: Message):
 
 
 @router.force_reply_handler()
-def on_callback_reply(bot: SimpleBot, message: Message, force_reply_arg_1,
+def on_callback_reply(bot: TelegramBot, message: Message, force_reply_arg_1,
                       force_reply_arg_2):
     bot.reply_message(
         message,

@@ -8,10 +8,10 @@ import sqlite3
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from simplebot.utils import pretty_format
+from telegrambotclient.utils import pretty_format
 
 
-class SimpleStorage:
+class TelegramStorage:
     def set_value(self, key: str, field: str, value, expires: int) -> bool:
         raise NotImplementedError()
 
@@ -28,7 +28,7 @@ class SimpleStorage:
         raise NotImplementedError()
 
 
-class MemoryStorage(SimpleStorage):
+class MemoryStorage(TelegramStorage):
     __slots__ = ("_data", )
 
     def __init__(self):
@@ -91,7 +91,7 @@ class MemoryStorage(SimpleStorage):
         return self._data[key]["data"]
 
 
-class SQLiteStorage(SimpleStorage):
+class SQLiteStorage(TelegramStorage):
     __slots__ = ("_db_conn", )
 
     def __init__(self, db_file: Optional[str] = None):
@@ -196,7 +196,7 @@ class SQLiteStorage(SimpleStorage):
             return {}
 
 
-class RedisStorage(SimpleStorage):
+class RedisStorage(TelegramStorage):
     __slots__ = ("_redis", )
 
     def __init__(self, redis):
@@ -230,7 +230,7 @@ class RedisStorage(SimpleStorage):
         }
 
 
-class SimpleSession:
+class TelegramSession:
     __slots__ = ("_user_id", "_storage", "_session_id", "_expires",
                  "_local_data")
     _session_key_format = "bot:session:{0}:{1}"
@@ -238,7 +238,7 @@ class SimpleSession:
     def __init__(self,
                  bot_id: int,
                  user_id: int,
-                 storage: SimpleStorage,
+                 storage: TelegramStorage,
                  expires: int = 1800) -> None:
         self._user_id = user_id
         self._storage = storage

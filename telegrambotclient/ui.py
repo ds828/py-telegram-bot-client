@@ -1,11 +1,11 @@
 from typing import Callable, List, Optional, Tuple
 
-from simplebot.base import (CallbackQuery, InlineKeyboardButton,
-                            InlineKeyboardMarkup, KeyboardButton,
-                            ReplyKeyboardMarkup, SimpleBotException)
-from simplebot.bot import SimpleBot
-from simplebot.router import SimpleRouter
-from simplebot.utils import build_callback_data, parse_callback_data
+from telegrambotclient.base import (CallbackQuery, InlineKeyboardButton,
+                                    InlineKeyboardMarkup, KeyboardButton,
+                                    ReplyKeyboardMarkup, TelegramBotException)
+from telegrambotclient.bot import TelegramBot
+from telegrambotclient.router import TelegramRouter
+from telegrambotclient.utils import build_callback_data, parse_callback_data
 
 _RADIO_EMOJI = ("🔘", "⚪")
 _SELECT_EMOJI = ("✔", "")
@@ -125,7 +125,7 @@ class InlineKeyboard(ReplyKeyboard):
 
     @staticmethod
     def auto_radio(
-        router: SimpleRouter,
+        router: TelegramRouter,
         name: str,
         changed_callback: Optional[Callable] = None,
         emoji=_RADIO_EMOJI,
@@ -182,17 +182,17 @@ class InlineKeyboard(ReplyKeyboard):
                         button["text"] = "{0}{1}".format(
                             emoji[0], button["text"])
                         return True, button["text"][1:]
-        raise SimpleBotException(
+        raise TelegramBotException(
             "the option: {0} is not found".format(toggled_option))
 
     @staticmethod
     def auto_select(
-        router: SimpleRouter,
+        router: TelegramRouter,
         name: str,
         clicked_callback: Optional[Callable] = None,
         emoji=_SELECT_EMOJI,
     ):
-        def on_select_click(bot: SimpleBot, callback_query: CallbackQuery,
+        def on_select_click(bot: TelegramBot, callback_query: CallbackQuery,
                             clicked_option):
             keyboard = InlineKeyboard(
                 keyboard=callback_query.message.reply_markup.inline_keyboard, )
@@ -236,7 +236,8 @@ class InlineKeyboard(ReplyKeyboard):
                         # otherwise make it be checked
                         button["text"] = "{0}{1}".format(emoji[0], name)
                         return True
-        raise SimpleBotException("toggler name: {0} is not found".format(name))
+        raise TelegramBotException(
+            "toggler name: {0} is not found".format(name))
 
     def get_toggler_value(self, name: str, emoji=_TOGGLER_EMOJI):
         for line in self._layout:
@@ -246,16 +247,17 @@ class InlineKeyboard(ReplyKeyboard):
                     if callback_data.startswith(name):
                         return button["text"][0] == emoji[
                             0], parse_callback_data(callback_data, name)[0]
-        raise SimpleBotException("toggler name: {0} is not found".format(name))
+        raise TelegramBotException(
+            "toggler name: {0} is not found".format(name))
 
     @staticmethod
     def auto_toggle(
-        router: SimpleRouter,
+        router: TelegramRouter,
         name: str,
         toggled_callback: Optional[Callable] = None,
         emoji=_TOGGLER_EMOJI,
     ):
-        def on_toggle_click(bot: SimpleBot, callback_query: CallbackQuery,
+        def on_toggle_click(bot: TelegramBot, callback_query: CallbackQuery,
                             toggle_option):
             keyboard = InlineKeyboard(
                 keyboard=callback_query.message.reply_markup.inline_keyboard, )

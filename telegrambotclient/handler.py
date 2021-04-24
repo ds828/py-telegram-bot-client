@@ -3,7 +3,7 @@ import re
 from enum import Enum
 from typing import Callable, Iterable, Optional, Tuple, Union
 
-from simplebot.base import CallbackQuery, MessageField, UpdateType
+from telegrambotclient.base import CallbackQuery, MessageField, UpdateType
 
 
 class UpdateHandler:

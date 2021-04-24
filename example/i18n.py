@@ -1,18 +1,26 @@
 """
-run in cli: python -m example.i18n.py
+run in cli: python -m example.i18n
 """
-import gettext
 from typing import Callable
-from simplebot import bot_proxy, SimpleBot
-from simplebot.base import Message
-from simplebot.utils import i18n
+
+from telegrambotclient import TelegramBot, bot_client
+from telegrambotclient.base import Message
+from telegrambotclient.utils import i18n
+
 from example.settings import BOT_TOKEN
 
 trans_data = {
-    "en": {"start": "start to play", "help": "help text"},
-    "zh-hant": {"start": "開始", "help": "幫助"},
+    "en": {
+        "start": "start to play",
+        "help": "help text"
+    },
+    "zh-hant": {
+        "start": "開始",
+        "help": "幫助"
+    },
 }
 
+# import gettext
 # translations = {}
 # locale_dir = "./locales"
 # for lang in ("en", "zh-hant"):
@@ -20,16 +28,16 @@ trans_data = {
 # translate.install()
 # translations[lang] = translate
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(
-    token=BOT_TOKEN, router=router, i18n_source=trans_data
-)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN,
+                                    router=router,
+                                    i18n_source=trans_data)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler()
 @i18n()
-def on_i18n_text(bot: SimpleBot, message: Message, _: Callable):
+def on_i18n_text(bot: TelegramBot, message: Message, _: Callable):
     bot.reply_message(message, text=_(message.text))
 
 

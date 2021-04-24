@@ -1,6 +1,6 @@
-# Simple Telegram Bot API Client
+# Telegram Bot API Client
 
-A telegram bot API provider is written by **python3.5+**.
+A telegram bot API client is written by **python3.5+**.
 The reason for writing this bot utility is that I wish to run multi telegram bots which could have same or different business logic **(route policy)** in one process . I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 
 # Quick to go
@@ -8,13 +8,13 @@ The reason for writing this bot utility is that I wish to run multi telegram bot
 This is a simple echo bot.
 
 
-	from simplebot import bot_proxy
-	from simplebot.base import MessageField, ParseMode
+	from telegrambotclient import bot_client
+	from telegrambotclient.base import MessageField, ParseMode
 
 	# define a unnamed router
-	router = bot_proxy.router()
+	router = bot_client.router()
 	# define a bot with the router
-	my_bot = bot_proxy.create_bot(token=<BOT_TOKEN>, router=router)
+	my_bot = bot_client.create_bot(token=<BOT_TOKEN>, router=router)
 	# delete webhook if did or not
 	my_bot.delete_webhook(drop_pending_updates=True)
 
@@ -34,13 +34,13 @@ This is a simple echo bot.
 	my_bot.run_polling(timeout=10)
 
 
-## Call simple bot APIs
+## Call telegram bot APIs
 
-Every **simple bot API** has same parameter signatures with official Telegram Bot APIs. Please see [official Telegram Bot API document](ttps://core.telegram.org/bots/api) when calling simple bot APIs.
+*****telegrambotclient** has same parameter signatures with official Telegram Bot APIs. Please see [official Telegram Bot API document](ttps://core.telegram.org/bots/api) when calling simple bot APIs.
 
 ### Quick to reply
 
-For those sendXXX APIs, such as sendMessage, sendDocument, sendLocation etc. **Simple bot** provides a shortcut to reply XXX which are named reply_XXX
+For those sendXXX APIs, such as sendMessage, sendDocument, sendLocation etc. **telegram bot api client** also provides a shortcut to reply XXX which are named reply_XXX
 
 	sent_message = bot.reply_message(
 	        message,
@@ -58,16 +58,16 @@ In my case, I use [fastapi](https://fastapi.tiangolo.com/) and [uvicron](https:/
 source code:
 
   	from fastapi import FastAPI, Request, status
-	from simplebot import bot_proxy
-  	from simplebot.base import MessageField, ParseMode
+	from telegrambotclient import bot_client
+  	from telegrambotclient.base import MessageField, ParseMode
     	# from ngrok's https url, replace it with yours
   	WEBHOOK_URL = "https://5f9d0f13b9fb.au.ngrok.io/bot/{0}"
 
     	# define a default routers
-  	router = bot_proxy.router()
+  	router = bot_client.router()
 	# two bots have same router
-	bot1 = bot_proxy.create_bot(token=<BOT1_TOKEN>, router=router)
-	bot2 = bot_proxy.create_bot(token=<BOT2_TOKEN>, router=router)
+	bot1 = bot_client.create_bot(token=<BOT1_TOKEN>, router=router)
+	bot2 = bot_client.create_bot(token=<BOT2_TOKEN>, router=router)
 	# conveninet function to set or change the webhook url
 	bot1.setup_webhook(WEBHOOK_URL.format(<BOT1_TOKEN>))
 	bot2.setup_webhook(WEBHOOK_URL.format(<BOT2_TOKEN>))
@@ -81,21 +81,21 @@ source code:
 	# waiting for incoming updates and dispatch them
 	@app.post("/bot/{bot_token}", status_code=status.HTTP_200_OK)
 	async def process_telegram_update(bot_token: str, request: Request):
-	    await bot_proxy.dispatch(bot_token, await request.json())
+	    await bot_client.dispatch(bot_token, await request.json())
 	    return ""
 
 ## Multi bots and routers play around
 
 	from fastapi import FastAPI, Request, status
-	from simplebot import bot_proxy
-	from simplebot.base import Message, MessageField, ParseMode
+	from telegrambotclient import bot_client
+	from telegrambotclient.base import Message, MessageField, ParseMode
 	# from ngrok's https url, replace it with yours
 	WEBHOOK_URL = "https://5f9d0f13b9fb.au.ngrok.io/bot/{0}"
 
-	router1 = bot_proxy.router("router1")
-	router2 = bot_proxy.router("router2")
-	bot1 = bot_proxy.create_bot(token=<BOT1_TOKEN>, router=router1)
-	bot2 = bot_proxy.create_bot(token=<BOT2_TOKEN>, router=router2)
+	router1 = bot_client.router("router1")
+	router2 = bot_client.router("router2")
+	bot1 = bot_client.create_bot(token=<BOT1_TOKEN>, router=router1)
+	bot2 = bot_client.create_bot(token=<BOT2_TOKEN>, router=router2)
 	# conveninet function to set or change the webhook url
 	bot1.setup_webhook(WEBHOOK_URL.format(<BOT1_TOKEN>))
 	bot2.setup_webhook(WEBHOOK_URL.format(<BOT2_TOKEN>))
@@ -123,7 +123,7 @@ source code:
 	# waiting for incoming updates and dispatch them
 	@app.post("/bot/{bot_token}", status_code=status.HTTP_200_OK)
 	async def process_telegram_update(bot_token: str, request: Request):
-	    await bot_proxy.dispatch(bot_token, await request.json())
+	    await bot_client.dispatch(bot_token, await request.json())
 	    return ""
 
 ##  Register handlers
@@ -146,29 +146,29 @@ good way to register one callback on multi routers
 
 ### route for multi message fields
 	@router.message_handler(fields=MessageField.TEXT | MessageField.LOCATION)
-	def on_any_message_fields(bot: SimpleBot, message: Message):
+	def on_any_message_fields(bot, message: Message):
 	    # call when a message include 'text' OR 'location' fields
 	    pass
 
 	@router.message_handler(fields=MessageField.ANIMATION & MessageField.DOCUMENT)
-	def on_all_message_fields(bot: SimpleBot, message: Message):
+	def on_animation(bot, message: Message):
 	    # call when a message include 'animation' AND 'document' fields
 	    pass
 
 
 ### All-in
-	from simplebot import bot_proxy, SimpelBot
-	from simplebot.base import (
+	from telegrambotclient import bot_client
+	from telegrambotclient.base import (
 	    BotCommand,
 	    Message,
 	    MessageType,
 	)
-	from simplebot.handler import CommandHandler, MessageHandler
+	from telegrambotclient.handler import CommandHandler, MessageHandler
 
-	def on_mycmd(bot: SimpleBot, message: Message):
+	def on_mycmd(bot, message: Message):
 	    bot.reply_message(message, text=message.text)
 
-	def on_message(bot: SimpleBot, message: Message):
+	def on_message(bot, message: Message):
 	    bot.reply_message(message, text=message.text)
 
 	handlers = (
@@ -176,15 +176,15 @@ good way to register one callback on multi routers
 	    MessageHandler(callback=on_message, fields=(MessageField.TEXT,)),
 	)
 	# way1: define a named router for creating a bot
-	# router1 = bot_proxy.router(name="router1", handlers=handlers)
-	# example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router1)
+	# router1 = bot_client.router(name="router1", handlers=handlers)
+	# example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router1)
 
 	# way2: quick to work, define a router is not necessary if just one router is needed
-	example_bot = bot_proxy.create_bot(token=BOT_TOKEN, handlers=handlers)
+	example_bot = bot_client.create_bot(token=BOT_TOKEN, handlers=handlers)
 	example_bot.delete_webhook(drop_pending_updates=True)
 	cmd1 = BotCommand(command="/mycmd1", description="cmd1")
 	cmd2 = BotCommand(command="/mycmd2", description="cmd2")
 	example_bot.set_my_commands(commands=(cmd1, cmd2))
 	example_bot.run_polling(timeout=10)
 
-## [Please try examples for more detail](https://github.com/songdi/simple-telegram-bot/tree/main/example)
+## [Please try examples for more detail](https://github.com/songdi/py-telegram-bot-client/tree/main/example)

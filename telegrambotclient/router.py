@@ -7,25 +7,25 @@ try:
 except ImportError:
     import json
 
-from simplebot.base import (CallbackQuery, ChosenInlineResult, InlineQuery,
-                            Message, MessageField, Poll, PollAnswer,
-                            PreCheckoutQuery, ShippingQuery,
-                            SimpleBotException, SimpleObject, Update,
-                            UpdateType)
-from simplebot.bot import SimpleBot
-from simplebot.handler import (
+from telegrambotclient.base import (CallbackQuery, ChosenInlineResult,
+                                    InlineQuery, Message, MessageField, Poll,
+                                    PollAnswer, PreCheckoutQuery,
+                                    ShippingQuery, TelegramBotException,
+                                    TelegramObject, Update, UpdateType)
+from telegrambotclient.bot import TelegramBot
+from telegrambotclient.handler import (
     CallbackQueryHandler, ChannelPostHandler, ChosenInlineResultHandler,
     CommandHandler, EditedChannelPostHandler, EditedMessageHandler,
     ErrorHandler, ForceReplyHandler, InlineQueryHandler, Interceptor,
     InterceptorType, MessageHandler, PollAnswerHandler, PollHandler,
     PreCheckoutQueryHandler, ShippingQueryHandler, UpdateHandler,
     _MessageHandler)
-from simplebot.utils import pretty_format
+from telegrambotclient.utils import pretty_format
 
-logger = logging.getLogger("simple-bot")
+logger = logging.getLogger("telegram-bot-client")
 
 
-class SimpleRouter:
+class TelegramRouter:
     __slots__ = ("_name", "_route_map", "_handler_callers")
     next_call = True
     stop_call = False
@@ -188,7 +188,7 @@ class SimpleRouter:
 
     def register_handler(self, handler: UpdateHandler):
         if not isinstance(handler, UpdateHandler):
-            raise SimpleBotException("need a UpdateHandler")
+            raise TelegramBotException("need a UpdateHandler")
         for update_type in handler.update_types:
             logger.info("bind a %s Handler: '%s@%s'", update_type, handler,
                         self.name)
@@ -444,13 +444,13 @@ class SimpleRouter:
     # call handlers
     #
     ##################################################################################
-    async def route(self, bot: SimpleBot, update: Update):
+    async def route(self, bot: TelegramBot, update: Update):
         if update.update_id > bot.last_update_id:
             bot.last_update_id = update.update_id
         update_type, data = self.parse_update_type_and_data(update)
         try:
             if update_type is None:
-                raise SimpleBotException("unknown update type")
+                raise TelegramBotException("unknown update type")
             await self.__call_before_interceptor(update_type, bot, data)
             await self._handler_callers[update_type](update_type, bot, data)
         except Exception as error:
@@ -466,7 +466,8 @@ class SimpleRouter:
                                               kwargs) else cls.stop_call
 
     async def __call_before_interceptor(self, update_type: UpdateType,
-                                        bot: SimpleBot, data: SimpleObject):
+                                        bot: TelegramBot,
+                                        data: TelegramObject):
         route = self._route_map.get(self.before_interceptor_value, None)
         if not route:
             return
@@ -478,7 +479,7 @@ class SimpleRouter:
             await self.__call_handler(interceptor, bot, data)
 
     async def __call_after_interceptor(self, update_type: UpdateType,
-                                       bot: SimpleBot, data: SimpleObject):
+                                       bot: TelegramBot, data: TelegramObject):
         route = self._route_map.get(self.after_interceptor_value, None)
         if not route:
             return
@@ -490,7 +491,8 @@ class SimpleRouter:
             await self.__call_handler(interceptor, bot, data)
 
     async def __call_error_handler(self, update_type: UpdateType,
-                                   bot: SimpleBot, data: SimpleObject, error):
+                                   bot: TelegramBot, data: TelegramObject,
+                                   error):
         route = self._route_map.get("error", None)
         if not route:
             return
@@ -505,7 +507,7 @@ class SimpleRouter:
                 if isinstance(error, handler.error):
                     await self.__call_handler(handler, bot, data, error)
 
-    async def __call_command_handler(self, bot: SimpleBot,
+    async def __call_command_handler(self, bot: TelegramBot,
                                      message: Message) -> bool:
         command_type = UpdateType.COMMAND.value
         text = message.text
@@ -526,7 +528,7 @@ class SimpleRouter:
         return await self.__call_handler(handler, bot, message,
                                          *cmd_and_args[1:])
 
-    async def __call_force_reply_handler(self, bot: SimpleBot,
+    async def __call_force_reply_handler(self, bot: TelegramBot,
                                          message: Message) -> bool:
         force_reply_callback_name, force_reply_args = bot.get_force_reply(
             message.chat.id)
@@ -534,7 +536,7 @@ class SimpleRouter:
             return self.next_call
         handler = self.get_force_reply_handler(force_reply_callback_name)
         if handler is None:
-            raise SimpleBotException(
+            raise TelegramBotException(
                 "{0} is not a force reply callback".format(
                     force_reply_callback_name))
         if force_reply_args:
@@ -543,7 +545,7 @@ class SimpleRouter:
         return await self.__call_handler(handler, bot, message)
 
     async def __call_message_like_handler(self, update_type: UpdateType,
-                                          bot: SimpleBot, message: Message):
+                                          bot: TelegramBot, message: Message):
         route = self._route_map.get(update_type.value, None)
         if not route:
             return self.next_call
@@ -571,7 +573,7 @@ class SimpleRouter:
             return await self.__call_handler(handler, bot, message)
 
     async def __call_message_handler(self, update_type: UpdateType,
-                                     bot: SimpleBot, message: Message):
+                                     bot: TelegramBot, message: Message):
         if await self.__call_command_handler(bot, message) is self.next_call:
             if await self.__call_force_reply_handler(
                     bot, message) is self.next_call:
@@ -579,7 +581,7 @@ class SimpleRouter:
                                                        message)
 
     async def __call_edited_message_handler(self, update_type: UpdateType,
-                                            bot: SimpleBot,
+                                            bot: TelegramBot,
                                             edited_message: Message):
         if await self.__call_command_handler(bot,
                                              edited_message) is self.next_call:
@@ -591,16 +593,16 @@ class SimpleRouter:
                                                    edited_message)
 
     async def __call_channel_post_handler(self, update_type: UpdateType,
-                                          bot: SimpleBot, message: Message):
+                                          bot: TelegramBot, message: Message):
         await self.__call_message_like_handler(update_type, bot, message)
 
     async def __call_edited_channel_post_handler(self, update_type: UpdateType,
-                                                 bot: SimpleBot,
+                                                 bot: TelegramBot,
                                                  message: Message):
         await self.__call_message_like_handler(update_type, bot, message)
 
     async def __call_callback_query_handler(self, update_type: UpdateType,
-                                            bot: SimpleBot,
+                                            bot: TelegramBot,
                                             callback_query: CallbackQuery):
         routes = self._route_map.get(update_type.value, None)
         if not routes:
@@ -642,7 +644,7 @@ class SimpleRouter:
                     return
 
     async def __call_inline_query_handler(self, update_type: UpdateType,
-                                          bot: SimpleBot,
+                                          bot: TelegramBot,
                                           inline_query: InlineQuery):
         handler = self._route_map.get(update_type.value, None)
         if handler:
@@ -651,14 +653,14 @@ class SimpleRouter:
     async def __call_chosen_inline_result_handler(
         self,
         update_type: UpdateType,
-        bot: SimpleBot,
+        bot: TelegramBot,
         chosen_inline_result: ChosenInlineResult,
     ):
         await self.__call_inline_query_handler(update_type, bot,
                                                chosen_inline_result)
 
     async def __call_shipping_query_handler(self, update_type: UpdateType,
-                                            bot: SimpleBot,
+                                            bot: TelegramBot,
                                             shipping_query: ShippingQuery):
         await self.__call_inline_query_handler(update_type, bot,
                                                shipping_query)
@@ -666,18 +668,18 @@ class SimpleRouter:
     async def __call_pre_checkout_query_handler(
         self,
         update_type: UpdateType,
-        bot: SimpleBot,
+        bot: TelegramBot,
         pre_checkout_query: PreCheckoutQuery,
     ):
         await self.__call_inline_query_handler(update_type, bot,
                                                pre_checkout_query)
 
     async def __call_poll_handler(self, update_type: UpdateType,
-                                  bot: SimpleBot, poll: Poll):
+                                  bot: TelegramBot, poll: Poll):
         await self.__call_inline_query_handler(update_type, bot, poll)
 
     async def __call_poll_answer_handler(self, update_type: UpdateType,
-                                         bot: SimpleBot,
+                                         bot: TelegramBot,
                                          poll_answer: PollAnswer):
         await self.__call_inline_query_handler(update_type, bot, poll_answer)
 
@@ -700,7 +702,7 @@ class SimpleRouter:
     def parse_update_type_and_data(
         cls,
         update: Update,
-    ) -> Tuple[Optional[UpdateType], Optional[SimpleObject]]:
+    ) -> Tuple[Optional[UpdateType], Optional[TelegramObject]]:
         for name, value in update.items():
             if name in cls.update_type_values:
                 return UpdateType(name), value

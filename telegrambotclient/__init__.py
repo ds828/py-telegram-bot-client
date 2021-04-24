@@ -2,15 +2,15 @@ import logging
 import sys
 from typing import Dict, Iterable, Optional
 
-from simplebot.api import SimpleRequest
-from simplebot.base import SimpleBotException, Update
-from simplebot.bot import SimpleBot
-from simplebot.handler import UpdateHandler
-from simplebot.router import SimpleRouter
-from simplebot.storage import SimpleStorage
+from telegrambotclient.api import TelegramBotAPICaller
+from telegrambotclient.base import TelegramBotException, Update
+from telegrambotclient.bot import TelegramBot
+from telegrambotclient.handler import UpdateHandler
+from telegrambotclient.router import TelegramRouter
+from telegrambotclient.storage import TelegramStorage
 
 __version__ = '5.1'
-logger = logging.getLogger("simple-bot")
+logger = logging.getLogger("telegram-bot-client")
 formatter = logging.Formatter(
     '%(levelname)s %(asctime)s (%(filename)s:%(lineno)d): "%(message)s"')
 console_output_handler = logging.StreamHandler(sys.stderr)
@@ -19,7 +19,7 @@ logger.addHandler(console_output_handler)
 logger.setLevel(logging.INFO)
 
 
-class BotProxy:
+class TelegramBotClient:
     """
     A bots and routers manager and updates dispatcher
     Attributes:
@@ -45,44 +45,45 @@ class BotProxy:
         self,
         name: Optional[str] = None,
         handlers: Optional[Iterable[UpdateHandler]] = None,
-    ) -> SimpleRouter:
+    ) -> TelegramRouter:
         name = name or "default"
         router = self._router_data.get(name, None)
         if router is None:
-            self._router_data[name] = SimpleRouter(name, handlers)
+            self._router_data[name] = TelegramRouter(name, handlers)
         else:
             router.register_handlers(handlers)
         return self._router_data[name]
 
     def create_bot(self,
                    token: str,
-                   router: Optional[SimpleRouter] = None,
+                   router: Optional[TelegramRouter] = None,
                    handlers: Optional[Iterable[UpdateHandler]] = None,
-                   storage: Optional[SimpleStorage] = None,
+                   storage: Optional[TelegramStorage] = None,
                    i18n_source: Optional[Dict] = None,
                    api_host: Optional[str] = None,
                    **urllib3_pool_kwargs):
         router = router or self.router(handlers=handlers)
-        self._bot_data[token] = SimpleBot(
+        self._bot_data[token] = TelegramBot(
             token,
             router,
             storage,
             i18n_source,
-            SimpleRequest(api_host=api_host or "https://api.telegram.org",
-                          **urllib3_pool_kwargs),
+            TelegramBotAPICaller(api_host=api_host
+                                 or "https://api.telegram.org",
+                                 **urllib3_pool_kwargs),
         )
         return self._bot_data[token]
 
-    def bot(self, token: str) -> Optional[SimpleBot]:
+    def bot(self, token: str) -> Optional[TelegramBot]:
         return self._bot_data.get(token, None)
 
     async def dispatch(self, token: str, raw_update: Dict):
         simple_bot = self._bot_data.get(token, None)
         if simple_bot is None:
-            raise SimpleBotException(
+            raise TelegramBotException(
                 "No bot found with token: '{0}'".format(token))
         await simple_bot.dispatch(Update(**raw_update))
 
 
 # default bot proxy
-bot_proxy = BotProxy()
+bot_client = TelegramBotClient()

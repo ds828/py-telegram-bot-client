@@ -1,13 +1,14 @@
 """
-run in cli: python -m example.session.py
+run in cli: python -m example.session
 """
-import redis
-from simplebot.storage import RedisStorage, SQLiteStorage
-from simplebot import bot_proxy, SimpleBot
-from simplebot.base import Message
+from telegrambotclient import TelegramBot, bot_client
+from telegrambotclient.base import Message
+from telegrambotclient.storage import SQLiteStorage
+
 from example.settings import BOT_TOKEN
 
-
+# import redis
+# from telegrambotclient.storage import RedisStorage
 # redis_client = redis.StrictRedis(
 #    host="127.0.0.1",
 #    port=6379,
@@ -19,13 +20,15 @@ from example.settings import BOT_TOKEN
 # storage = RedisStorage(redis_client)
 # storage = SQLiteStorage()
 storage = None
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router, storage=storage)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN,
+                                    router=router,
+                                    storage=storage)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler()
-def on_session_example(bot: SimpleBot, message: Message):
+def on_session_example(bot: TelegramBot, message: Message):
     session = bot.get_session(message.from_user.id)
     session.set("key1", 123, 60)  # field, value, optional expires(seconds)
     bot.send_message(

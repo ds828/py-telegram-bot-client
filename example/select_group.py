@@ -1,25 +1,25 @@
 """
-run in cli: python -m example.select_group.py
+run in cli: python -m example.select_group
 """
 import logging
 
-from simplebot import SimpleBot, bot_proxy
-from simplebot.base import (CallbackQuery, InlineKeyboardButton, Message,
-                            MessageField)
-from simplebot.ui import InlineKeyboard
+from telegrambotclient import bot_client
+from telegrambotclient.base import (CallbackQuery, InlineKeyboardButton,
+                                    Message, MessageField)
+from telegrambotclient.ui import InlineKeyboard
 
 from example.settings import BOT_TOKEN
 
-logger = logging.getLogger("simple-bot")
+logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-def select_callback(bot: SimpleBot, callback_query: CallbackQuery, text,
-                    option, selected):
+def select_callback(bot, callback_query: CallbackQuery, text, option,
+                    selected):
     text = "you {0}: text={1} option={2}".format(
         "select" if selected else "unselect", text, option)
     bot.send_message(chat_id=callback_query.from_user.id, text=text)
@@ -34,7 +34,7 @@ InlineKeyboard.auto_select(
 
 
 @router.message_handler(fields=MessageField.TEXT)
-def on_show_keyboard(bot: SimpleBot, message: Message):
+def on_show_keyboard(bot, message: Message):
     keyboard = InlineKeyboard()
     keyboard.add_select_group(
         "select-group",

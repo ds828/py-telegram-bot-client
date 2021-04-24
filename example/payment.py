@@ -2,24 +2,25 @@
 go to payment provider to sign up
 use @BotFather to connect the payment provider
 detail on https://core.telegram.org/bots/payments
-run in terminal: python -m example.payment.py
+run in terminal: python -m example.payment
 """
 import logging
 
-from simplebot import SimpleBot, bot_proxy
-from simplebot.base import (BotCommand, InlineKeyboardButton, LabeledPrice,
-                            Message, MessageField, PreCheckoutQuery,
-                            ShippingOption, ShippingQuery)
-from simplebot.ui import InlineKeyboard
-from simplebot.utils import pretty_print
+from telegrambotclient import TelegramBot, bot_client
+from telegrambotclient.base import (BotCommand, InlineKeyboardButton,
+                                    LabeledPrice, Message, MessageField,
+                                    PreCheckoutQuery, ShippingOption,
+                                    ShippingQuery)
+from telegrambotclient.ui import InlineKeyboard
+from telegrambotclient.utils import pretty_print
 
 from example.settings import BOT_TOKEN
 
-logger = logging.getLogger("simple-bot")
+logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 cmd_start = BotCommand(command="/start", description="start to buy same goods")
@@ -28,7 +29,7 @@ example_bot.set_my_commands(commands=(cmd_start, cmd_menu))
 
 
 @router.command_handler(cmds=("/start", ))
-def on_start(bot: SimpleBot, message: Message, *payload):
+def on_start(bot: TelegramBot, message: Message, *payload):
     print(payload)
     # use payload to load goods in the order and automatic place a same order
     bot.send_message(chat_id=message.chat.id, text="show a new same invoice")
@@ -38,7 +39,7 @@ InlineKeyboard.auto_select(router, "menu")
 
 
 @router.command_handler(cmds=("/menu", ))
-def on_show_menu(bot: SimpleBot, message: Message):
+def on_show_menu(bot: TelegramBot, message: Message):
     keyboard = InlineKeyboard()
     keyboard.add_select_group(
         "menu",
@@ -86,7 +87,7 @@ def on_submit(bot, callback_query):
 
 
 @router.shipping_query_handler()
-def on_shipping_query(bot: SimpleBot, shipping_query: ShippingQuery):
+def on_shipping_query(bot: TelegramBot, shipping_query: ShippingQuery):
     # check delivery address is possible and caculate delivery fee
     print(shipping_query.shipping_address)
     bot.answer_shipping_query(
@@ -105,7 +106,7 @@ def on_shipping_query(bot: SimpleBot, shipping_query: ShippingQuery):
 
 
 @router.pre_checkout_query_handler()
-def on_pre_checkout_query(bot: SimpleBot,
+def on_pre_checkout_query(bot: TelegramBot,
                           pre_checkout_query: PreCheckoutQuery):
     # do somthing to prepare the order, such as check goods are available
     # Your bot must reply using answerPrecheckoutQuery within 10 seconds after receiving this update or the transaction is canceled.
@@ -114,7 +115,7 @@ def on_pre_checkout_query(bot: SimpleBot,
 
 
 @router.message_handler(fields=MessageField.SUCCESSFUL_PAYMENT)
-def on_successful_payment(bot: SimpleBot, message: Message):
+def on_successful_payment(bot: TelegramBot, message: Message):
     # Once your bot receives this message, it should proceed with delivering the goods or services purchased by the user.
     pretty_print(message.successful_payment)
 

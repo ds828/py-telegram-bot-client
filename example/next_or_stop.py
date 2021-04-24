@@ -1,33 +1,33 @@
 """
-run in terminal: python -m example.next_or_stop.py
+run in terminal: python -m example.next_or_stop
 """
 import logging
 
-from simplebot import SimpleBot, bot_proxy
-from simplebot.base import Message, MessageField
+from telegrambotclient import TelegramBot, bot_client
+from telegrambotclient.base import Message, MessageField
 
 from example.settings import BOT_TOKEN
 
-logger = logging.getLogger("simple-bot")
+logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.command_handler(("/cmd", ))
-def on_cmd(bot: SimpleBot, message: Message):
+def on_cmd(bot: TelegramBot, message: Message):
     bot.send_message(chat_id=message.chat.id,
                      text="on_cmd: {0}".format(message.text))
-    return bot.next_call
+    return bot.next_call  # will call on_text which is the next matched handler
 
 
 @router.message_handler(fields=MessageField.TEXT)
-def on_text(bot: SimpleBot, message: Message):
+def on_text(bot: TelegramBot, message: Message):
     bot.send_message(chat_id=message.chat.id,
                      text="on_text: {0}".format(message.text))
-    return bot.stop_call  # do not needt or if you like
+    return bot.stop_call  # normally, do not need it
 
 
 example_bot.run_polling(timeout=10)

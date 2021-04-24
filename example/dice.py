@@ -1,17 +1,18 @@
 """
-run in terminal: python -m example.dice.py
+run in terminal: python -m example.dice
 """
-from simplebot import bot_proxy, SimpleBot
-from simplebot.base import Message, Emoji
+from telegrambotclient import TelegramBot, bot_client
+from telegrambotclient.base import Emoji, Message
+
 from example.settings import BOT_TOKEN
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler()
-def on_example(bot: SimpleBot, message: Message):
+def on_example(bot: TelegramBot, message: Message):
     bot.send_dice(message.chat.id, Emoji.DICE)
     bot.send_dice(message.chat.id, Emoji.BULLSEYE)
     bot.reply_dice(message.chat.id, Emoji.BASKETBALL)

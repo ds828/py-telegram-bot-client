@@ -5,16 +5,18 @@ import logging
 import os
 from typing import Callable, Dict, Iterable, Optional, Tuple
 
-from simplebot.api import SimpleRequest, TelegramBotAPI
-from simplebot.base import InputFile, Message, SimpleBotException, Update
-from simplebot.storage import MemoryStorage, SimpleSession, SimpleStorage
-from simplebot.utils import (build_force_reply_data, parse_force_reply_data,
-                             pretty_format)
+from telegrambotclient.api import TelegramBotAPI, TelegramBotAPICaller
+from telegrambotclient.base import (InputFile, Message, TelegramBotException,
+                                    Update)
+from telegrambotclient.storage import (MemoryStorage, TelegramSession,
+                                       TelegramStorage)
+from telegrambotclient.utils import (build_force_reply_data,
+                                     parse_force_reply_data, pretty_format)
 
-logger = logging.getLogger("simple-bot")
+logger = logging.getLogger("telegram-bot-client")
 
 
-class SimpleBot:
+class TelegramBot:
     _force_reply_key_format = "bot:force_reply:{0}"
     __slots__ = (
         "_bot_id",
@@ -31,30 +33,30 @@ class SimpleBot:
         self,
         token: str,
         router,
-        storage: Optional[SimpleStorage] = None,
+        storage: Optional[TelegramStorage] = None,
         i18n_source: Optional[Dict] = None,
-        http_request: Optional[SimpleRequest] = None,
+        api_caller: Optional[TelegramBotAPICaller] = None,
     ):
         try:
             self._bot_id = int(token.split(":")[0])
         except IndexError as error:
-            raise SimpleBotException(
+            raise TelegramBotException(
                 "wrong token format: {0}".format(token)) from error
         self._token = token
         self._router = router
         if storage:
-            assert isinstance(storage, SimpleStorage), True
+            assert isinstance(storage, TelegramStorage), True
         else:
             logger.warning(
                 "You are using a memory storage which can not be persisted.")
             storage = MemoryStorage()
         self._storage = storage
         self._i18n_source = i18n_source
-        if http_request:
-            assert isinstance(http_request, SimpleRequest), True
+        if api_caller:
+            assert isinstance(api_caller, TelegramBotAPICaller), True
         else:
-            http_request = SimpleRequest()
-        self._bot_api = TelegramBotAPI(http_request)
+            api_caller = TelegramBotAPICaller()
+        self._bot_api = TelegramBotAPI(api_caller)
         self.last_update_id = 0
         self._bot_me = None
 
@@ -142,7 +144,7 @@ class SimpleBot:
         force_reply_callback_name = "{0}.{1}".format(callback.__module__,
                                                      callback.__name__)
         if not self.router.has_force_reply_callback(force_reply_callback_name):
-            raise SimpleBotException(
+            raise TelegramBotException(
                 "{0} is not a force reply callback".format(
                     force_reply_callback_name))
         field = self._force_reply_key_format.format(user_id)
@@ -171,8 +173,10 @@ class SimpleBot:
             return None, None
         return parse_force_reply_data(force_reply_data)
 
-    def get_session(self, user_id: int, expires: int = 1800) -> SimpleSession:
-        return SimpleSession(self.id, user_id, self._storage, expires)
+    def get_session(self,
+                    user_id: int,
+                    expires: int = 1800) -> TelegramSession:
+        return TelegramSession(self.id, user_id, self._storage, expires)
 
     def get_text(self, lang_code: str, text: str) -> str:
         if self._i18n_source:

@@ -1,20 +1,20 @@
 """
-run in terminal: python -m example.photo.py
+run in terminal: python -m example.photo
 """
 import os
 
-from simplebot import SimpleBot, bot_proxy
-from simplebot.base import InputFile, Message, MessageField, ParseMode
+from telegrambotclient import TelegramBot, bot_client
+from telegrambotclient.base import InputFile, Message, MessageField, ParseMode
 
 from example.settings import BOT_TOKEN
 
-router = bot_proxy.router()
-example_bot = bot_proxy.create_bot(token=BOT_TOKEN, router=router)
+router = bot_client.router()
+example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler(fields=MessageField.PHOTO)
-def on_photo_received(bot: SimpleBot, message: Message):
+def on_photo_received(bot: TelegramBot, message: Message):
     # get the largest photo
     file_id = message.photo[-1].file_id
     # get the File object
