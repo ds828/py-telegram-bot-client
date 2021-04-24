@@ -3,13 +3,14 @@ from setuptools import setup
 
 from telegrambotclient import __version__
 
-with open("README", 'r') as f:
+with open("README.md", 'r') as f:
     long_description = f.read()
 
 setup(
     name='py-telegram-bot-client',
     version=__version__,
-    description='A Telegram Bot API Client written in Python',
+    description='A Telegram Bot API Python Client',
+    long_description_content_type="text/markdown",
     long_description=long_description,
     url='https://github.com/songdi/py-telegram-bot-client',
     author='Di SONG',
