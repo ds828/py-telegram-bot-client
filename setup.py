@@ -3,7 +3,7 @@ from setuptools import setup
 
 from telegrambotclient import __version__
 
-with open("README.md", 'r') as f:
+with open("README", 'r') as f:
     long_description = f.read()
 
 setup(

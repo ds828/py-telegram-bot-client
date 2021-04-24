@@ -1,0 +1,32 @@
+A telegram bot API client is written in python3.5+ and currently compatible with Telegram Bot API v5.1 and later.
+
+The reason for writing this bot utility is that I wish to run multi telegram bots which could have same or different business logic **(route policy)** in one process . I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
+
+## This is a simple echo bot.
+
+	from telegrambotclient import bot_client
+	from telegrambotclient.base import MessageField, ParseMode
+
+	# define a unnamed router
+	router = bot_client.router()
+	# define a bot with the router
+	my_bot = bot_client.create_bot(token=<BOT_TOKEN>, router=router)
+	# delete webhook if did or not
+	my_bot.delete_webhook(drop_pending_updates=True)
+
+	# decorate a handler callback on incoming message updates that have a text field
+	@router.message_handler(fields=MessageField.TEXT)
+	def on_echo_text(bot, message):
+	    # receive and reply
+	    sent_message = bot.send_message(
+		        chat_id=message.chat.id,
+		        text="I receive: <strong>{0}</strong>".format(message.text),
+		        parse_mode=ParseMode.HTML,
+		    )
+	    # pin the sent message
+	    bot.pin_chat_message(chat_id=message.chat.id, message_id=sent_message.message_id)
+
+	# run polling to fetch updates in every 10s
+	my_bot.run_polling(timeout=10)
+
+## [Please try more examples](https://github.com/songdi/py-telegram-bot-client/tree/main/example)
