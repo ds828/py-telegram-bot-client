@@ -138,13 +138,20 @@ class InlineKeyboard(ReplyKeyboard):
             if changed_radio_text:
                 message_text = changed_callback(
                     bot, callback_query, changed_radio_text,
-                    changed_radio_option) if changed_callback else ""
-                bot.edit_message_text(
-                    chat_id=callback_query.from_user.id,
-                    message_id=callback_query.message.message_id,
-                    text=message_text or callback_query.message.text,
-                    reply_markup=keyboard.markup(),
-                )
+                    changed_radio_option) if changed_callback else None
+                if callback_query.message.text:
+                    bot.edit_message_text(
+                        chat_id=callback_query.from_user.id,
+                        message_id=callback_query.message.message_id,
+                        text=message_text or callback_query.message.text,
+                        reply_markup=keyboard.markup(),
+                    )
+                else:
+                    bot.edit_message_reply_markup(
+                        chat_id=callback_query.from_user.id,
+                        message_id=callback_query.message.message_id,
+                        reply_markup=keyboard.markup(),
+                    )
 
         router.register_callback_query_handler(callback=on_radio_click,
                                                callback_data_name=name)
@@ -201,12 +208,19 @@ class InlineKeyboard(ReplyKeyboard):
             message_text = clicked_callback(
                 bot, callback_query, clicked_text, clicked_option,
                 selected) if clicked_callback else None
-            bot.edit_message_text(
-                chat_id=callback_query.from_user.id,
-                message_id=callback_query.message.message_id,
-                text=message_text or callback_query.message.text,
-                reply_markup=keyboard.markup(),
-            )
+            if callback_query.message.text:
+                bot.edit_message_text(
+                    chat_id=callback_query.from_user.id,
+                    message_id=callback_query.message.message_id,
+                    text=message_text or callback_query.message.text,
+                    reply_markup=keyboard.markup(),
+                )
+            else:
+                bot.edit_message_reply_markup(
+                    chat_id=callback_query.from_user.id,
+                    message_id=callback_query.message.message_id,
+                    reply_markup=keyboard.markup(),
+                )
 
         router.register_callback_query_handler(
             callback=on_select_click,
@@ -264,13 +278,20 @@ class InlineKeyboard(ReplyKeyboard):
             toggle_status = keyboard.toggle(name, emoji)
             message_text = toggled_callback(
                 bot, callback_query, toggle_option,
-                toggle_status) if toggled_callback else ""
-            bot.edit_message_text(
-                chat_id=callback_query.from_user.id,
-                message_id=callback_query.message.message_id,
-                text=message_text or callback_query.message.text,
-                reply_markup=keyboard.markup(),
-            )
+                toggle_status) if toggled_callback else None
+            if callback_query.message.text:
+                bot.edit_message_text(
+                    chat_id=callback_query.from_user.id,
+                    message_id=callback_query.message.message_id,
+                    text=message_text or callback_query.message.text,
+                    reply_markup=keyboard.markup(),
+                )
+            else:
+                bot.edit_message_reply_markup(
+                    chat_id=callback_query.from_user.id,
+                    message_id=callback_query.message.message_id,
+                    reply_markup=keyboard.markup(),
+                )
 
         router.register_callback_query_handler(
             callback=on_toggle_click,
