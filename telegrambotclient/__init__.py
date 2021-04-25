@@ -9,7 +9,7 @@ from telegrambotclient.handler import UpdateHandler
 from telegrambotclient.router import TelegramRouter
 from telegrambotclient.storage import TelegramStorage
 
-__version__ = '0.1'
+__version__ = '0.1.1'
 logger = logging.getLogger("telegram-bot-client")
 formatter = logging.Formatter(
     '%(levelname)s %(asctime)s (%(filename)s:%(lineno)d): "%(message)s"')
