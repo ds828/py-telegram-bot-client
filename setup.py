@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 from setuptools import setup
 
-from telegrambotclient import __version__
+from telegrambotclient.api import TelegramBotAPI
 
 with open("README.md", 'r') as f:
     long_description = f.read()
 
 setup(
     name='py-telegram-bot-client',
-    version=__version__,
+    version=TelegramBotAPI.__version__,
     description='A Telegram Bot API Python Client',
     long_description_content_type="text/markdown",
     long_description=long_description,

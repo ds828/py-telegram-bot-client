@@ -120,7 +120,7 @@ Reason: {1}""".format(response.status, response.reason))
 
 class TelegramBotAPI:
 
-    __version__ = "Telegram Bot API 5.1 and later"
+    __version__ = "5.2"
     _api_url = "/bot{0}/{1}"
     _download_file_url = "/file/bot{0}/{1}"
     __slots__ = ("_api_caller", )
@@ -283,10 +283,18 @@ class TelegramBotAPI:
                                data=form_data,
                                files=attached_files)
 
-    def send_invoice(self, token: str, chat_id: int, title: str,
-                     description: str, payload: str, provider_token: str,
-                     start_parameter: str, currency: str,
-                     prices: Iterable[LabeledPrice], **kwargs) -> Message:
+    def send_invoice(
+        self,
+        token: str,
+        chat_id: int,
+        title: str,
+        description: str,
+        payload: str,
+        provider_token: str,
+        currency: str,
+        prices: Iterable[LabeledPrice],
+        **kwargs,
+    ) -> Message:
         provider_data = kwargs.get("provider_data", None)
         if provider_data:
             kwargs["provider_data"] = json.dumps(provider_data)
@@ -297,7 +305,6 @@ class TelegramBotAPI:
             description=description,
             payload=payload,
             provider_token=provider_token,
-            start_parameter=start_parameter,
             currency=currency,
             prices=json.dumps(prices),
             **kwargs)

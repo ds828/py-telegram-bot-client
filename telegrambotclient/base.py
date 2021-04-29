@@ -149,8 +149,8 @@ class ChatAction(str, Enum):
     UPLOAD_PHOTO = "upload_photo"
     RECORD_VIDEO = "record_video"
     UPLOAD_VIDEO = "upload_video"
-    RECORD_AUDIO = "record_audio"
-    UPLOAD_AUDIO = "upload_audio"
+    RECORD_VOICE = "record_voice"
+    UPLOAD_VOICE = "upload_voice"
     UPLOAD_DOCUMENT = "upload_document"
     FIND_LOCATION = "find_location"
     RECORD_VIDEO_NOTE = "record_video_note"
@@ -480,6 +480,31 @@ class InputContactMessageContent(InputMessageContent):
                          **kwargs)
 
 
+class LabeledPrice(TelegramObject):
+    def __init__(self, label: str, amount: int, **kwargs):
+        super().__init__(label=label, amount=amount, **kwargs)
+
+
+class InputInvoiceMessageContent(InputMessageContent):
+    def __init__(
+        self,
+        title: str,
+        description: str,
+        payload: str,
+        provider_token: str,
+        currency: str,
+        prices: Iterable[LabeledPrice],
+        **kwargs,
+    ):
+        super().__init__(title=title,
+                         description=description,
+                         payload=payload,
+                         provider_token=provider_token,
+                         currency=currency,
+                         prices=prices,
+                         **kwargs)
+
+
 InlineQueryResult = TelegramObject
 
 
@@ -700,11 +725,6 @@ class Sticker(TelegramObject):
                          width=width,
                          length=length,
                          **kwargs)
-
-
-class LabeledPrice(TelegramObject):
-    def __init__(self, label: str, amount: int, **kwargs):
-        super().__init__(label=label, amount=amount, **kwargs)
 
 
 class ShippingOption(TelegramObject):
