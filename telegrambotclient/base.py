@@ -103,6 +103,7 @@ class MessageField(str, Enum):
     VOICE_CHAT_STARTED = "voice_chat_started"
     VOICE_CHAT_ENDED = "voice_chat_ended"
     VOICE_CHAT_PARTICIPANTS_INVITED = "voice_chat_participants_invited"
+    VOICE_CHAT_SCHEDULED = "voice_chat_scheduled"
     REPLY_MARKUP = "reply_markup"
 
     __slots__ = ("_field_set", "_fields_or")
@@ -141,8 +142,11 @@ class PollType(str, Enum):
 
 class Emoji(str, Enum):
     DICE = "🎲"
-    BULLSEYE = "🎯"
+    DARTS = "🎯"
     BASKETBALL = "🏀"
+    FOOTBALL = "⚽"
+    BOWLING = "🎳"
+    SLOT_MACHINE = "🎰"
 
 
 class ChatAction(str, Enum):

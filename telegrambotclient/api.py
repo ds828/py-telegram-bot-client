@@ -120,7 +120,7 @@ Reason: {1}""".format(response.status, response.reason))
 
 class TelegramBotAPI:
 
-    __version__ = "5.2"
+    __version__ = "5.2.1"
     _api_url = "/bot{0}/{1}"
     _download_file_url = "/file/bot{0}/{1}"
     __slots__ = ("_api_caller", )
