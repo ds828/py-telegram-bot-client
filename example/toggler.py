@@ -24,6 +24,8 @@ def on_toggle_callback(bot: TelegramBot, callback_query: CallbackQuery, option,
                      text="toggler is {0}: {1}".format(
                          "on" if toggle_status else "off", option))
 
+    return "message text will be changed"
+
 
 InlineKeyboard.auto_toggle(
     router,

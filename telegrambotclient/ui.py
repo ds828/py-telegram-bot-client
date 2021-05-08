@@ -1,5 +1,6 @@
 from typing import Callable, List, Optional, Tuple
 
+from telegrambotclient.api import TelegramBotAPIException
 from telegrambotclient.base import (CallbackQuery, InlineKeyboardButton,
                                     InlineKeyboardMarkup, KeyboardButton,
                                     ReplyKeyboardMarkup, TelegramBotException)
@@ -296,4 +297,45 @@ class InlineKeyboard(ReplyKeyboard):
         router.register_callback_query_handler(
             callback=on_toggle_click,
             callback_data_name=name,
+        )
+
+    def add_confirm_buttons(self,
+                            name: str,
+                            callback_data,
+                            ok_text: str = "OK",
+                            cancel_text: str = "Cancel",
+                            col: int = 2,
+                            auto_cancel: bool = False):
+        self.add_buttons(
+            InlineKeyboardButton(text=ok_text,
+                                 callback_data=build_callback_data(
+                                     name, True, callback_data)),
+            InlineKeyboardButton(
+                text=cancel_text,
+                callback_data=build_callback_data(
+                    "cancel-{0}".format(name) if auto_cancel else name, False,
+                    callback_data)),
+            col=col)
+
+    @staticmethod
+    def auto_cancel(
+        router: TelegramRouter,
+        name: str,
+        cancel_callback: Optional[Callable] = None,
+    ):
+        def on_cancel_click(bot: TelegramBot, callback_query: CallbackQuery,
+                            confirm: bool, cancel_callback_data):
+            if cancel_callback:
+                cancel_callback(bot, callback_query, confirm,
+                                cancel_callback_data)
+            try:
+                bot.delete_message(
+                    chat_id=callback_query.from_user.id,
+                    message_id=callback_query.message.message_id)
+            except TelegramBotAPIException:
+                pass
+
+        router.register_callback_query_handler(
+            callback=on_cancel_click,
+            callback_data_name="cancel-{0}".format(name),
         )

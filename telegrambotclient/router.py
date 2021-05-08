@@ -694,6 +694,29 @@ class TelegramRouter:
     def has_force_reply_callback(self, callback_name: str) -> bool:
         return self.get_force_reply_handler(callback_name) is not None
 
+    def has_callback_query_handler(self, callback: Callable) -> bool:
+        if "callback_query" in self._route_map:
+            callback_name = "{0}.{1}".format(callback.__module__,
+                                             callback.__name__)
+            callback_query_handlers = self._route_map["callback_query"]
+            for handler in callback_query_handlers.get("callback_data",
+                                                       {}).values():
+                if str(handler) == callback_name:
+                    return True
+            for handler in callback_query_handlers.get("callback_data_name",
+                                                       {}).values():
+                if str(handler) == callback_name:
+                    return True
+            for handler in callback_query_handlers.get("callback_data_regex",
+                                                       ()):
+                if str(handler) == callback_name:
+                    return True
+            for handler in callback_query_handlers.get("callback_data_parse",
+                                                       ()):
+                if str(handler) == callback_name:
+                    return True
+        return False
+
     def __repr__(self):
         return "\nrouter name: {0}\nroute_map: {1}".format(
             self.name, pretty_format(self._route_map))

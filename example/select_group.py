@@ -23,6 +23,7 @@ def select_callback(bot, callback_query: CallbackQuery, text, option,
     text = "you {0}: text={1} option={2}".format(
         "select" if selected else "unselect", text, option)
     bot.send_message(chat_id=callback_query.from_user.id, text=text)
+    # message'text will be changed
     return text
 
 
