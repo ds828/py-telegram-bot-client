@@ -56,15 +56,13 @@ class TelegramRouter:
             UpdateType.POLL: self.__call_poll_handler,
             UpdateType.POLL_ANSWER: self.__call_poll_answer_handler,
         }
-        self.register_handlers(handlers)
+        self.register_handlers(handlers or ())
 
     @property
     def name(self):
         return self._name
 
     def register_handlers(self, handlers):
-        if not handlers:
-            return
         for handler in handlers:
             if isinstance(handler, Interceptor):
                 self.register_interceptor(handler)
@@ -718,8 +716,7 @@ class TelegramRouter:
         return False
 
     def __repr__(self):
-        return "\nrouter name: {0}\nroute_map: {1}".format(
-            self.name, pretty_format(self._route_map))
+        return "\r\n{0}".format(pretty_format(self._route_map))
 
     @classmethod
     def parse_update_type_and_data(

@@ -18,6 +18,8 @@ from telegrambotclient.utils import exclude_none, pretty_format
 
 logger = logging.getLogger("telegram-bot-client")
 
+DEFAULT_API_HOST = "https://api.telegram.org"
+
 
 class TelegramBotAPIException(TelegramBotException):
     __slots__ = ("_status_code", "_ok", "_error_code", "_description")
@@ -47,14 +49,13 @@ class TelegramBotAPIException(TelegramBotException):
         return self._description
 
     def __str__(self) -> str:
-        return """
------------------------ TelegramBotAPIException BEGIN-------------------------
+        return """----------------------- TelegramBotAPIException BEGIN-------------------------
 status: {0}
 ok: {1}
 error_code: {2}
 description: {3}
------------------------ TelegramBotAPIException END --------------------------
-""".format(self.status_code, self.ok, self.error_code, self.description)
+----------------------- TelegramBotAPIException END --------------------------""".format(
+            self.status_code, self.ok, self.error_code, self.description)
 
 
 class TelegramBotAPICaller:
@@ -62,22 +63,23 @@ class TelegramBotAPICaller:
     _json_header = {"Content-Type": "application/json"}
 
     def __init__(self,
-                 api_host: str = "https://api.telegram.org",
+                 api_host: str = None,
                  maxsize: int = 10,
                  block: bool = True,
                  **other_pool_kwargs):
-        other_pool_kwargs.get("headers", {}).update({
-            "connection":
-            "keep-alive",
-            "user-agent":
-            "simple-bot: A Telegram Bot API Python Provider",
-        })
-        other_pool_kwargs["socket_options"] = (
-            other_pool_kwargs.get("socket_options", []) +
-            urllib3.connection.HTTPConnection.default_socket_options + [
-                (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
-            ])
+        api_host = api_host or DEFAULT_API_HOST
         if api_host.lower().startswith("https://"):
+            other_pool_kwargs.get("headers", {}).update({
+                "connection":
+                "keep-alive",
+                "user-agent":
+                "simple-bot: A Telegram Bot API Python Provider",
+            })
+            other_pool_kwargs["socket_options"] = (
+                other_pool_kwargs.get("socket_options", []) +
+                urllib3.connection.HTTPConnection.default_socket_options + [
+                    (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+                ])
             self._pool = urllib3.HTTPSConnectionPool(host=api_host[8:],
                                                      maxsize=maxsize,
                                                      block=block,
@@ -120,13 +122,13 @@ Reason: {1}""".format(response.status, response.reason))
 
 class TelegramBotAPI:
 
-    __version__ = "5.2.1"
+    __version__ = "5.2.3"
     _api_url = "/bot{0}/{1}"
     _download_file_url = "/file/bot{0}/{1}"
     __slots__ = ("_api_caller", )
 
-    def __init__(self, http_request: Optional[TelegramBotAPICaller] = None):
-        self._api_caller = http_request or TelegramBotAPICaller()
+    def __init__(self, api_caller: Optional[TelegramBotAPICaller] = None):
+        self._api_caller = api_caller or TelegramBotAPICaller()
 
     @staticmethod
     def __check_response(response):

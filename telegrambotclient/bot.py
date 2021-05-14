@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import asyncio
 import logging
 import os
@@ -35,7 +33,7 @@ class TelegramBot:
         router,
         storage: Optional[TelegramStorage] = None,
         i18n_source: Optional[Dict] = None,
-        api_caller: Optional[TelegramBotAPICaller] = None,
+        bot_api: Optional[TelegramBotAPI] = None,
     ):
         try:
             self._bot_id = int(token.split(":")[0])
@@ -52,11 +50,11 @@ class TelegramBot:
             storage = MemoryStorage()
         self._storage = storage
         self._i18n_source = i18n_source
-        if api_caller:
-            assert isinstance(api_caller, TelegramBotAPICaller), True
+        if bot_api:
+            assert isinstance(bot_api, TelegramBotAPI), True
         else:
-            api_caller = TelegramBotAPICaller()
-        self._bot_api = TelegramBotAPI(api_caller)
+            bot_api = TelegramBotAPI(TelegramBotAPICaller())
+        self._bot_api = bot_api
         self.last_update_id = 0
         self._bot_me = None
 

@@ -32,22 +32,6 @@ class UpdateType(str, Enum):
     COMMAND = "command"
 
 
-class MessageFieldMeta(type):
-    def __init__(self, value) -> None:
-        self._or_list = [
-            value,
-        ]
-        self._and_set = {
-            value,
-        }
-
-    def __or__(self, other_field):
-        return self._or_list.append(other_field)
-
-    def __and__(self, other_field):
-        return self._and_set.add(other_field)
-
-
 class MessageField(str, Enum):
     MESSAGE_ID = "message_id"
     FROM_USER = "from_user"
