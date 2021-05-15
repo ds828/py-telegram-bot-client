@@ -3,7 +3,7 @@ import logging
 import os
 from typing import Callable, Dict, Iterable, Optional, Tuple
 
-from telegrambotclient.api import TelegramBotAPI, TelegramBotAPICaller
+from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.base import (InputFile, Message, TelegramBotException,
                                     Update)
 from telegrambotclient.storage import (MemoryStorage, TelegramSession,
@@ -16,16 +16,8 @@ logger = logging.getLogger("telegram-bot-client")
 
 class TelegramBot:
     _force_reply_key_format = "bot:force_reply:{0}"
-    __slots__ = (
-        "_bot_id",
-        "_token",
-        "_router",
-        "_bot_api",
-        "_storage",
-        "_i18n_source",
-        "last_update_id",
-        "_bot_me",
-    )
+    __slots__ = ("_bot_id", "_token", "_router", "_bot_api", "_storage",
+                 "_i18n_source", "last_update_id", "_bot_user")
 
     def __init__(
         self,
@@ -53,10 +45,13 @@ class TelegramBot:
         if bot_api:
             assert isinstance(bot_api, TelegramBotAPI), True
         else:
-            bot_api = TelegramBotAPI(TelegramBotAPICaller())
+            logger.warning(
+                "Your bot api is not a TelegramBotAPI instance. A default bot api is using."
+            )
+            bot_api = TelegramBotAPI()
         self._bot_api = bot_api
         self.last_update_id = 0
-        self._bot_me = None
+        self._bot_user = None
 
     def __getattr__(self, api_name):
         if api_name.startswith("reply"):
@@ -92,26 +87,18 @@ class TelegramBot:
         return self._router
 
     @property
+    def api(self):
+        return self._bot_api
+
+    @property
     def id(self) -> int:
         return self._bot_id
 
     @property
     def user(self):
-        if self._bot_me is None:
-            self._bot_me = self.get_me()
-        return self._bot_me
-
-    @property
-    def username(self):
-        return self.user.username
-
-    @property
-    def first_name(self):
-        return self.user.first_name
-
-    @property
-    def last_name(self):
-        return self.user.last_name
+        if self._bot_user is None:
+            self._bot_user = self.get_me()
+        return self._bot_user
 
     @property
     def next_call(self):

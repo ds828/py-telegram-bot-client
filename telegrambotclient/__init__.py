@@ -3,13 +3,13 @@ import sys
 from typing import Dict, Iterable, Optional
 
 from telegrambotclient.api import (DEFAULT_API_HOST, TelegramBotAPI,
-                                   TelegramBotAPICaller,
                                    TelegramBotAPIException)
 from telegrambotclient.base import TelegramBotException, Update
 from telegrambotclient.bot import TelegramBot
 from telegrambotclient.handler import UpdateHandler
 from telegrambotclient.router import TelegramRouter
 from telegrambotclient.storage import TelegramStorage
+from telegrambotclient.utils import pretty_format
 
 logger = logging.getLogger("telegram-bot-client")
 formatter = logging.Formatter(
@@ -56,24 +56,24 @@ class TelegramBotClient:
             router.register_handlers(handlers or ())
         return self._router_data[name]
 
-    def create_bot(self,
-                   token: str,
-                   router: Optional[TelegramRouter] = None,
-                   handlers: Optional[Iterable[UpdateHandler]] = None,
-                   storage: Optional[TelegramStorage] = None,
-                   i18n_source: Optional[Dict] = None,
-                   api_host: Optional[str] = None,
-                   **urllib3_pool_kwargs):
-        router = router or self.router(handlers=handlers)
-        bot_api = self._bot_api_data.get(api_host or DEFAULT_API_HOST, None)
+    def create_bot(
+        self,
+        token: str,
+        router: Optional[TelegramRouter] = None,
+        handlers: Optional[Iterable[UpdateHandler]] = None,
+        storage: Optional[TelegramStorage] = None,
+        i18n_source: Optional[Dict] = None,
+        bot_api: Optional[TelegramBotAPI] = None,
+    ):
+        bot_api = self._bot_api_data.get(
+            bot_api.host if bot_api else DEFAULT_API_HOST[8:], None)
         if bot_api is None:
-            api_caller = TelegramBotAPICaller(api_host=api_host,
-                                              **urllib3_pool_kwargs)
-            bot_api = TelegramBotAPI(api_caller)
-            self._bot_api_data[api_host] = bot_api
+            bot_api = TelegramBotAPI()
+            self._bot_api_data[bot_api.host] = bot_api
+        router = router or self.router(handlers=handlers)
         bot = TelegramBot(token, router, storage, i18n_source, bot_api)
         try:
-            logger.info(bot.user)
+            bot.user
         except TelegramBotAPIException as error:
             raise TelegramBotException("The bot is not available") from error
         else:

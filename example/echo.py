@@ -8,7 +8,7 @@ from telegrambotclient.base import Message, MessageField, ParseMode
 
 from example.settings import BOT_TOKEN
 
-logger = logging.getLogger("simple-bot")
+logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 
 router = bot_client.router()

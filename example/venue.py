@@ -10,7 +10,7 @@ from telegrambotclient.utils import pretty_print
 
 from example.settings import BOT_TOKEN
 
-logger = logging.getLogger("telegrambotclient")
+logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 
 router = bot_client.router()

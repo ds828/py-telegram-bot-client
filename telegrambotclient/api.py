@@ -22,138 +22,139 @@ DEFAULT_API_HOST = "https://api.telegram.org"
 
 
 class TelegramBotAPIException(TelegramBotException):
-    __slots__ = ("_status_code", "_ok", "_error_code", "_description")
+    __slots__ = ("_error_data", )
 
-    def __init__(self, status_code: int, ok: bool, error_code: int,
-                 description: str) -> None:
-        super().__init__(description)
-        self._status_code = status_code
-        self._ok = ok
-        self._error_code = error_code
-        self._description = description
+    def __init__(self, error_response: TelegramObject) -> None:
+        super().__init__(error_response["description"])
+        self._error_data = error_response
 
     @property
-    def status_code(self):
-        return self._status_code
+    def error(self):
+        return self._error_data
 
-    @property
-    def ok(self):
-        return self._ok
-
-    @property
-    def error_code(self):
-        return self._error_code
-
-    @property
-    def description(self):
-        return self._description
-
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return """----------------------- TelegramBotAPIException BEGIN-------------------------
-status: {0}
-ok: {1}
-error_code: {2}
-description: {3}
+{0}
 ----------------------- TelegramBotAPIException END --------------------------""".format(
-            self.status_code, self.ok, self.error_code, self.description)
-
-
-class TelegramBotAPICaller:
-    __slots__ = ("_pool", )
-    _json_header = {"Content-Type": "application/json"}
-
-    def __init__(self,
-                 api_host: str = None,
-                 maxsize: int = 10,
-                 block: bool = True,
-                 **other_pool_kwargs):
-        api_host = api_host or DEFAULT_API_HOST
-        if api_host.lower().startswith("https://"):
-            other_pool_kwargs.get("headers", {}).update({
-                "connection":
-                "keep-alive",
-                "user-agent":
-                "simple-bot: A Telegram Bot API Python Provider",
-            })
-            other_pool_kwargs["socket_options"] = (
-                other_pool_kwargs.get("socket_options", []) +
-                urllib3.connection.HTTPConnection.default_socket_options + [
-                    (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
-                ])
-            self._pool = urllib3.HTTPSConnectionPool(host=api_host[8:],
-                                                     maxsize=maxsize,
-                                                     block=block,
-                                                     **other_pool_kwargs)
-        else:
-            raise TelegramBotException(
-                "Telegram Bot API's URL only supports https://")
-
-    def call(self,
-             api_url: str,
-             data: Optional[Dict] = None,
-             files: Optional[List] = None) -> Any:
-        if data is None:
-            data = {}
-        if not files:
-            return self._pool.request(
-                "POST",
-                api_url,
-                body=json.dumps(data).encode("utf-8"),
-                headers=self._json_header,
-            )
-        for _ in files:
-            data[_[0]] = _[1]
-        return self._pool.request("POST", api_url, fields=data)
-
-    def fetch_file_data(self, file_url: str, chunk_size: int = 128) -> bytes:
-        response = self._pool.request("GET", file_url, preload_content=False)
-        try:
-            if response.status != 200:
-                raise TelegramBotException("""
-HTTP Status Code: {0}
-Reason: {1}""".format(response.status, response.reason))
-            with BytesIO() as _:
-                for chunk in response.stream(chunk_size):
-                    _.write(chunk)
-                return _.getvalue()
-        finally:
-            response.release_conn()
+            pretty_format(self._error_data))
 
 
 class TelegramBotAPI:
 
-    __version__ = "5.2.3"
+    __version__ = "5.2"
     _api_url = "/bot{0}/{1}"
     _download_file_url = "/file/bot{0}/{1}"
     __slots__ = ("_api_caller", )
 
-    def __init__(self, api_caller: Optional[TelegramBotAPICaller] = None):
-        self._api_caller = api_caller or TelegramBotAPICaller()
+    def __init__(self,
+                 api_host: str = DEFAULT_API_HOST,
+                 maxsize: int = 10,
+                 block: bool = True,
+                 **pool_kwargs):
+        class TelegramBotAPICaller:
+            __slots__ = ("_pool", )
+            _json_header = {"Content-Type": "application/json"}
 
-    @staticmethod
-    def __check_response(response):
-        if response.status == 500:
-            raise TelegramBotException(response.data)
-        json_response = json.loads(response.data.decode("utf-8"))
-        logger.debug(
-            """
+            def __init__(self, api_host: str, maxsize: int, block: bool,
+                         **other_pool_kwargs):
+                api_host = api_host.lower() if api_host else DEFAULT_API_HOST
+                other_pool_kwargs.get("headers", {}).update({
+                    "connection":
+                    "keep-alive",
+                    "user-agent":
+                    "simple-bot: A Telegram Bot API Python Provider",
+                })
+                other_pool_kwargs["socket_options"] = (
+                    other_pool_kwargs.get("socket_options", []) +
+                    urllib3.connection.HTTPConnection.default_socket_options +
+                    [
+                        (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+                    ])
+                if api_host.startswith("https://"):
+                    self._pool = urllib3.HTTPSConnectionPool(
+                        host=api_host[8:],
+                        maxsize=maxsize,
+                        block=block,
+                        **other_pool_kwargs)
+                elif api_host.startswith("http://"):
+                    self._pool = urllib3.HTTPConnectionPool(
+                        host=api_host[7:],
+                        maxsize=maxsize,
+                        block=block,
+                        **other_pool_kwargs)
+                else:
+                    raise TelegramBotException(
+                        "Telegram Bot API Host only supports https:// or http://"
+                    )
+
+            @property
+            def api_host(self):
+                return self._pool.host
+
+            @staticmethod
+            def __format_response(response):
+                if response.status == 500:
+                    raise TelegramBotException(response.data)
+                json_response = json.loads(response.data.decode("utf-8"))
+                logger.debug(
+                    """
 ----------------------- JSON RESPONSE BEGIN ---------------------------
 %s
------------------------ JSON RESPONSE  END  ---------------------------
-        """,
-            pretty_format(json_response),
-        )
-        if response.status == 200:
-            result = json_response["result"]
-            if isinstance(result, dict):
-                return TelegramObject(**result)
-            return result
-        raise TelegramBotAPIException(
-            status_code=response.status,
-            ok=json_response["ok"],
-            error_code=json_response["error_code"],
-            description=json_response["description"],
-        )
+----------------------- JSON RESPONSE  END  ---------------------------""",
+                    pretty_format(json_response),
+                )
+                if response.status == 200:
+                    result = json_response["result"]
+                    if isinstance(result, dict):
+                        return TelegramObject(**result)
+                    return result
+                raise TelegramBotAPIException(TelegramObject(**response))
+
+            def call(self,
+                     api_url: str,
+                     data: Optional[Dict] = None,
+                     files: Optional[List] = None) -> Any:
+                if data is None:
+                    data = {}
+                if not files:
+                    return self.__format_response(
+                        self._pool.request(
+                            "POST",
+                            api_url,
+                            body=json.dumps(data).encode("utf-8"),
+                            headers=self._json_header,
+                        ))
+                for _ in files:
+                    data[_[0]] = _[1]
+                return self.__format_response(
+                    self._pool.request("POST", api_url, fields=data))
+
+            def fetch_file_data(self,
+                                file_url: str,
+                                chunk_size: int = 128) -> bytes:
+                response = self._pool.request("GET",
+                                              file_url,
+                                              preload_content=False)
+                try:
+                    if response.status != 200:
+                        raise TelegramBotException("""
+        HTTP Status Code: {0}
+        Reason: {1}""".format(response.status, response.reason))
+                    with BytesIO() as _:
+                        for chunk in response.stream(chunk_size):
+                            _.write(chunk)
+                        return _.getvalue()
+                finally:
+                    response.release_conn()
+
+        self._api_caller = TelegramBotAPICaller(api_host=api_host,
+                                                maxsize=maxsize,
+                                                block=block,
+                                                **pool_kwargs)
+
+    @property
+    def host(self):
+        return self._api_caller.api_host
 
     @staticmethod
     def __prepare_request_data(api_name,
@@ -182,9 +183,8 @@ class TelegramBotAPI:
         data: Optional[Dict] = None,
         files: Optional[List] = None,
     ):
-        return self.__check_response(
-            self._api_caller.call(self._api_url.format(token, api_name), data,
-                                  files))
+        return self._api_caller.call(self._api_url.format(token, api_name),
+                                     data, files)
 
     def __getattr__(self, api_name: str) -> Callable:
         def bot_api_method(token: str, **kwargs):
