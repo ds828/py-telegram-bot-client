@@ -108,7 +108,7 @@ class TelegramBotAPI:
                     if isinstance(result, dict):
                         return TelegramObject(**result)
                     return result
-                raise TelegramBotAPIException(TelegramObject(**response))
+                raise TelegramBotAPIException(TelegramObject(**json_response))
 
             def call(self,
                      api_url: str,
