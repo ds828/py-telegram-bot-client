@@ -18,8 +18,8 @@ from example.settings import BOT_TOKEN
 #    decode_responses=True,
 # )
 # storage = RedisStorage(redis_client)
-# storage = SQLiteStorage()
-storage = None
+# storage = None # uncomment for memory session
+storage = SQLiteStorage("/tmp/session.db")
 router = bot_client.router()
 example_bot = bot_client.create_bot(token=BOT_TOKEN,
                                     router=router,
@@ -29,35 +29,40 @@ example_bot.delete_webhook(drop_pending_updates=True)
 
 @router.message_handler()
 def on_session_example(bot: TelegramBot, message: Message):
-    session = bot.get_session(message.from_user.id)
-    session.set("key1", 123, 60)  # field, value, optional expires(seconds)
+    session = bot.get_session(message.from_user.id,
+                              expires=60)  # renew a new expires
+    session.set("key1", 123)  # field, value
     bot.send_message(
         chat_id=message.from_user.id,
-        text="session_id: {0} data: {1}".format(session.id, session),
+        text=str(session),
     )
 
     session["key2"] = {"foo": "abc"}
     key2_data = session["key2"]
     key2_data["foo2"] = 345
-    # if value is nested, must assign it again
     session["key2"] = key2_data
+    session.save()  # save persistently
     bot.send_message(
         chat_id=message.from_user.id,
-        text="session_id: {0} data: {1}".format(session.id, session),
+        text=str(session),
     )
-    session.delete("key1")
-    del session["key2"]
-    if "key3" in session:
-        key3_data = session.get("key3", 789)
+    print(session.data)
+    # access session with context manager
+    with bot.session(message.chat.id) as session:
+        session.delete("key1")
+        del session["key2"]
+        if "key3" not in session:
+            session.set("key3", 789)
+            bot.send_message(
+                chat_id=message.from_user.id,
+                text=str(session),
+            )
+        session.clear()
         bot.send_message(
             chat_id=message.from_user.id,
-            text="key3: {1}".format(key3_data),
+            text=str(session),
         )
-    session.clear()
-    bot.send_message(
-        chat_id=message.from_user.id,
-        text="session_id: {0} data: {1}".format(session.id, session),
-    )
+        print(session.data)
 
 
 example_bot.run_polling(timeout=10)

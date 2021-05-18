@@ -5,17 +5,21 @@ except ImportError:
 
 import os
 import sqlite3
-from datetime import datetime
-from typing import Any, Dict, Optional
+import time
+from typing import Any, Dict, Mapping, Optional
 
 from telegrambotclient.utils import pretty_format
 
 
 class TelegramStorage:
-    def set_value(self, key: str, field: str, value, expires: int) -> bool:
+    def set_field(self, key: str, field: str, value, expires: int) -> bool:
         raise NotImplementedError()
 
-    def get_value(self, key: str, field: str, expires: int) -> Any:
+    def get_field(self, key: str, field: str, expires: int) -> Any:
+        raise NotImplementedError()
+
+    def update_fields(self, key: str, field_mapping: Mapping,
+                      expires: int) -> bool:
         raise NotImplementedError()
 
     def delete_field(self, key: str, field: str, expires: int) -> bool:
@@ -24,7 +28,7 @@ class TelegramStorage:
     def delete_key(self, key: str) -> bool:
         raise NotImplementedError()
 
-    def dict(self, key: str, expires: int) -> Dict:
+    def dict(self, key: str) -> Dict:
         raise NotImplementedError()
 
 
@@ -34,11 +38,11 @@ class MemoryStorage(TelegramStorage):
     def __init__(self):
         self._data = {}
 
-    def set_value(self, key: str, field: str, value, expires: int) -> bool:
+    def set_field(self, key: str, field: str, value, expires: int) -> bool:
         if value is None:
             self.delete_field(key, field, expires)
             return True
-        current_time = int(datetime.now().timestamp())
+        current_time = int(time.time())
         if key not in self._data or self._data[key].get("expires",
                                                         0) < current_time:
             self._data[key] = {
@@ -53,8 +57,8 @@ class MemoryStorage(TelegramStorage):
         data["data"][field] = value
         return True
 
-    def get_value(self, key: str, field: str, expires: int) -> Any:
-        current_time = int(datetime.now().timestamp())
+    def get_field(self, key: str, field: str, expires: int) -> Any:
+        current_time = int(time.time())
         if key not in self._data or self._data[key].get("expires",
                                                         0) < current_time:
             self.delete_key(key)
@@ -63,8 +67,24 @@ class MemoryStorage(TelegramStorage):
         data["expires"] = current_time + expires
         return data["data"].get(field, None)
 
+    def update_fields(self,
+                      key: str,
+                      field_mapping: Mapping,
+                      expires: int = 1800) -> bool:
+        current_time = int(time.time())
+        if self._data[key].get("expires", 0) < current_time:
+            self.delete_key(key)
+        data = self._data.get(key, {})
+        if "data" in data:
+            data["data"].update(field_mapping)
+        else:
+            data["data"] = field_mapping
+        data["expires"] = int(time.time()) + expires
+        self._data[key] = data
+        return True
+
     def delete_field(self, key: str, field: str, expires: int) -> bool:
-        current_time = int(datetime.now().timestamp())
+        current_time = int(time.time())
         if key not in self._data or self._data[key].get("expires",
                                                         0) < current_time:
             self.delete_key(key)
@@ -81,13 +101,11 @@ class MemoryStorage(TelegramStorage):
             del self._data[key]
         return True
 
-    def dict(self, key: str, expires: int) -> Dict:
-        current_time = int(datetime.now().timestamp())
-        if key not in self._data or self._data[key].get("expires",
-                                                        0) < current_time:
+    def dict(self, key: str) -> Dict:
+        if key not in self._data or self._data[key].get("expires", 0) < int(
+                time.time()):
             self.delete_key(key)
             return {}
-        self._data[key]["expires"] = current_time + expires
         return self._data[key]["data"]
 
 
@@ -117,13 +135,13 @@ class SQLiteStorage(TelegramStorage):
     def __del__(self):
         self._db_conn.close()
 
-    def set_value(self, key: str, field: str, value: str,
+    def set_field(self, key: str, field: str, value: str,
                   expires: int) -> bool:
         with self._db_conn:
             cur = self._db_conn.execute(
                 "SELECT data, expires from t_storage WHERE key=?", (key, ))
             row_data = cur.fetchone()
-            current_time = int(datetime.now().timestamp())
+            current_time = int(time.time())
             if row_data and row_data["expires"] >= current_time:
                 data = json.loads(row_data["data"])
                 data[field] = value
@@ -145,12 +163,12 @@ class SQLiteStorage(TelegramStorage):
             )
             return bool(cur.lastrowid)
 
-    def get_value(self, key: str, field: str, expires: int) -> Any:
+    def get_field(self, key: str, field: str, expires: int) -> Any:
         with self._db_conn:
             cur = self._db_conn.execute(
                 "SELECT data, expires from t_storage WHERE key=?", (key, ))
             row_data = cur.fetchone()
-            current_time = int(datetime.now().timestamp())
+            current_time = int(time.time())
             if row_data and row_data["expires"] >= current_time:
                 self._db_conn.execute(
                     "UPDATE t_storage SET expires=? WHERE key=?",
@@ -159,12 +177,40 @@ class SQLiteStorage(TelegramStorage):
                 return json.loads(row_data["data"]).get(field, None)
             return None
 
+    def update_fields(self, key: str, field_mapping: Mapping,
+                      expires: int) -> bool:
+        with self._db_conn:
+            cur = self._db_conn.execute(
+                "SELECT data, expires from t_storage WHERE key=?", (key, ))
+            row_data = cur.fetchone()
+            current_time = int(time.time())
+            if row_data and row_data["expires"] >= current_time:
+                data = json.loads(row_data["data"])
+                data.update(field_mapping)
+                cur = self._db_conn.execute(
+                    "UPDATE t_storage SET data=?, expires=? WHERE key=?",
+                    (json.dumps(data), current_time + expires, key),
+                )
+                return bool(cur.rowcount)
+
+            cur = self._db_conn.execute(
+                """
+                INSERT OR REPLACE INTO t_storage (
+                    key,
+                    data,
+                    expires
+                ) VALUES (?, ?, ?)
+                """,
+                (key, json.dumps(field_mapping), current_time + expires),
+            )
+            return bool(cur.lastrowid)
+
     def delete_field(self, key: str, field: str, expires: int) -> bool:
         with self._db_conn:
             cur = self._db_conn.execute(
                 "SELECT data, expires from t_storage WHERE key=?", (key, ))
             row_data = cur.fetchone()
-            current_time = int(datetime.now().timestamp())
+            current_time = int(time.time())
             if row_data and row_data["expires"] >= current_time:
                 data = json.loads(row_data["data"])
                 if field in data:
@@ -181,18 +227,14 @@ class SQLiteStorage(TelegramStorage):
             self._db_conn.execute("DELETE from t_storage WHERE key=? ",
                                   (key, ))
 
-    def dict(self, key: str, expires: int) -> Dict:
-        with self._db_conn:
-            cur = self._db_conn.execute(
-                "SELECT data, expires from t_storage WHERE key=?", (key, ))
-            row_data = cur.fetchone()
-            current_time = int(datetime.now().timestamp())
-            if row_data and row_data["expires"] >= current_time:
-                self._db_conn.execute(
-                    "UPDATE t_storage SET expires=? WHERE key=?",
-                    (current_time + expires, key),
-                )
-                return json.loads(row_data["data"])
+    def dict(self, key: str) -> Dict:
+        cur = self._db_conn.execute(
+            "SELECT data, expires from t_storage WHERE key=?", (key, ))
+        row_data = cur.fetchone()
+        if row_data and row_data.get("expires", 0) >= int(time.time()):
+            return json.loads(row_data["data"])
+        else:
+            self.delete_key(key)
             return {}
 
 
@@ -202,32 +244,45 @@ class RedisStorage(TelegramStorage):
     def __init__(self, redis):
         self._redis = redis
 
-    def set_value(self, key: str, field: str, value, expires: int) -> bool:
+    def set_field(self, key: str, field: str, value, expires: int) -> bool:
         self._redis.expire(key, expires)
-        if value:
-            return bool(self._redis.hset(key, field, json.dumps((value, ))))
-        return bool(self._redis.hdel(key, field))
+        return bool(self._redis.hset(key, field, json.dumps(
+            (value, )))) if value else bool(self._redis.hdel(key, field))
 
-    def get_value(self, key: str, field: str, expires: int) -> Any:
+    def get_field(self, key: str, field: str, expires: int) -> Any:
+        if self._redis.exists(key) != 1:
+            return None
         self._redis.expire(key, expires)
         value = self._redis.hget(key, field)
-        if value:
-            return json.loads(value)[0]
-        return None
+        return json.loads(value)[0] if value else None
 
     def delete_field(self, key: str, field: str, expires: int) -> bool:
+        if self._redis.exists(key) != 1:
+            return True
         self._redis.expire(key, expires)
         return bool(self._redis.hdel(key, field))
+
+    def update_fields(self, key: str, field_mapping: Mapping,
+                      expires: int) -> bool:
+        data = self._redis.hgetall(key)
+        data.update({
+            field: json.dumps((value, ))
+            for field, value in field_mapping.items()
+        })
+        self._redis.expire(key, expires)
+        return bool(self._redis.hset(key, mapping=data))
 
     def delete_key(self, key: str) -> bool:
         return bool(self._redis.delete(key))
 
-    def dict(self, key: str, expires: int) -> Dict:
-        self._redis.expire(key, expires)
+    def dict(self, key: str) -> Dict:
         return {
             field: json.loads(value)[0]
             for field, value in self._redis.hgetall(key).items()
         }
+
+    def __del__(self):
+        self._redis.close()
 
 
 class TelegramSession:
@@ -259,18 +314,17 @@ class TelegramSession:
     def __getitem__(self, field: str) -> Any:
         if field in self._local_data:
             return self._local_data[field]
-        value = self._storage.get_value(self._session_id, field, self._expires)
+        value = self._storage.get_field(self._session_id, field, self._expires)
         if value:
             self._local_data[field] = value
             return value
         raise KeyError("'{0}' is not found".format(field))
 
-    def set(self, field: str, value, expires: int = 1800) -> bool:
+    def set(self, field: str, value) -> bool:
         self._local_data[field] = value
-        return self._storage.set_value(self._session_id, field, value, expires)
 
     def __setitem__(self, field: str, value):
-        self.set(field, value, self._expires)
+        self.set(field, value)
 
     def delete(self, field: str) -> bool:
         if field in self._local_data:
@@ -289,14 +343,20 @@ class TelegramSession:
     def __contains__(self, field: str):
         return self.get(field) is not None
 
+    def save(self) -> bool:
+        return self._storage.update_fields(self._session_id,
+                                           self._local_data,
+                                           expires=self._expires)
+
     def clear(self) -> bool:
         self._local_data = {}
         return self._storage.delete_key(self._session_id)
 
     @property
     def data(self) -> Dict:
-        self._local_data = self._storage.dict(self._session_id, self._expires)
-        return self._local_data
+        data = self._storage.dict(self._session_id)
+        data.update(self._local_data)
+        return data
 
     def __str__(self):
         return "Session(id={0}, data={1})".format(self._session_id,

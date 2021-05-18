@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from contextlib import contextmanager
 from typing import Callable, Dict, Iterable, Optional, Tuple
 
 from telegrambotclient.api import TelegramBotAPI
@@ -133,18 +134,15 @@ class TelegramBot:
                 "{0} is not a force reply callback".format(
                     force_reply_callback_name))
         field = self._force_reply_key_format.format(user_id)
-        session = self.get_session(user_id)
-        if not force_reply_args:
-            session.set(field,
-                        build_force_reply_data(force_reply_callback_name),
-                        expires)
-        else:
-            session.set(
-                field,
-                build_force_reply_data(force_reply_callback_name,
-                                       *force_reply_args),
-                expires,
-            )
+        with self.session(user_id, expires) as session:
+            if force_reply_args:
+                session.set(
+                    field,
+                    build_force_reply_data(force_reply_callback_name,
+                                           *force_reply_args))
+            else:
+                session.set(field,
+                            build_force_reply_data(force_reply_callback_name))
 
     def force_reply_done(self, user_id: int):
         session = self.get_session(user_id)
@@ -162,6 +160,14 @@ class TelegramBot:
                     user_id: int,
                     expires: int = 1800) -> TelegramSession:
         return TelegramSession(self.id, user_id, self._storage, expires)
+
+    @contextmanager
+    def session(self, user_id: int, expires: int = 1800):
+        session = self.get_session(user_id, expires)
+        try:
+            yield session
+        finally:
+            session.save()
 
     def get_text(self, lang_code: str, text: str) -> str:
         if self._i18n_source:

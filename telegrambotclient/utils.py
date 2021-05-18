@@ -28,11 +28,13 @@ def regex_match(regex_patterns: Iterable[Pattern]):
     def decorate(method):
         @wraps(method)
         def wrapper(bot, message, *args, **kwargs):
-            for pattern in regex_patterns:
-                match_result = pattern.match(message.text)
-                if match_result:
-                    return method(bot, message, *args, match_result, **kwargs)
-            return True
+            if message.text:
+                for pattern in regex_patterns:
+                    match_result = pattern.match(message.text)
+                    if match_result:
+                        return method(bot, message, *args, match_result,
+                                      **kwargs)
+            return bot.next_call
 
         return wrapper
 
