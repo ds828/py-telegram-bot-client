@@ -167,12 +167,12 @@ good way to register one callback on multi routers
 ### route for multi message fields
 	@router.message_handler(fields=MessageField.TEXT | MessageField.LOCATION)
 	def on_any_message_fields(bot, message: Message):
-	    # call when a message include 'text' OR 'location' fields
+	    # call when a message includes 'text' OR 'location' fields
 	    pass
 
 	@router.message_handler(fields=MessageField.ANIMATION & MessageField.DOCUMENT)
 	def on_animation(bot, message: Message):
-	    # call when a message include 'animation' AND 'document' fields
+	    # call when a message includes 'animation' AND 'document' fields
 	    pass
 
 

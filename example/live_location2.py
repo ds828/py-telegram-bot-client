@@ -29,6 +29,7 @@ def on_share_user_location(bot: TelegramBot, message: Message):
     session = bot.get_session(message.chat.id)
     # save this message id into session
     session["message_id"] = sent_message.message_id
+    session.save()
 
 
 # next, the user's telegram app will show a sharing locations between him and the bot.

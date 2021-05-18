@@ -20,13 +20,15 @@ trans_data = {
     },
 }
 
+# using gettext
 # import gettext
-# translations = {}
+
+# trans_data = {}
 # locale_dir = "./locales"
 # for lang in ("en", "zh-hant"):
-# translate = gettext.translation("simplebot", locale_dir, languages=[lang])
-# translate.install()
-# translations[lang] = translate
+#     translate = gettext.translation("example", locale_dir, languages=[lang])
+#     translate.install()
+#     trans_data[lang] = translate
 
 router = bot_client.router()
 example_bot = bot_client.create_bot(token=BOT_TOKEN,

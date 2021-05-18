@@ -18,7 +18,7 @@ example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-# when venue field is set, the location field will also be set
+# when a venue field is set, the location field will also be set
 @router.message_handler(fields=MessageField.VENUE & MessageField.LOCATION)
 def on_venue(bot: TelegramBot, message: Message):
     pretty_print(message)
