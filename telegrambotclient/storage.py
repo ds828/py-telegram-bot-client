@@ -101,6 +101,11 @@ class MemoryStorage(TelegramStorage):
             del self._data[key]
         return True
 
+    def expire(self, key: str, expires: int):
+        if key in self._data:
+            data = self._data[key]
+            data["expires"] = int(time.time()) + expires
+
     def dict(self, key: str) -> Dict:
         if key not in self._data or self._data[key].get("expires", 0) < int(
                 time.time()):
@@ -227,6 +232,14 @@ class SQLiteStorage(TelegramStorage):
             self._db_conn.execute("DELETE from t_storage WHERE key=? ",
                                   (key, ))
 
+    def expire(self, key: str, expires: int):
+        with self._db_conn:
+            self._db_conn.execute(
+                "UPDATE t_storage SET expires=? WHERE key=? ", (
+                    expires,
+                    key,
+                ))
+
     def dict(self, key: str) -> Dict:
         cur = self._db_conn.execute(
             "SELECT data, expires from t_storage WHERE key=?", (key, ))
@@ -275,6 +288,9 @@ class RedisStorage(TelegramStorage):
     def delete_key(self, key: str) -> bool:
         return bool(self._redis.delete(key))
 
+    def expire(self, key: str, expires: int):
+        self._redis.expire(key, expires)
+
     def dict(self, key: str) -> Dict:
         return {
             field: json.loads(value)[0]
@@ -320,7 +336,7 @@ class TelegramSession:
             return value
         raise KeyError("'{0}' is not found".format(field))
 
-    def set(self, field: str, value) -> bool:
+    def set(self, field: str, value):
         self._local_data[field] = value
 
     def __setitem__(self, field: str, value):
@@ -351,6 +367,9 @@ class TelegramSession:
     def clear(self) -> bool:
         self._local_data = {}
         return self._storage.delete_key(self._session_id)
+
+    def expire(self, expires: int = 1800):
+        self._storage.expire(self._session_id, expires)
 
     @property
     def data(self) -> Dict:

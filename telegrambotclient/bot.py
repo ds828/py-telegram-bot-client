@@ -184,20 +184,9 @@ class TelegramBot:
         certificate: Optional[InputFile] = None,
         max_connections: Optional[int] = None,
         allowed_updates: Optional[Iterable[str]] = None,
+        drop_pending_updates: Optional[bool] = False,
         **kwargs,
     ) -> bool:
-        """set a bot run in webhook model
-
-        Args:
-            webhook_url (str): webhook_url
-            certificate (Optional[InputFile]): certificate
-            max_connections (Optional[int]): max_connections
-            allowed_updates (Optional[Iterable[str]]): allowed_updates
-            kwargs:
-
-        Returns:
-            bool:
-        """
         webhook_info = self.get_webhook_info()
         if webhook_info.url != webhook_url:
             self.set_webhook()
@@ -206,6 +195,7 @@ class TelegramBot:
                 certificate=certificate,
                 max_connections=max_connections,
                 allowed_updates=allowed_updates,
+                drop_pending_updates=drop_pending_updates,
                 **kwargs,
             )
         return True

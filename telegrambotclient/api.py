@@ -197,20 +197,20 @@ class TelegramBotAPI:
 
         return bot_api_method
 
-    def get_updates(self, token: str, **kwargs) -> Tuple[Update]:
+    def get_updates(self, token: str, **kwargs):
         if "allowed_updates" in kwargs:
             kwargs["allowed_updates"] = json.dumps(kwargs["allowed_updates"])
         return tuple(
             Update(**raw_update)
-            for raw_update in self.getupdates(token, **kwargs))
+            for raw_update in self.getUpdates(token, **kwargs))
 
-    def set_webhook(self, token: str, **kwargs) -> bool:
+    def set_webhook(self, token: str = None, **kwargs) -> bool:
         if "allowed_updates" in kwargs:
             kwargs["allowed_updates"] = json.dumps(kwargs["allowed_updates"])
         return self.setwebhook(token, **kwargs)
 
-    def send_media_group(self, token: str, chat_id: Union[int, str],
-                         media: Iterable, **kwargs) -> Message:
+    def send_media_group(self, token: str, chat_id: Union[int, str], media,
+                         **kwargs) -> Message:
         if 2 <= len(media) <= 10:
             files = []
             media_group = []
