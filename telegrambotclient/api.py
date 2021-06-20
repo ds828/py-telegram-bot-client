@@ -129,9 +129,9 @@ class TelegramBotAPI:
                 return self.__format_response(
                     self._pool.request("POST", api_url, fields=data))
 
-            def fetch_file_data(self,
-                                file_url: str,
-                                chunk_size: int = 128) -> bytes:
+            def get_file_bytes(self,
+                               file_url: str,
+                               chunk_size: int = 128) -> bytes:
                 response = self._pool.request("GET",
                                               file_url,
                                               preload_content=False)
@@ -353,5 +353,5 @@ class TelegramBotAPI:
                                files=attached_files)
 
     def get_file_bytes(self, token: str, file_path: str) -> bytes:
-        return self._http.fetch_file_data(
+        return self._api_caller.get_file_bytes(
             self._download_file_url.format(token, file_path))

@@ -71,7 +71,7 @@ def build_force_reply_data(*args):
     return args
 
 
-def parse_force_reply_data(force_reply_data: Iterable) -> Tuple:
+def parse_force_reply_data(force_reply_data) -> Tuple:
     return force_reply_data[0], tuple(force_reply_data[1:])
 
 
