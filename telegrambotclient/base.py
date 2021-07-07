@@ -260,7 +260,7 @@ Update = (Message) = (CallbackQuery) = (ChosenInlineResult) = (InlineQuery) = (
     CallbackGame
 ) = (
     GameHighScore
-) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = TelegramObject
+) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = BotCommandScope = TelegramObject
 
 
 class MentionEntity(MessageEntity):
@@ -336,6 +336,41 @@ class TextLinkEntity(MessageEntity):
 class TextMentionEntity(MessageEntity):
     def __init__(self, user: User):
         super().__init__(type="text_mention", user=user)
+
+
+class BotCommandScopeDefault(BotCommandScope):
+    def __init__(self):
+        super().__init__(type="default")
+
+
+class BotCommandScopeAllPrivateChats(BotCommandScope):
+    def __init__(self):
+        super().__init__(type="all_private_chats")
+
+
+class BotCommandScopeAllGroupChats(BotCommandScope):
+    def __init__(self):
+        super().__init__(type="all_group_chats")
+
+
+class BotCommandScopeAllChatAdministrators(BotCommandScope):
+    def __init__(self, chat_id):
+        super().__init__(type="all_chat_administrators", chat_id=chat_id)
+
+
+class BotCommandScopeChat(BotCommandScope):
+    def __init__(self, chat_id):
+        super().__init__(type="chat", chat_id=chat_id)
+
+
+class BotCommandScopeChatAdministrators(BotCommandScope):
+    def __init__(self, chat_id):
+        super().__init__(type="chat_administrators", chat_id=chat_id)
+
+
+class BotCommandScopeChatMember(BotCommandScope):
+    def __init__(self, chat_id, user_id):
+        super().__init__(type="chat_member", chat_id=chat_id, user_id=user_id)
 
 
 class InputMedia(TelegramObject):

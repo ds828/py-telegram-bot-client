@@ -10,10 +10,10 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import urllib3
 
-from telegrambotclient.base import (InputFile, InputMedia, LabeledPrice,
-                                    Message, PassportElementError,
-                                    TelegramBotException, TelegramObject,
-                                    Update)
+from telegrambotclient.base import (BotCommandScope, InputFile, InputMedia,
+                                    LabeledPrice, Message,
+                                    PassportElementError, TelegramBotException,
+                                    TelegramObject, Update)
 from telegrambotclient.utils import exclude_none, pretty_format
 
 logger = logging.getLogger("telegram-bot-client")
@@ -255,10 +255,43 @@ class TelegramBotAPI:
             media.attached_files if attached_files else media.attached_files,
         )
 
-    def set_my_commands(self, token: str, commands: Iterable) -> bool:
+    def set_my_commands(self,
+                        token: str,
+                        commands: Iterable,
+                        scope: BotCommandScope = None,
+                        language_code: str = None) -> bool:
+        data = {
+            "commands": json.dumps(commands),
+            "scope": json.dumps(scope) if scope else None,
+            "language_code": language_code
+        }
         return self.__call_api(token,
                                "setmycommands",
-                               data={"commands": json.dumps(commands)})
+                               data=exclude_none(**data))
+
+    def delete_my_commands(self,
+                           token: str,
+                           scope: BotCommandScope = None,
+                           language_code: str = None):
+        data = {
+            "scope": json.dumps(scope) if scope else None,
+            "language_code": language_code,
+        }
+        return self.__call_api(token,
+                               "deletemycommands",
+                               data=exclude_none(**data))
+
+    def get_my_commands(self,
+                        token: str,
+                        scope: BotCommandScope = None,
+                        language_code: str = None):
+        data = {
+            "scope": json.dumps(scope) if scope else None,
+            "language_code": language_code,
+        }
+        return self.__call_api(token,
+                               "getmycommands",
+                               data=exclude_none(**data))
 
     def send_poll(self, token: str, chat_id: Union[int, str], question: str,
                   options: Iterable, **kwargs) -> Message:
@@ -300,6 +333,9 @@ class TelegramBotAPI:
         provider_data = kwargs.get("provider_data", None)
         if provider_data:
             kwargs["provider_data"] = json.dumps(provider_data)
+        suggested_tip_amounts = kwargs.get("suggested_tip_amounts", None)
+        if suggested_tip_amounts:
+            kwargs["suggested_tip_amounts"] = json.dumps(suggested_tip_amounts)
         real_api_name, form_data, attached_files = self.__prepare_request_data(
             "sendInvoice",
             chat_id=chat_id,
