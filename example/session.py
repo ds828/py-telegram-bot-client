@@ -1,8 +1,7 @@
 """
 run in cli: python -m example.session
 """
-from telegrambotclient import TelegramBot, bot_client
-from telegrambotclient.base import Message
+from telegrambotclient import bot_client
 from telegrambotclient.storage import SQLiteStorage
 
 from example.settings import BOT_TOKEN
@@ -21,14 +20,12 @@ from example.settings import BOT_TOKEN
 # storage = None # uncomment for memory session
 storage = SQLiteStorage("/tmp/session.db")
 router = bot_client.router()
-example_bot = bot_client.create_bot(token=BOT_TOKEN,
-                                    router=router,
-                                    storage=storage)
-example_bot.delete_webhook(drop_pending_updates=True)
+my_bot = bot_client.create_bot(token=BOT_TOKEN, router=router, storage=storage)
+my_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler()
-def on_session_example(bot: TelegramBot, message: Message):
+def on_session_example(bot, message):
     session = bot.get_session(message.from_user.id,
                               expires=60)  # renew a new expires
     session.set("key1", 123)  # field, value
@@ -49,8 +46,10 @@ def on_session_example(bot: TelegramBot, message: Message):
     print(session.data)
     # access session with context manager
     with bot.session(message.chat.id) as session:
-        session.delete("key1")
-        del session["key2"]
+        # delete mulit keys
+        session.delete("key1", "key2")
+        # delete one key
+        del session["key3"]
         if "key3" not in session:
             session.set("key3", 789)
             bot.send_message(
@@ -65,4 +64,4 @@ def on_session_example(bot: TelegramBot, message: Message):
         print(session.data)
 
 
-example_bot.run_polling(timeout=10)
+my_bot.run_polling(timeout=10)

@@ -47,7 +47,7 @@ class TelegramBot:
             assert isinstance(bot_api, TelegramBotAPI), True
         else:
             logger.warning(
-                "Your bot api is not a TelegramBotAPI instance. A default bot api is using."
+                "Your bot API object is not a TelegramBotAPI instance. A default bot api is using."
             )
             bot_api = TelegramBotAPI()
         self._bot_api = bot_api
@@ -66,7 +66,7 @@ class TelegramBot:
                     kwargs: other kwargs of sendXXX api method
                 """
                 kwargs.update({
-                    "chat_id": message.chat.id,
+                    "chat_id": message.from_user.id,
                     "reply_to_message_id": message.message_id,
                 })
                 return getattr(self._bot_api, "send{0}".format(

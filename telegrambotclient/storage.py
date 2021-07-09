@@ -83,7 +83,7 @@ class MemoryStorage(TelegramStorage):
         self._data[key] = data
         return True
 
-    def delete_field(self, key: str, field: str, expires: int) -> bool:
+    def delete_fields(self, key: str, expires: int, *fields) -> bool:
         current_time = int(time.time())
         if key not in self._data or self._data[key].get("expires",
                                                         0) < current_time:
@@ -91,9 +91,10 @@ class MemoryStorage(TelegramStorage):
             return False
         data = self._data[key]
         data["expires"] = current_time + expires
-        if field in data["data"]:
-            del data["data"][field]
-            self._data[key] = data
+        for field in fields:
+            if field in data["data"]:
+                del data["data"][field]
+        self._data[key] = data
         return True
 
     def delete_key(self, key: str) -> bool:
@@ -205,7 +206,7 @@ class SQLiteStorage(TelegramStorage):
             )
             return bool(cur.lastrowid)
 
-    def delete_field(self, key: str, field: str, expires: int) -> bool:
+    def delete_fields(self, key: str, expires: int, *fields) -> bool:
         with self._db_conn:
             cur = self._db_conn.execute(
                 "SELECT data, expires from t_storage WHERE key=?", (key, ))
@@ -213,13 +214,14 @@ class SQLiteStorage(TelegramStorage):
             current_time = int(time.time())
             if row_data and row_data["expires"] >= current_time:
                 data = json.loads(row_data["data"])
-                if field in data:
-                    del data[field]
-                    cur = self._db_conn.execute(
-                        "UPDATE t_storage SET data=?, expires=? WHERE key=?",
-                        (json.dumps(data), current_time + expires, key),
-                    )
-                    return bool(cur.rowcount)
+                for field in fields:
+                    if field in data:
+                        del data[field]
+                cur = self._db_conn.execute(
+                    "UPDATE t_storage SET data=?, expires=? WHERE key=?",
+                    (json.dumps(data), current_time + expires, key),
+                )
+                return bool(cur.rowcount)
             return False
 
     def delete_key(self, key: str):
@@ -256,11 +258,11 @@ class RedisStorage(TelegramStorage):
         value = self._redis.hget(key, field)
         return json.loads(value)[0] if value else None
 
-    def delete_field(self, key: str, field: str, expires: int) -> bool:
+    def delete_fields(self, key: str, expires: int, *fields) -> bool:
         if self._redis.exists(key) != 1:
             return True
         self._redis.expire(key, expires)
-        return bool(self._redis.hdel(key, field))
+        return bool(self._redis.hdel(key, *fields))
 
     def update_fields(self, key: str, field_mapping: Mapping,
                       expires: int) -> bool:
@@ -326,11 +328,12 @@ class TelegramSession:
     def __setitem__(self, field: str, value):
         self.set(field, value)
 
-    def delete(self, field: str) -> bool:
-        if field in self._local_data:
-            del self._local_data[field]
-        return self._storage.delete_field(self._session_id, field,
-                                          self._expires)
+    def delete(self, *fields) -> bool:
+        for field in fields:
+            if field in self._local_data:
+                del self._local_data[field]
+        return self._storage.delete_fields(self._session_id, self._expires,
+                                           *fields)
 
     def __delitem__(self, field: str):
         self.delete(field)
