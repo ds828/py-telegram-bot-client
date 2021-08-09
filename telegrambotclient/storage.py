@@ -22,7 +22,7 @@ class TelegramStorage:
                       expires: int) -> bool:
         raise NotImplementedError()
 
-    def delete_field(self, key: str, field: str, expires: int) -> bool:
+    def delete_fields(self, key: str, expires: int, *field) -> bool:
         raise NotImplementedError()
 
     def delete_key(self, key: str) -> bool:
@@ -40,7 +40,7 @@ class MemoryStorage(TelegramStorage):
 
     def set_field(self, key: str, field: str, value, expires: int) -> bool:
         if value is None:
-            self.delete_field(key, field, expires)
+            self.delete_fields(key, expires, field)
             return True
         current_time = int(time.time())
         if key not in self._data or self._data[key].get("expires",
@@ -59,20 +59,22 @@ class MemoryStorage(TelegramStorage):
 
     def get_field(self, key: str, field: str, expires: int) -> Any:
         current_time = int(time.time())
-        if key not in self._data or self._data[key].get("expires",
-                                                        0) < current_time:
-            self.delete_key(key)
-            return None
-        data = self._data[key]
-        data["expires"] = current_time + expires
-        return data["data"].get(field, None)
+        if key in self._data:
+            if self._data[key].get("expires", 0) < current_time:
+                self.delete_key(key)
+                return None
+            data = self._data[key]
+            data["expires"] = current_time + expires
+            return data["data"].get(field, None)
+        return None
 
     def update_fields(self,
                       key: str,
                       field_mapping: Mapping,
                       expires: int = 1800) -> bool:
         current_time = int(time.time())
-        if self._data[key].get("expires", 0) < current_time:
+        if key in self._data and self._data[key].get("expires",
+                                                     0) < current_time:
             self.delete_key(key)
         data = self._data.get(key, {})
         if "data" in data:
@@ -85,17 +87,18 @@ class MemoryStorage(TelegramStorage):
 
     def delete_fields(self, key: str, expires: int, *fields) -> bool:
         current_time = int(time.time())
-        if key not in self._data or self._data[key].get("expires",
-                                                        0) < current_time:
-            self.delete_key(key)
-            return False
-        data = self._data[key]
-        data["expires"] = current_time + expires
-        for field in fields:
-            if field in data["data"]:
-                del data["data"][field]
-        self._data[key] = data
-        return True
+        if key in self._data:
+            if self._data[key].get("expires", 0) < current_time:
+                self.delete_key(key)
+                return True
+            data = self._data[key]
+            data["expires"] = current_time + expires
+            for field in fields:
+                if field in data["data"]:
+                    del data["data"][field]
+            self._data[key] = data
+            return True
+        return False
 
     def delete_key(self, key: str) -> bool:
         if key in self._data:

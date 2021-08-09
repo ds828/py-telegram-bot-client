@@ -169,6 +169,16 @@ class TelegramBot:
         finally:
             session.save()
 
+    def push_ui(self, user_id: int, message):
+        with self.session(user_id) as session:
+            ui_stack = session.get("ui_stack", [])
+            ui_stack.append(message)
+            session["ui_stack"] = ui_stack
+
+    def pop_ui(self, user_id: int):
+        with self.session(user_id) as session:
+            return session["ui_stack"].pop()
+
     def get_text(self, lang_code: str, text: str) -> str:
         if self._i18n_source:
             lang_source = self._i18n_source.get(lang_code, None)
