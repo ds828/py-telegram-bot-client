@@ -87,42 +87,47 @@ class InlineKeyboard(ReplyKeyboard):
     def get_radio_value(self,
                         name: str,
                         emoji=_RADIO_EMOJI) -> Optional[Tuple]:
+        len_emoji_selected = len(emoji[0])
         for line in self._layout:
             for button in line:
-                if "callback_data" in button and button["text"][0] == emoji[0]:
+                if "callback_data" in button and button[
+                        "text"][:len_emoji_selected] == emoji[0]:
                     if button["callback_data"].startswith(name):
-                        return button["text"][1:], parse_callback_data(
-                            button["callback_data"], name)[0]
+                        options = parse_callback_data(button["callback_data"],
+                                                      name)
+                        return button["text"][len_emoji_selected:], options[
+                            0] if options else None, None
         return None, None
 
     def change_radio_status(self,
                             name: str,
                             option,
                             emoji=_RADIO_EMOJI) -> Optional[str]:
-        changed_item_name = None
+        len_emoji_selected = len(emoji[0])
+        len_emoji_unselected = len(emoji[1])
+        clicked_text = None
         clicked_option = build_callback_data(name, option)
         for line in self._layout:
             for button in line:
                 # the button is a inlinebutton
                 if "callback_data" in button:
-                    # it is a radio
-                    if button["text"][0] in emoji:
-                        # it is a radio I want
-                        if button["callback_data"].split("|")[0] == name:
-                            # it is the radio I click
-                            if button["callback_data"] == clicked_option:
-                                if button["text"][0] == emoji[0]:
-                                    return None
-                                changed_item_name = button["text"][1:]
-                                button["text"] = "{0}{1}".format(
-                                    emoji[0],
-                                    button["text"][1:])  # make it select
-                            else:
-                                # make others be unselected
-                                if button["text"][0] == emoji[0]:
-                                    button["text"] = "{0}{1}".format(
-                                        emoji[1], button["text"][1:])
-        return changed_item_name
+                    # it is a radio I want
+                    if button["callback_data"].split("|")[0] == name:
+                        # it is the radio I click
+                        if button["callback_data"] == clicked_option:
+                            if button["text"][:len_emoji_selected] == emoji[0]:
+                                return None
+                            clicked_text = button["text"][
+                                len_emoji_unselected:]
+                            button["text"] = "{0}{1}".format(
+                                emoji[0], button["text"]
+                                [len_emoji_unselected:])  # make it select
+
+                        # make others be unselected
+                        elif button["text"][:len_emoji_selected] == emoji[0]:
+                            button["text"] = "{0}{1}".format(
+                                emoji[1], button["text"][len_emoji_selected:])
+        return clicked_text
 
     @staticmethod
     def auto_radio(
@@ -165,33 +170,39 @@ class InlineKeyboard(ReplyKeyboard):
         self.add_radio_group(name, *options, col=col, emoji=emoji)
 
     def get_select_value(self, name: str, emoji=_SELECT_EMOJI) -> Tuple:
+        len_emoji_selected = len(emoji[0])
         selected_options = []
         for line in self._layout:
             for button in line:
-                if "callback_data" in button and button["text"][0] == emoji[0]:
+                if "callback_data" in button and button[
+                        "text"][:len_emoji_selected] == emoji[0]:
                     if button["callback_data"].startswith(name):
-                        selected_options.append(
-                            (button["text"][1:],
-                             parse_callback_data(button["callback_data"],
-                                                 name=name)[0]))
+                        options = parse_callback_data(button["callback_data"],
+                                                      name=name)
+                        if options:
+                            selected_options.append(
+                                (button["text"][len_emoji_selected:],
+                                 options[0]))
         return tuple(selected_options)
 
     def change_select_status(self, name: str, option, emoji=_SELECT_EMOJI):
-        toggled_option = build_callback_data(name, option)
+        len_emoji_selected = len(emoji[0])
+        selected_option = build_callback_data(name, option)
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
-                    if button["callback_data"] == toggled_option:
-                        if button["text"][0] == emoji[0]:  # selected
+                    if button["callback_data"] == selected_option:
+                        if button["text"][:len_emoji_selected] == emoji[
+                                0]:  # selected
                             button["text"] = button["text"][
-                                1:]  # make it unselect
+                                len_emoji_selected:]  # make it unselect
                             return False, button["text"]
                         # otherwise make it select
                         button["text"] = "{0}{1}".format(
                             emoji[0], button["text"])
-                        return True, button["text"][1:]
+                        return True, button["text"][len_emoji_selected:]
         raise TelegramBotException(
-            "the option: {0} is not found".format(toggled_option))
+            "the option: {0} is not found".format(selected_option))
 
     @staticmethod
     def auto_select(
@@ -203,7 +214,7 @@ class InlineKeyboard(ReplyKeyboard):
         def on_select_click(bot: TelegramBot, callback_query: CallbackQuery,
                             clicked_option):
             keyboard = InlineKeyboard(
-                keyboard=callback_query.message.reply_markup.inline_keyboard, )
+                keyboard=callback_query.message.reply_markup.inline_keyboard)
             selected, clicked_text = keyboard.change_select_status(
                 name, clicked_option, emoji)
             message_text = clicked_callback(
@@ -230,38 +241,45 @@ class InlineKeyboard(ReplyKeyboard):
 
     def add_toggler(self,
                     name: str,
-                    option=None,
+                    text: str,
                     toggle_status: bool = True,
                     emoji=_TOGGLER_EMOJI):
         select_emoji = emoji[0] if toggle_status else emoji[1]
         self.add_buttons(
-            InlineKeyboardButton(text="{0}{1}".format(select_emoji, name),
-                                 callback_data=build_callback_data(
-                                     name, option)))
+            InlineKeyboardButton(text="{0}{1}".format(select_emoji, text),
+                                 callback_data=build_callback_data(name,
+                                                                   text)))
 
     def toggle(self, name, emoji=_TOGGLER_EMOJI) -> bool:
+        len_emoji_0 = len(emoji[0])
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
                     if button["callback_data"].startswith(name):
-                        if button["text"][0] == emoji[0]:  # status is checked
+                        value = parse_callback_data(button["callback_data"],
+                                                    name)
+                        if not value:
+                            raise TelegramBotException(
+                                "toggler name: {0} is not found".format(name))
+                        if button["text"][:len_emoji_0] == emoji[
+                                0]:  # status is checked
                             # make it be unchecked
-                            button["text"] = "{0}{1}".format(emoji[1], name)
+                            button["text"] = "{0}{1}".format(
+                                emoji[1], value[0])
                             return False
                         # otherwise make it be checked
-                        button["text"] = "{0}{1}".format(emoji[0], name)
+                        button["text"] = "{0}{1}".format(emoji[0], value[0])
                         return True
         raise TelegramBotException(
             "toggler name: {0} is not found".format(name))
 
-    def get_toggler_value(self, name: str, emoji=_TOGGLER_EMOJI):
+    def get_toggler_value(self, name: str, emoji=_TOGGLER_EMOJI) -> bool:
+        len_emoji_0 = len(emoji[0])
         for line in self._layout:
             for button in line:
                 if "callback_data" in button:
-                    callback_data = button["callback_data"]
-                    if callback_data.startswith(name):
-                        return button["text"][0] == emoji[
-                            0], parse_callback_data(callback_data, name)[0]
+                    if button["callback_data"].startswith(name):
+                        return button["text"][:len_emoji_0] == emoji[0]
         raise TelegramBotException(
             "toggler name: {0} is not found".format(name))
 
@@ -273,12 +291,12 @@ class InlineKeyboard(ReplyKeyboard):
         emoji=_TOGGLER_EMOJI,
     ):
         def on_toggle_click(bot: TelegramBot, callback_query: CallbackQuery,
-                            toggle_option):
+                            toggle_status):
             keyboard = InlineKeyboard(
                 keyboard=callback_query.message.reply_markup.inline_keyboard, )
             toggle_status = keyboard.toggle(name, emoji)
             message_text = toggled_callback(
-                bot, callback_query, toggle_option,
+                bot, callback_query,
                 toggle_status) if toggled_callback else None
             if callback_query.message.text:
                 bot.edit_message_text(

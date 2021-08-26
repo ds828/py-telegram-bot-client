@@ -18,22 +18,25 @@ example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 example_bot.delete_webhook(drop_pending_updates=True)
 
 
-def radio_callback(bot, callback_query: CallbackQuery, text, option):
+def radio_callback(bot, callback_query, text, option):
     text = "You click: text={0} option={1}".format(text, option)
     bot.send_message(chat_id=callback_query.from_user.id, text=text)
     return text
 
 
+emoji = ("🔘✔️", "⚪")
 InlineKeyboard.auto_radio(router,
                           name="radio-group",
-                          changed_callback=radio_callback)
+                          changed_callback=radio_callback,
+                          emoji=emoji)
 
 
 @router.message_handler(fields=MessageField.TEXT)
-def on_show_keyboard(bot, message: Message):
+def on_show_keyboard(bot, message):
     keyboard = InlineKeyboard()
     keyboard.add_radio_group("radio-group", ("key1", "value1", True),
-                             ("key2", "value2"), ("key3", "value3"))
+                             ("key2", "value2"), ("key3", "value3"),
+                             emoji=emoji)
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(chat_id=message.chat.id,
@@ -48,7 +51,7 @@ def on_submit(bot, callback_query):
     bot.send_message(
         chat_id=callback_query.from_user.id,
         text="you select item: text={0}, option={1}".format(
-            *keyboard.get_radio_value("radio-group"), ),
+            *keyboard.get_radio_value("radio-group", emoji=emoji), ),
     )
 
 
