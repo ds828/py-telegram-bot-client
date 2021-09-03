@@ -52,12 +52,12 @@ class TelegramBotAPI:
                  block: bool = True,
                  **pool_kwargs):
         class TelegramBotAPICaller:
-            __slots__ = ("_pool", )
+            __slots__ = ("_pool", "_api_host" )
             _json_header = {"Content-Type": "application/json"}
 
             def __init__(self, api_host: str, maxsize: int, block: bool,
                          **other_pool_kwargs):
-                api_host = api_host.lower() if api_host else DEFAULT_API_HOST
+                self._api_host = api_host.lower() if api_host else DEFAULT_API_HOST
                 other_pool_kwargs.get("headers", {}).update({
                     "connection":
                     "keep-alive",
@@ -72,13 +72,13 @@ class TelegramBotAPI:
                     ])
                 if api_host.startswith("https://"):
                     self._pool = urllib3.HTTPSConnectionPool(
-                        host=api_host[8:],
+                        host=self._api_host[8:],
                         maxsize=maxsize,
                         block=block,
                         **other_pool_kwargs)
                 elif api_host.startswith("http://"):
                     self._pool = urllib3.HTTPConnectionPool(
-                        host=api_host[7:],
+                        host=self._api_host[7:],
                         maxsize=maxsize,
                         block=block,
                         **other_pool_kwargs)
@@ -89,7 +89,7 @@ class TelegramBotAPI:
 
             @property
             def api_host(self):
-                return self._pool.host
+                return self._api_host
 
             @staticmethod
             def __format_response(response):
@@ -387,7 +387,9 @@ class TelegramBotAPI:
                                real_api_name,
                                data=form_data,
                                files=attached_files)
+                               
+    def get_file_url(self, token: str, file_path: str) -> str:
+        return "{0}{1}".format(self.host, self._download_file_url.format(token, file_path))
 
     def get_file_bytes(self, token: str, file_path: str) -> bytes:
-        return self._api_caller.get_file_bytes(
-            self._download_file_url.format(token, file_path))
+        return self._api_caller.get_file_bytes(self._download_file_url.format(token, file_path))
