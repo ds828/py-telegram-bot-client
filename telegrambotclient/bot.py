@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 from contextlib import contextmanager
-from typing import Callable, Dict, Iterable, Optional, Tuple
+from typing import Callable, Dict, Tuple
 
 from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.base import (InputFile, Message, TelegramBotException,
@@ -18,15 +18,15 @@ logger = logging.getLogger("telegram-bot-client")
 class TelegramBot:
     _force_reply_key_format = "bot:force_reply:{0}"
     __slots__ = ("_bot_id", "_token", "_router", "_bot_api", "_storage",
-                 "_i18n_source", "last_update_id", "_bot_user")
+                 "_i18n_source", "_last_update_id", "_bot_user")
 
     def __init__(
         self,
         token: str,
         router,
-        storage: Optional[TelegramStorage] = None,
-        i18n_source: Optional[Dict] = None,
-        bot_api: Optional[TelegramBotAPI] = None,
+        storage: TelegramStorage = None,
+        i18n_source: Dict = None,
+        bot_api: TelegramBotAPI = None,
     ):
         try:
             self._bot_id = int(token.split(":")[0])
@@ -51,33 +51,16 @@ class TelegramBot:
             )
             bot_api = TelegramBotAPI()
         self._bot_api = bot_api
-        self.last_update_id = 0
+        self._last_update_id = 0
         self._bot_user = None
 
-    def __getattr__(self, api_name):
-        if api_name.startswith("reply"):
+    @property
+    def last_update_id(self) -> int:
+        return self._last_update_id
 
-            def reply_method(message: Message, **kwargs):
-                """reply shotcuts.
-                Such as sendMessge, sendPhoto, you can use reply_xxx to reply directly
-
-                Args:
-                    message (Message): message sent from the replying user
-                    kwargs: other kwargs of sendXXX api method
-                """
-                kwargs.update({
-                    "chat_id": message.from_user.id,
-                    "reply_to_message_id": message.message_id,
-                })
-                return getattr(self._bot_api, "send{0}".format(
-                    api_name.split("reply")[1]))(self.token, **kwargs)
-
-            return reply_method
-
-        def api_method(**kwargs):
-            return getattr(self._bot_api, api_name)(self.token, **kwargs)
-
-        return api_method
+    @last_update_id.setter
+    def last_update_id(self, value):
+        self._last_update_id = value
 
     @property
     def token(self) -> str:
@@ -120,13 +103,11 @@ class TelegramBot:
         )
         await self._router.route(self, update)
 
-    def join_force_reply(
-        self,
-        user_id: int,
-        callback: Callable,
-        *force_reply_args,
-        expires: int = 1800,
-    ):
+    def join_force_reply(self,
+                         user_id: int,
+                         callback: Callable,
+                         *force_reply_args,
+                         expires: int = 1800):
         force_reply_callback_name = "{0}.{1}".format(callback.__module__,
                                                      callback.__name__)
         if not self.router.has_force_reply_callback(force_reply_callback_name):
@@ -188,13 +169,19 @@ class TelegramBot:
                 return lang_source.gettext(text)
         return text
 
+    def reply_message(self, message: Message, **kwargs) -> Message:
+        if message.chat:
+            kwargs["reply_to_message_id"] = message.message_id
+            return self.send_message(chat_id=message.chat.id, **kwargs)
+        raise TelegramBotException("message.chat is None")
+
     def setup_webhook(
         self,
         webhook_url: str,
-        certificate: Optional[InputFile] = None,
-        max_connections: Optional[int] = None,
-        allowed_updates: Optional[Iterable[str]] = None,
-        drop_pending_updates: Optional[bool] = False,
+        certificate: InputFile = None,
+        max_connections: int = 40,
+        allowed_updates: Tuple[str] = None,
+        drop_pending_updates: bool = False,
         **kwargs,
     ) -> bool:
         webhook_info = self.get_webhook_info()
@@ -210,33 +197,26 @@ class TelegramBot:
             )
         return True
 
-    def download_file(self, src_file_path: str, save_to_file: str):
-        """download_file.
+    def get_file_url(self, file_path: str) -> str:
+        return "{0}{1}".format(
+            self.api.host, self.api.download_url.format(self.token, file_path))
 
-        Args:
-            src_file_path (str): src_file_path
-            save_to_file (str): save_to_file
-        """
-        file_path = os.path.dirname(save_to_file)
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-        file_bytes = self.get_file_bytes(file_path=src_file_path)
-        with open(save_to_file, "wb") as new_file:
-            new_file.write(file_bytes)
+    def get_deep_link(self,
+                      payload: str,
+                      host: str = "https://t.me",
+                      startgroup: bool = False):
+        return "{0}/{1}?{2}={3}".format(
+            host, self.user.username, "startgroup" if startgroup else "start",
+            payload)
 
     def run_polling(
         self,
-        limit: Optional[int] = None,
-        timeout: Optional[int] = None,
-        allowed_updates: Optional[Iterable[str]] = None,
+        limit: int = None,
+        timeout: int = 10,
+        allowed_updates: Tuple[str] = None,
         **kwargs,
     ):
-        """run a bot in long loop model.
-
-        Args:
-            get_updates_kwargs: kwargs of telegram bot api 'getUpdates'
-        """
-        if not timeout:
+        if timeout == 0:
             logger.warning(
                 "You are using 0 as timeout in seconds for long polling which should be used for testing purposes only."
             )
@@ -253,3 +233,9 @@ class TelegramBot:
                 self.last_update_id = updates[-1].update_id
                 for update in updates:
                     asyncio.run(self.dispatch(update))
+
+    def __getattr__(self, api_name):
+        def api_method(**kwargs):
+            return getattr(self._bot_api, api_name)(self.token, **kwargs)
+
+        return api_method

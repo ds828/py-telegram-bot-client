@@ -1,28 +1,29 @@
 """
-run in terminal: python -m example.animation
+run: python -m example.animation
+A animation file is GIF or H.264/MPEG-4 AVC video without sound
 """
 import logging
 
-from telegrambotclient import TelegramBot, bot_client
-from telegrambotclient.base import Message, MessageField
+from telegrambotclient import bot_client
+from telegrambotclient.base import MessageField
 
-from example.settings import BOT_TOKEN
+BOT_TOKEN = "<BOT_TOKEN>"
 
-logger = logging.getLogger("telegram-bot-client-bot")
+logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 
 router = bot_client.router()
-example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
-example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler(fields=MessageField.ANIMATION & MessageField.DOCUMENT)
-def on_animation(bot: TelegramBot, message: Message):
-    bot.send_message(
-        chat_id=message.chat.id,
+def on_animation(bot, message):
+    logger.debug(bot.get_file(file_id=message.animation.file_id))
+    bot.reply_message(
+        message,
         text="receive a animation from {0}".format(message.chat.first_name),
     )
 
 
-print(router)
-example_bot.run_polling(timeout=10)
+bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+bot.delete_webhook(drop_pending_updates=True)
+bot.run_polling(timeout=10)

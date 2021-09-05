@@ -1,15 +1,13 @@
 """
-run in terminal: python -m example.ui_stack
+run: python -m example.ui_stack
 """
 from telegrambotclient import bot_client
 from telegrambotclient.base import InlineKeyboardButton, MessageField
 from telegrambotclient.ui import InlineKeyboard
 
-from example.settings import BOT_TOKEN
+BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
-example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
-example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler(fields=MessageField.TEXT)
@@ -43,4 +41,6 @@ def on_back_ui_01(bot, callback_query):
                           reply_markup=message["reply_markup"])
 
 
-example_bot.run_polling(timeout=10)
+bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+bot.delete_webhook(drop_pending_updates=True)
+bot.run_polling(timeout=10)

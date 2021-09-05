@@ -1,7 +1,9 @@
 import pprint
 from functools import wraps
-from io import StringIO
-from typing import Dict, Iterable, Pattern, Tuple
+from io import BytesIO, StringIO
+from typing import Dict, List, Pattern, Tuple, Union
+
+import urllib3
 
 try:
     import ujson as json
@@ -24,7 +26,7 @@ def pretty_format(data: Dict) -> str:
     return _pp.pformat(data)
 
 
-def regex_match(regex_patterns: Iterable[Pattern]):
+def regex_match(regex_patterns: Union[List[Pattern], Tuple[Pattern]]):
     def decorate(method):
         @wraps(method)
         def wrapper(bot, message, *args, **kwargs):
@@ -75,7 +77,8 @@ def parse_force_reply_data(force_reply_data) -> Tuple:
     return force_reply_data[0], tuple(force_reply_data[1:])
 
 
-def compose_message_entities(text_entities: Iterable, sep: str = " "):
+def compose_message_entities(text_entities: Union[List, Tuple],
+                             sep: str = " "):
     with StringIO() as buffer_:
         entities = []
         for text_entity in text_entities:
@@ -100,3 +103,17 @@ def compose_message_entities(text_entities: Iterable, sep: str = " "):
                 entities += inner_entities
                 entity.length = len(inner_text)
         return buffer_.getvalue(), tuple(entities)
+
+
+def get_file_bytes(file_url: str, chunk_size: int = 128) -> bytes:
+    http = urllib3.PoolManager(num_pools=1)
+    response = http.request("GET", file_url, preload_content=False)
+    try:
+        if response.status == 200:
+            with BytesIO() as buffer:
+                for chunk in response.stream(chunk_size):
+                    buffer.write(chunk)
+                return buffer.getvalue()
+        raise Exception("HTTP Error: {0}".format(response.status))
+    finally:
+        response.release_conn()

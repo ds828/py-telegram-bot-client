@@ -6,7 +6,7 @@ except ImportError:
 import os
 import sqlite3
 import time
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping
 
 from telegrambotclient.utils import pretty_format
 
@@ -116,7 +116,7 @@ class MemoryStorage(TelegramStorage):
 class SQLiteStorage(TelegramStorage):
     __slots__ = ("_db_conn", )
 
-    def __init__(self, db_file: Optional[str] = None):
+    def __init__(self, db_file: str = None):
         if db_file is None:
             self._db_conn = sqlite3.connect(
                 "file:memory?cache=shared&mode=memory", uri=True)
@@ -246,8 +246,8 @@ class SQLiteStorage(TelegramStorage):
 class RedisStorage(TelegramStorage):
     __slots__ = ("_redis", )
 
-    def __init__(self, redis):
-        self._redis = redis
+    def __init__(self, redis_client):
+        self._redis = redis_client
 
     def set_field(self, key: str, field: str, value, expires: int) -> bool:
         self._redis.expire(key, expires)

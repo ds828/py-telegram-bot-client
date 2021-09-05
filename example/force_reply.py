@@ -1,34 +1,35 @@
 """
-run in terminal: python -m example.force_reply
+run: python -m example.force_reply
 """
-from telegrambotclient import TelegramBot, bot_client
-from telegrambotclient.base import ForceReply, Message, MessageField
+from telegrambotclient import bot_client
+from telegrambotclient.base import ForceReply, MessageField
 
-from example.settings import BOT_TOKEN
+BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
-example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
-example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler(fields=MessageField.TEXT)
-def on_force_reply(bot: TelegramBot, message: Message):
+def on_force_reply(bot, message):
     bot.send_message(chat_id=message.chat.id,
                      text="reply something",
                      reply_markup=ForceReply())
-    bot.join_force_reply(message.from_user.id, on_callback_reply, 123, "value")
+    bot.join_force_reply(message.chat.id, on_callback_reply, 123, "value")
+    return bot.stop_call
 
 
 @router.force_reply_handler()
-def on_callback_reply(bot: TelegramBot, message: Message, force_reply_arg_1,
-                      force_reply_arg_2):
+def on_callback_reply(bot, message, value_1, value_2):
     bot.reply_message(
         message,
         text="you reply: '{0}' and args: {1}, {2}".format(
-            message.text, force_reply_arg_1, force_reply_arg_2),
+            message.text, value_1, value_2),
     )
-    # after processing, remove this force reply callback
-    bot.force_reply_done(message.from_user.id)
+    # remove this force reply callback
+    bot.force_reply_done(message.chat.id)
+    return bot.stop_call
 
 
-example_bot.run_polling(timeout=8)
+bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+bot.delete_webhook(drop_pending_updates=True)
+bot.run_polling(timeout=10)

@@ -1,15 +1,13 @@
 import logging
 import sys
-from typing import Dict, Iterable, Optional
+from typing import Dict, List, Tuple, Union
 
 from telegrambotclient.api import (DEFAULT_API_HOST, TelegramBotAPI,
                                    TelegramBotAPIException)
 from telegrambotclient.base import TelegramBotException, Update
 from telegrambotclient.bot import TelegramBot
-from telegrambotclient.handler import UpdateHandler
 from telegrambotclient.router import TelegramRouter
 from telegrambotclient.storage import TelegramStorage
-from telegrambotclient.utils import pretty_format
 
 logger = logging.getLogger("telegram-bot-client")
 formatter = logging.Formatter(
@@ -33,44 +31,36 @@ class TelegramBotClient:
 
     __slots__ = ("_bot_data", "_router_data", "_name", "_bot_api_data")
 
-    def __init__(self, name: Optional[str] = None) -> None:
+    def __init__(self, name: str = "default-client") -> None:
         self._bot_data = {}
         self._router_data = {}
         self._bot_api_data = {}
-        self._name = name or "default"
+        self._name = name
 
     @property
     def name(self):
         return self._name
 
-    def router(
-        self,
-        name: Optional[str] = None,
-        handlers: Optional[Iterable[UpdateHandler]] = None,
-    ) -> TelegramRouter:
-        name = name or "default"
+    def router(self, name: str = "default-router") -> TelegramRouter:
         router = self._router_data.get(name, None)
         if router is None:
-            self._router_data[name] = TelegramRouter(name, handlers)
-        else:
-            router.register_handlers(handlers or ())
+            self._router_data[name] = TelegramRouter(name)
         return self._router_data[name]
 
     def create_bot(
         self,
         token: str,
-        router: Optional[TelegramRouter] = None,
-        handlers: Optional[Iterable[UpdateHandler]] = None,
-        storage: Optional[TelegramStorage] = None,
-        i18n_source: Optional[Dict] = None,
-        bot_api: Optional[TelegramBotAPI] = None,
-    ):
+        router: TelegramRouter = None,
+        storage: TelegramStorage = None,
+        i18n_source: Dict = None,
+        bot_api: TelegramBotAPI = None,
+    ) -> TelegramBot:
         bot_api = self._bot_api_data.get(
-            bot_api.host if bot_api else DEFAULT_API_HOST[8:], None)
+            bot_api.host if bot_api else DEFAULT_API_HOST, None)
         if bot_api is None:
             bot_api = TelegramBotAPI()
             self._bot_api_data[bot_api.host] = bot_api
-        router = router or self.router(handlers=handlers)
+        router = router or self.router()
         bot = TelegramBot(token, router, storage, i18n_source, bot_api)
         try:
             bot.user
@@ -80,7 +70,7 @@ class TelegramBotClient:
             self._bot_data[token] = bot
             return bot
 
-    def bot(self, token: str) -> Optional[TelegramBot]:
+    def bot(self, token: str) -> Union[TelegramBot, None]:
         return self._bot_data.get(token, None)
 
     async def dispatch(self, token: str, raw_update: Dict):

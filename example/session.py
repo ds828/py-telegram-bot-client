@@ -1,27 +1,12 @@
 """
-run in cli: python -m example.session
+run: python -m example.session
 """
 from telegrambotclient import bot_client
 from telegrambotclient.storage import SQLiteStorage
 
-from example.settings import BOT_TOKEN
+BOT_TOKEN = "<BOT_TOKEN>"
 
-# import redis
-# from telegrambotclient.storage import RedisStorage
-# redis_client = redis.StrictRedis(
-#    host="127.0.0.1",
-#    port=6379,
-#    password="",
-#    db=1,
-#    max_connections=10,
-#    decode_responses=True,
-# )
-# storage = RedisStorage(redis_client)
-# storage = None # uncomment for memory session
-storage = SQLiteStorage("/tmp/session.db")
 router = bot_client.router()
-my_bot = bot_client.create_bot(token=BOT_TOKEN, router=router, storage=storage)
-my_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler()
@@ -64,4 +49,20 @@ def on_session_example(bot, message):
         print(session.data)
 
 
-my_bot.run_polling(timeout=10)
+# using redis
+# import redis
+# from telegrambotclient.storage import RedisStorage
+# redis_client = redis.StrictRedis(
+#    host="127.0.0.1",
+#    port=6379,
+#    password="",
+#    db=1,
+#    max_connections=10,
+#    decode_responses=True,
+# )
+# storage = RedisStorage(redis_client)
+# storage = None # uncomment for memory session
+storage = SQLiteStorage("/tmp/session.db")
+bot = bot_client.create_bot(token=BOT_TOKEN, router=router, storage=storage)
+bot.delete_webhook(drop_pending_updates=True)
+bot.run_polling(timeout=10)

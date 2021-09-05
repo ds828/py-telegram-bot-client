@@ -1,16 +1,12 @@
 """
-run in terminal: python -m example.local_server
+NOT fully tested
+run: python -m example.local_server
 """
-import logging
-
 from telegrambotclient import bot_client
 from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.base import MessageField, ParseMode
 
 from example.settings import BOT_TOKEN
-
-logger = logging.getLogger("telegram-bot-client")
-logger.setLevel(logging.DEBUG)
 
 router = bot_client.router()
 
@@ -24,11 +20,14 @@ def on_echo_text(bot, message):
     )
 
 
+# official api
 bot_api = TelegramBotAPI()
+# disconnect from the official api
 bot_api.delete_webhook(drop_pending_updates=True)
 if bot_api.log_out():
     local_bot = bot_client.create_bot(
         token=BOT_TOKEN,
         router=router,
+        # myself api
         bot_api=TelegramBotAPI(api_host="YOUR-LOCAL-API-HOST"))
     local_bot.run_polling(timeout=10)

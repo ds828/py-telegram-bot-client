@@ -8,7 +8,7 @@ with open("README.md", 'r') as f:
 
 setup(
     name='py-telegram-bot-client',
-    version="{0}.{1}".format(TelegramBotAPI.__version__, 4),
+    version="{0}.{1}".format(TelegramBotAPI.__version__, 5),
     description='A Telegram Bot API Python Client',
     long_description_content_type="text/markdown",
     long_description=long_description,
@@ -16,6 +16,6 @@ setup(
     author='Di SONG',
     author_email='songdi19@gmail.com',
     packages=['telegrambotclient'],
-    install_requires=['urllib3', 'redis', 'ujson'],
+    install_requires=['urllib3', 'ujson'],
     python_requires=">=3.5",
 )

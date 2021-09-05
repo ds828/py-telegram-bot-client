@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Tuple
 
 from telegrambotclient.api import TelegramBotAPIException
 from telegrambotclient.base import (CallbackQuery, InlineKeyboardButton,
@@ -10,14 +10,300 @@ from telegrambotclient.utils import build_callback_data, parse_callback_data
 
 _RADIO_EMOJI = ("🔘", "⚪")
 _SELECT_EMOJI = ("✔", "")
-_TOGGLER_EMOJI = ("🔓", "🔒")
+_SWITCH_EMOJI = ("🔓", "🔒")
+
+
+class Select:
+    @classmethod
+    def setup(cls,
+              router: TelegramRouter,
+              name: str,
+              callback: Callable = None,
+              emoji=_SELECT_EMOJI):
+        def on_changed(bot, callback_query, changed_value):
+            if callback_query.from_user and callback_query.message:
+                changed_data = build_callback_data(name, changed_value)
+                selected, changed_text, keyboard_layout = cls.change_keyboard(
+                    callback_query.message.reply_markup.inline_keyboard,
+                    changed_data, emoji)
+                message_text = callback(bot, callback_query, changed_text,
+                                        changed_value,
+                                        selected) if callback else None
+                if callback_query.message.text:
+                    bot.edit_message_text(
+                        chat_id=callback_query.from_user.id,
+                        message_id=callback_query.message.message_id,
+                        text=message_text or callback_query.message.text,
+                        reply_markup=InlineKeyboardMarkup(
+                            inline_keyboard=keyboard_layout),
+                    )
+                else:
+                    bot.edit_message_reply_markup(
+                        chat_id=callback_query.from_user.id,
+                        message_id=callback_query.message.message_id,
+                        reply_markup=InlineKeyboardMarkup(
+                            inline_keyboard=keyboard_layout),
+                    )
+
+        router.register_callback_query_handler(
+            callback=on_changed,
+            callback_data_name=name,
+        )
+
+    @classmethod
+    def change_keyboard(cls,
+                        keyboard_layout,
+                        changed_data: str,
+                        emoji=_SELECT_EMOJI):
+        len_emoji_selected = len(emoji[0])
+        for line in keyboard_layout:
+            for button in line:
+                if "callback_data" in button:
+                    if button["callback_data"] == changed_data:
+                        if button["text"][:len_emoji_selected] == emoji[
+                                0]:  # if it is selected
+                            button["text"] = button["text"][
+                                len_emoji_selected:]  # make it unselect
+                            return False, button["text"], keyboard_layout
+                        # otherwise make it select
+                        button["text"] = "{0}{1}".format(
+                            emoji[0], button["text"])
+                        return True, button["text"][
+                            len_emoji_selected:], keyboard_layout
+        raise TelegramBotException(
+            "the option: {0} is not found".format(changed_data))
+
+    @classmethod
+    def create(cls,
+               name: str,
+               *options,
+               emoji=_SELECT_EMOJI) -> List[InlineKeyboardButton]:
+        buttons = []
+        # option: (text, value, selected: optional)
+        for option in options:
+            buttons.append(
+                InlineKeyboardButton(
+                    text="{0}{1}".format(
+                        emoji[0] if len(option) == 3 and option[2] is True else
+                        emoji[1], option[0]),
+                    callback_data=build_callback_data(name, option[1]),
+                ))
+        return buttons
+
+    @classmethod
+    def lookup(cls, keyboard_layout, name: str, emoji=_SELECT_EMOJI) -> Tuple:
+        len_emoji_selected = len(emoji[0])
+        selected_options = []
+        for line in keyboard_layout:
+            for button in line:
+                if "callback_data" in button and button[
+                        "text"][:len_emoji_selected] == emoji[0]:
+                    if button["callback_data"].startswith(name):
+                        value = parse_callback_data(button["callback_data"],
+                                                    name=name)
+                        if value:
+                            selected_options.append(
+                                (button["text"][len_emoji_selected:],
+                                 value[0]))
+        return tuple(selected_options)
+
+
+class Radio(Select):
+    @classmethod
+    def setup(cls,
+              router: TelegramRouter,
+              name: str,
+              callback: Callable = None,
+              emoji=_RADIO_EMOJI):
+        def on_changed(bot, callback_query, changed_value):
+            changed_data = build_callback_data(name, changed_value)
+            changed, changed_text, keyboard_layout = cls.change_keyboard(
+                callback_query.message.reply_markup.inline_keyboard,
+                name,
+                changed_data,
+                emoji=emoji)
+            if changed and callback_query.message and callback_query.from_user:
+                message_text = callback(bot, callback_query, changed_text,
+                                        changed_value) if callback else None
+                if callback_query.message.text:
+                    bot.edit_message_text(
+                        chat_id=callback_query.from_user.id,
+                        message_id=callback_query.message.message_id,
+                        text=message_text or callback_query.message.text,
+                        reply_markup=InlineKeyboardMarkup(
+                            inline_keyboard=keyboard_layout),
+                    )
+                else:
+                    bot.edit_message_reply_markup(
+                        chat_id=callback_query.from_user.id,
+                        message_id=callback_query.message.message_id,
+                        reply_markup=InlineKeyboardMarkup(
+                            inline_keyboard=keyboard_layout),
+                    )
+
+        router.register_callback_query_handler(callback=on_changed,
+                                               callback_data_name=name)
+
+    @classmethod
+    def create(cls,
+               name: str,
+               *options,
+               emoji=_RADIO_EMOJI) -> List[InlineKeyboardButton]:
+        return Select.create(name, *options, emoji=emoji)
+
+    @classmethod
+    def change_keyboard(cls,
+                        keyboard_layout,
+                        name: str,
+                        changed_data: str,
+                        emoji=_RADIO_EMOJI) -> Tuple:
+        len_emoji_selected = len(emoji[0])
+        len_emoji_unselected = len(emoji[1])
+        changed_text = None
+        for line in keyboard_layout:
+            for button in line:
+                # the button is a inline button
+                if "callback_data" in button:
+                    # it is a radio I want
+                    if button["callback_data"].split("|")[0] == name:
+                        # it is the radio I click
+                        if button["callback_data"] == changed_data:
+                            if button["text"][:len_emoji_selected] == emoji[0]:
+                                # click on the same button
+                                return None, None, None
+                            changed_text = button["text"][
+                                len_emoji_unselected:]
+                            button["text"] = "{0}{1}".format(
+                                emoji[0], button["text"]
+                                [len_emoji_unselected:])  # make it select
+
+                        # make others be unselected
+                        elif button["text"][:len_emoji_selected] == emoji[0]:
+                            button["text"] = "{0}{1}".format(
+                                emoji[1], button["text"][len_emoji_selected:])
+        return True, changed_text, keyboard_layout
+
+    @classmethod
+    def lookup(cls, keyboard_layout, name: str, emoji=_RADIO_EMOJI) -> Tuple:
+        len_emoji_selected = len(emoji[0])
+        for line in keyboard_layout:
+            for button in line:
+                if "callback_data" in button and button[
+                        "text"][:len_emoji_selected] == emoji[0]:
+                    if button["callback_data"].startswith(name):
+                        options = parse_callback_data(button["callback_data"],
+                                                      name)
+                        return (button["text"][len_emoji_selected:],
+                                options[0]) if options else (None, None)
+        return (None, None)
+
+
+class Switch(Select):
+    @classmethod
+    def setup(cls,
+              router: TelegramRouter,
+              name: str,
+              callback: Callable = None,
+              emoji=_SWITCH_EMOJI):
+        def on_changed(bot, callback_query, status: bool):
+            if callback_query.message or callback_query.from_user:
+                status, text, keyboard_layout = cls.change_keyboard(
+                    callback_query.message.reply_markup.inline_keyboard, name,
+                    emoji)
+                message_text = callback(bot, callback_query,
+                                        status) if callback else None
+                if callback_query.message.text:
+                    bot.edit_message_text(
+                        chat_id=callback_query.from_user.id,
+                        message_id=callback_query.message.message_id,
+                        text=message_text or callback_query.message.text,
+                        reply_markup=InlineKeyboardMarkup(
+                            inline_keyboard=keyboard_layout),
+                    )
+                else:
+                    bot.edit_message_reply_markup(
+                        chat_id=callback_query.from_user.id,
+                        message_id=callback_query.message.message_id,
+                        reply_markup=InlineKeyboardMarkup(
+                            inline_keyboard=keyboard_layout),
+                    )
+
+        router.register_callback_query_handler(
+            callback=on_changed,
+            callback_data_name=name,
+        )
+
+    @classmethod
+    def change_keyboard(cls,
+                        keyboard_layout,
+                        name: str,
+                        emoji=_SWITCH_EMOJI) -> Tuple:
+        len_emoji_0 = len(emoji[0])
+        for line in keyboard_layout:
+            for button in line:
+                if "callback_data" in button:
+                    if button["callback_data"].startswith(name):
+                        value = parse_callback_data(button["callback_data"],
+                                                    name)
+                        if not value:
+                            raise TelegramBotException(
+                                "switch: {0} can not be matched".format(name))
+                        if button["text"][:len_emoji_0] == emoji[
+                                0]:  # status is checked
+                            # make it be unchecked
+                            button["text"] = "{0}{1}".format(
+                                emoji[1], value[0])
+                            return False, value[0], keyboard_layout
+                        # otherwise make it be checked
+                        button["text"] = "{0}{1}".format(emoji[0], value[0])
+                        return True, value[0], keyboard_layout
+        raise TelegramBotException("switch: {0} is not found".format(name))
+
+    @classmethod
+    def create(cls,
+               name: str,
+               text: str,
+               status: bool = False,
+               emoji=_SWITCH_EMOJI) -> InlineKeyboardButton:
+        return InlineKeyboardButton(
+            text="{0}{1}".format(emoji[0] if status else emoji[1], text),
+            callback_data=build_callback_data(name, text))
+
+    @classmethod
+    def lookup(cls, keyboard_layout, name: str, emoji=_SWITCH_EMOJI) -> bool:
+        len_emoji_0 = len(emoji[0])
+        for line in keyboard_layout:
+            for button in line:
+                if "callback_data" in button:
+                    if button["callback_data"].startswith(name):
+                        return button["text"][:len_emoji_0] == emoji[0]
+        raise TelegramBotException("switch: {0} is not found".format(name))
+
+
+class Confirm:
+    @classmethod
+    def create(cls,
+               name: str,
+               value=None,
+               ok_text: str = "OK",
+               cancel_text: str = "Cancel"):
+
+        return [
+            InlineKeyboardButton(text=ok_text,
+                                 callback_data=build_callback_data(
+                                     name, True, value)),
+            InlineKeyboardButton(text=cancel_text,
+                                 callback_data=build_callback_data(
+                                     name, False, value)),
+        ]
 
 
 class ReplyKeyboard:
     __slots__ = ("_layout", )
 
-    def __init__(self, keyboard: Optional[List] = None):
-        self._layout = keyboard or []
+    def __init__(self, *buttons, col=1):
+        self._layout = []
+        self.add_buttons(*buttons, col=col)
 
     def add_buttons(self, *buttons, col: int = 1):
         for idx in range(0, len(buttons), col):
@@ -41,319 +327,5 @@ class ReplyKeyboard:
 
 
 class InlineKeyboard(ReplyKeyboard):
-    def __init__(self, keyboard: Optional[List] = None):
-        super().__init__(keyboard=keyboard)
-
-    def markup(self, **kwargs):
+    def markup(self):
         return InlineKeyboardMarkup(inline_keyboard=self._layout)
-
-    def has_button(self, name: str):
-        for line in self._layout:
-            for button in line:
-                if "callback_data" in button:
-                    callback_query_name_arg = button["callback_data"].split(
-                        "|")
-                    if callback_query_name_arg and callback_query_name_arg[
-                            0] == name:
-                        return True
-        return False
-
-    def add_radio_group(self,
-                        name: str,
-                        *options,
-                        col: int = 1,
-                        emoji=_RADIO_EMOJI):
-        # option: (text, value, selected: optional)
-        for idx in range(0, len(options), col):
-            self._layout.append([
-                InlineKeyboardButton(
-                    text="{0}{1}".format(
-                        emoji[0] if len(option) == 3 and option[2] is True else
-                        emoji[1],
-                        option[0],
-                    ),
-                    callback_data=build_callback_data(name, option[1]),
-                ) for option in options[idx:idx + col]
-            ])
-
-    def delete_radio_group(self, name: str):
-        for line_idx, line in enumerate(self._layout):
-            for btn_idx, button in enumerate(line):
-                # the button is a inlinebutton
-                if "callback_data" in button:
-                    if button["callback_data"].split("|")[0] == name:
-                        del self._layout[line_idx][btn_idx]
-
-    def get_radio_value(self,
-                        name: str,
-                        emoji=_RADIO_EMOJI) -> Optional[Tuple]:
-        len_emoji_selected = len(emoji[0])
-        for line in self._layout:
-            for button in line:
-                if "callback_data" in button and button[
-                        "text"][:len_emoji_selected] == emoji[0]:
-                    if button["callback_data"].startswith(name):
-                        options = parse_callback_data(button["callback_data"],
-                                                      name)
-                        return button["text"][len_emoji_selected:], options[
-                            0] if options else None, None
-        return None, None
-
-    def change_radio_status(self,
-                            name: str,
-                            option,
-                            emoji=_RADIO_EMOJI) -> Optional[str]:
-        len_emoji_selected = len(emoji[0])
-        len_emoji_unselected = len(emoji[1])
-        clicked_text = None
-        clicked_option = build_callback_data(name, option)
-        for line in self._layout:
-            for button in line:
-                # the button is a inlinebutton
-                if "callback_data" in button:
-                    # it is a radio I want
-                    if button["callback_data"].split("|")[0] == name:
-                        # it is the radio I click
-                        if button["callback_data"] == clicked_option:
-                            if button["text"][:len_emoji_selected] == emoji[0]:
-                                return None
-                            clicked_text = button["text"][
-                                len_emoji_unselected:]
-                            button["text"] = "{0}{1}".format(
-                                emoji[0], button["text"]
-                                [len_emoji_unselected:])  # make it select
-
-                        # make others be unselected
-                        elif button["text"][:len_emoji_selected] == emoji[0]:
-                            button["text"] = "{0}{1}".format(
-                                emoji[1], button["text"][len_emoji_selected:])
-        return clicked_text
-
-    @staticmethod
-    def auto_radio(
-        router: TelegramRouter,
-        name: str,
-        changed_callback: Optional[Callable] = None,
-        emoji=_RADIO_EMOJI,
-    ):
-        def on_radio_click(bot, callback_query, changed_radio_option):
-            keyboard = InlineKeyboard(
-                keyboard=callback_query.message.reply_markup.inline_keyboard, )
-            changed_radio_text = keyboard.change_radio_status(
-                name, changed_radio_option, emoji=emoji)
-            if changed_radio_text:
-                message_text = changed_callback(
-                    bot, callback_query, changed_radio_text,
-                    changed_radio_option) if changed_callback else None
-                if callback_query.message.text:
-                    bot.edit_message_text(
-                        chat_id=callback_query.from_user.id,
-                        message_id=callback_query.message.message_id,
-                        text=message_text or callback_query.message.text,
-                        reply_markup=keyboard.markup(),
-                    )
-                else:
-                    bot.edit_message_reply_markup(
-                        chat_id=callback_query.from_user.id,
-                        message_id=callback_query.message.message_id,
-                        reply_markup=keyboard.markup(),
-                    )
-
-        router.register_callback_query_handler(callback=on_radio_click,
-                                               callback_data_name=name)
-
-    def add_select_group(self,
-                         name: str,
-                         *options,
-                         col: int = 1,
-                         emoji=_SELECT_EMOJI):
-        self.add_radio_group(name, *options, col=col, emoji=emoji)
-
-    def get_select_value(self, name: str, emoji=_SELECT_EMOJI) -> Tuple:
-        len_emoji_selected = len(emoji[0])
-        selected_options = []
-        for line in self._layout:
-            for button in line:
-                if "callback_data" in button and button[
-                        "text"][:len_emoji_selected] == emoji[0]:
-                    if button["callback_data"].startswith(name):
-                        options = parse_callback_data(button["callback_data"],
-                                                      name=name)
-                        if options:
-                            selected_options.append(
-                                (button["text"][len_emoji_selected:],
-                                 options[0]))
-        return tuple(selected_options)
-
-    def change_select_status(self, name: str, option, emoji=_SELECT_EMOJI):
-        len_emoji_selected = len(emoji[0])
-        selected_option = build_callback_data(name, option)
-        for line in self._layout:
-            for button in line:
-                if "callback_data" in button:
-                    if button["callback_data"] == selected_option:
-                        if button["text"][:len_emoji_selected] == emoji[
-                                0]:  # selected
-                            button["text"] = button["text"][
-                                len_emoji_selected:]  # make it unselect
-                            return False, button["text"]
-                        # otherwise make it select
-                        button["text"] = "{0}{1}".format(
-                            emoji[0], button["text"])
-                        return True, button["text"][len_emoji_selected:]
-        raise TelegramBotException(
-            "the option: {0} is not found".format(selected_option))
-
-    @staticmethod
-    def auto_select(
-        router: TelegramRouter,
-        name: str,
-        clicked_callback: Optional[Callable] = None,
-        emoji=_SELECT_EMOJI,
-    ):
-        def on_select_click(bot: TelegramBot, callback_query: CallbackQuery,
-                            clicked_option):
-            keyboard = InlineKeyboard(
-                keyboard=callback_query.message.reply_markup.inline_keyboard)
-            selected, clicked_text = keyboard.change_select_status(
-                name, clicked_option, emoji)
-            message_text = clicked_callback(
-                bot, callback_query, clicked_text, clicked_option,
-                selected) if clicked_callback else None
-            if callback_query.message.text:
-                bot.edit_message_text(
-                    chat_id=callback_query.from_user.id,
-                    message_id=callback_query.message.message_id,
-                    text=message_text or callback_query.message.text,
-                    reply_markup=keyboard.markup(),
-                )
-            else:
-                bot.edit_message_reply_markup(
-                    chat_id=callback_query.from_user.id,
-                    message_id=callback_query.message.message_id,
-                    reply_markup=keyboard.markup(),
-                )
-
-        router.register_callback_query_handler(
-            callback=on_select_click,
-            callback_data_name=name,
-        )
-
-    def add_toggler(self,
-                    name: str,
-                    text: str,
-                    toggle_status: bool = True,
-                    emoji=_TOGGLER_EMOJI):
-        select_emoji = emoji[0] if toggle_status else emoji[1]
-        self.add_buttons(
-            InlineKeyboardButton(text="{0}{1}".format(select_emoji, text),
-                                 callback_data=build_callback_data(name,
-                                                                   text)))
-
-    def toggle(self, name, emoji=_TOGGLER_EMOJI) -> bool:
-        len_emoji_0 = len(emoji[0])
-        for line in self._layout:
-            for button in line:
-                if "callback_data" in button:
-                    if button["callback_data"].startswith(name):
-                        value = parse_callback_data(button["callback_data"],
-                                                    name)
-                        if not value:
-                            raise TelegramBotException(
-                                "toggler name: {0} is not found".format(name))
-                        if button["text"][:len_emoji_0] == emoji[
-                                0]:  # status is checked
-                            # make it be unchecked
-                            button["text"] = "{0}{1}".format(
-                                emoji[1], value[0])
-                            return False
-                        # otherwise make it be checked
-                        button["text"] = "{0}{1}".format(emoji[0], value[0])
-                        return True
-        raise TelegramBotException(
-            "toggler name: {0} is not found".format(name))
-
-    def get_toggler_value(self, name: str, emoji=_TOGGLER_EMOJI) -> bool:
-        len_emoji_0 = len(emoji[0])
-        for line in self._layout:
-            for button in line:
-                if "callback_data" in button:
-                    if button["callback_data"].startswith(name):
-                        return button["text"][:len_emoji_0] == emoji[0]
-        raise TelegramBotException(
-            "toggler name: {0} is not found".format(name))
-
-    @staticmethod
-    def auto_toggle(
-        router: TelegramRouter,
-        name: str,
-        toggled_callback: Optional[Callable] = None,
-        emoji=_TOGGLER_EMOJI,
-    ):
-        def on_toggle_click(bot: TelegramBot, callback_query: CallbackQuery,
-                            toggle_status):
-            keyboard = InlineKeyboard(
-                keyboard=callback_query.message.reply_markup.inline_keyboard, )
-            toggle_status = keyboard.toggle(name, emoji)
-            message_text = toggled_callback(
-                bot, callback_query,
-                toggle_status) if toggled_callback else None
-            if callback_query.message.text:
-                bot.edit_message_text(
-                    chat_id=callback_query.from_user.id,
-                    message_id=callback_query.message.message_id,
-                    text=message_text or callback_query.message.text,
-                    reply_markup=keyboard.markup(),
-                )
-            else:
-                bot.edit_message_reply_markup(
-                    chat_id=callback_query.from_user.id,
-                    message_id=callback_query.message.message_id,
-                    reply_markup=keyboard.markup(),
-                )
-
-        router.register_callback_query_handler(
-            callback=on_toggle_click,
-            callback_data_name=name,
-        )
-
-    def add_confirm_buttons(self,
-                            name: str,
-                            callback_data,
-                            ok_text: str = "OK",
-                            cancel_text: str = "Cancel",
-                            col: int = 2,
-                            auto_cancel: bool = False):
-        self.add_buttons(
-            InlineKeyboardButton(text=ok_text,
-                                 callback_data=build_callback_data(
-                                     name, True, callback_data)),
-            InlineKeyboardButton(
-                text=cancel_text,
-                callback_data=build_callback_data(
-                    "cancel-{0}".format(name) if auto_cancel else name, False,
-                    callback_data)),
-            col=col)
-
-    @staticmethod
-    def auto_cancel(
-        router: TelegramRouter,
-        name: str,
-        cancel_callback: Optional[Callable] = None,
-    ):
-        def on_cancel_click(bot: TelegramBot, callback_query: CallbackQuery,
-                            confirm: bool, cancel_callback_data):
-            if cancel_callback:
-                cancel_callback(bot, callback_query, confirm,
-                                cancel_callback_data)
-            try:
-                bot.delete_message(
-                    chat_id=callback_query.from_user.id,
-                    message_id=callback_query.message.message_id)
-            except TelegramBotAPIException:
-                pass
-
-        router.register_callback_query_handler(
-            callback=on_cancel_click,
-            callback_data_name="cancel-{0}".format(name),
-        )

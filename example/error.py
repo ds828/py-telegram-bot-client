@@ -1,36 +1,35 @@
 """
-run in cli: python -m example.error
+run: python -m example.error
 """
-from telegrambotclient import TelegramBot, bot_client
-from telegrambotclient.base import (Message, TelegramBotException,
-                                    TelegramObject)
+from telegrambotclient import bot_client
+from telegrambotclient.base import TelegramBotException
 
-from example.settings import BOT_TOKEN
+BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
-example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
-example_bot.delete_webhook(drop_pending_updates=True)
 
 
 @router.message_handler()
-def on_echo_text(bot: TelegramObject, message: Message):
+def on_echo_text(bot, message):
     bot.send_message(chat_id=message.chat.id, text="I will raise a exception")
-    raise TelegramBotException("simplebot exception")
-    # Only catch by on_exception
-    # raise Exception("something wrong")
+    # raise TelegramBotException("telegrambot exception")
+    # only catch by on_exception
+    raise Exception("something wrong")
 
 
 @router.error_handler(errors=(TelegramBotException, ))
-def on_simplebotexception(bot: TelegramBot, data: TelegramObject, error):
+def on_telegrambot_exception(bot, data, error):
     bot.send_message(chat_id=data.from_user.id,
-                     text="on_simplebotexception: " + str(error))
+                     text="on_telegrambot_exception: " + str(error))
 
 
+# for all excetions
 @router.error_handler()
-def on_exception(bot: TelegramBot, data: TelegramObject, error):
-    bot.send_message(chat_id=data.from_user.id,
-                     text="on_exception: " + str(error))
+def on_exception(bot, data, error):
+    bot.send_message(chat_id=data.chat.id, text="on_exception: " + str(error))
 
 
-print(router.route_map)
-example_bot.run_polling(timeout=10)
+print(router)
+bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+bot.delete_webhook(drop_pending_updates=True)
+bot.run_polling(timeout=10)

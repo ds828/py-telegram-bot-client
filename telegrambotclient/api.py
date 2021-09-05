@@ -5,12 +5,12 @@ except ImportError:
 
 import logging
 import socket
-from io import BytesIO
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import urllib3
 
-from telegrambotclient.base import (BotCommandScope, InputFile, InputMedia,
+from telegrambotclient.base import (BotCommand, BotCommandScope,
+                                    InlineQueryResult, InputFile, InputMedia,
                                     LabeledPrice, Message,
                                     PassportElementError, TelegramBotException,
                                     TelegramObject, Update)
@@ -43,7 +43,7 @@ class TelegramBotAPI:
 
     __version__ = "5.3"
     _api_url = "/bot{0}/{1}"
-    _download_file_url = "/file/bot{0}/{1}"
+    _download_url = "/file/bot{0}/{1}"
     __slots__ = ("_api_caller", )
 
     def __init__(self,
@@ -52,22 +52,23 @@ class TelegramBotAPI:
                  block: bool = True,
                  **pool_kwargs):
         class TelegramBotAPICaller:
-            __slots__ = ("_pool", "_api_host" )
+            __slots__ = ("_pool", "_api_host")
             _json_header = {"Content-Type": "application/json"}
 
             def __init__(self, api_host: str, maxsize: int, block: bool,
                          **other_pool_kwargs):
-                self._api_host = api_host.lower() if api_host else DEFAULT_API_HOST
+                self._api_host = api_host.lower(
+                ) if api_host else DEFAULT_API_HOST
                 other_pool_kwargs.get("headers", {}).update({
                     "connection":
                     "keep-alive",
                     "user-agent":
-                    "simple-bot: A Telegram Bot API Python Provider",
+                    "telegram-bot-client: A Telegram Bot API Python Provider",
                 })
                 other_pool_kwargs["socket_options"] = (
-                    other_pool_kwargs.get("socket_options", []) +
-                    urllib3.connection.HTTPConnection.default_socket_options +
-                    [
+                    other_pool_kwargs.get("socket_options", []) + [
+                        (socket.IPPROTO_TCP, socket.TCP_NODELAY,
+                         1),  # from urllib3.connection.default_socket_options
                         (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
                     ])
                 if api_host.startswith("https://"):
@@ -84,7 +85,7 @@ class TelegramBotAPI:
                         **other_pool_kwargs)
                 else:
                     raise TelegramBotException(
-                        "Telegram Bot API Host only supports https:// or http://"
+                        "Telegram Bot API Host only supports https:// and http://"
                     )
 
             @property
@@ -112,8 +113,8 @@ class TelegramBotAPI:
 
             def call(self,
                      api_url: str,
-                     data: Optional[Dict] = None,
-                     files: Optional[List] = None) -> Any:
+                     data: Dict = None,
+                     files: List = None) -> Any:
                 if data is None:
                     data = {}
                 if not files:
@@ -129,24 +130,6 @@ class TelegramBotAPI:
                 return self.__format_response(
                     self._pool.request("POST", api_url, fields=data))
 
-            def get_file_bytes(self,
-                               file_url: str,
-                               chunk_size: int = 128) -> bytes:
-                response = self._pool.request("GET",
-                                              file_url,
-                                              preload_content=False)
-                try:
-                    if response.status != 200:
-                        raise TelegramBotException("""
-        HTTP Status Code: {0}
-        Reason: {1}""".format(response.status, response.reason))
-                    with BytesIO() as _:
-                        for chunk in response.stream(chunk_size):
-                            _.write(chunk)
-                        return _.getvalue()
-                finally:
-                    response.release_conn()
-
         self._api_caller = TelegramBotAPICaller(api_host=api_host,
                                                 maxsize=maxsize,
                                                 block=block,
@@ -156,32 +139,34 @@ class TelegramBotAPI:
     def host(self):
         return self._api_caller.api_host
 
+    @property
+    def download_url(self):
+        return self._download_url
+
     @staticmethod
-    def __prepare_request_data(api_name,
-                               **kwargs) -> Tuple[str, Dict, Optional[List]]:
-        form_data = exclude_none(**kwargs)
-        attached_files = None
-        for name, value in form_data.copy().items():
+    def __prepare_request_data(api_name, **kwargs) -> Tuple[str, Dict, List]:
+        api_data = exclude_none(**kwargs)
+        attached_files = []
+        for field in tuple(api_data.keys()):
+            value = api_data[field]
             if isinstance(value, TelegramObject):
-                form_data[name] = value.param
+                api_data[field] = value.param
                 continue
             if isinstance(value, InputFile):
-                if attached_files is None:
-                    attached_files = []
-                if name == "thumb":
+                if field == "thumb":
                     attached_files.append((value.attach_key, value.file_tuple))
-                    form_data["thumb"] = value.attach_str
+                    api_data["thumb"] = value.attach_str
                 else:
-                    attached_files.append((name, value.file_tuple))
-                    del form_data[name]
-        return api_name.replace("_", "").lower(), form_data, attached_files
+                    attached_files.append((field, value.file_tuple))
+                    del api_data[field]
+        return api_name.replace("_", "").lower(), api_data, attached_files
 
     def __call_api(
         self,
         token: str,
         api_name: str,
-        data: Optional[Dict] = None,
-        files: Optional[List] = None,
+        data: Dict = None,
+        files: List = None,
     ):
         return self._api_caller.call(self._api_url.format(token, api_name),
                                      data, files)
@@ -233,10 +218,10 @@ class TelegramBotAPI:
 
     def edit_message_media(self,
                            token: str,
-                           chat_id: Optional[Union[int, str]] = None,
-                           message_id: Optional[int] = None,
-                           inline_message_id: Optional[int] = None,
-                           media: Optional[InputMedia] = None,
+                           chat_id: Union[int, str] = None,
+                           message_id: int = None,
+                           inline_message_id: int = None,
+                           media: InputMedia = None,
                            **kwargs) -> Message:
         if not media:
             raise TelegramBotException("'media' is required")
@@ -257,7 +242,7 @@ class TelegramBotAPI:
 
     def set_my_commands(self,
                         token: str,
-                        commands: Iterable,
+                        commands: Tuple[BotCommand],
                         scope: BotCommandScope = None,
                         language_code: str = None) -> bool:
         data = {
@@ -294,7 +279,7 @@ class TelegramBotAPI:
                                data=exclude_none(**data))
 
     def send_poll(self, token: str, chat_id: Union[int, str], question: str,
-                  options: Iterable, **kwargs) -> Message:
+                  options: Tuple[str], **kwargs) -> Message:
         real_api_name, form_data, attached_files = self.__prepare_request_data(
             "sendPoll",
             chat_id=chat_id,
@@ -307,7 +292,9 @@ class TelegramBotAPI:
                                files=attached_files)
 
     def answer_inline_query(self, token: str, inline_query_id: str,
-                            results: Iterable, **kwargs) -> bool:
+                            results: Union[List[InlineQueryResult],
+                                           Tuple[InlineQueryResult]],
+                            **kwargs) -> bool:
         real_api_name, form_data, attached_files = self.__prepare_request_data(
             "answerInlineQuery",
             inline_query_id=inline_query_id,
@@ -318,18 +305,10 @@ class TelegramBotAPI:
                                data=form_data,
                                files=attached_files)
 
-    def send_invoice(
-        self,
-        token: str,
-        chat_id: int,
-        title: str,
-        description: str,
-        payload: str,
-        provider_token: str,
-        currency: str,
-        prices: Iterable[LabeledPrice],
-        **kwargs,
-    ) -> Message:
+    def send_invoice(self, token: str, chat_id: int, title: str,
+                     description: str, payload: str, provider_token: str,
+                     currency: str, prices: Tuple[LabeledPrice],
+                     **kwargs) -> Message:
         provider_data = kwargs.get("provider_data", None)
         if provider_data:
             kwargs["provider_data"] = json.dumps(provider_data)
@@ -376,9 +355,8 @@ class TelegramBotAPI:
                                data=form_data,
                                files=attached_files)
 
-    def set_passport_data_errors(
-            self, token: str, user_id: int,
-            errors: Iterable[PassportElementError]) -> bool:
+    def set_passport_data_errors(self, token: str, user_id: int,
+                                 errors: Tuple[PassportElementError]) -> bool:
         real_api_name, form_data, attached_files = self.__prepare_request_data(
             "setPassportDataErrors",
             user_id=user_id,
@@ -387,9 +365,3 @@ class TelegramBotAPI:
                                real_api_name,
                                data=form_data,
                                files=attached_files)
-                               
-    def get_file_url(self, token: str, file_path: str) -> str:
-        return "{0}{1}".format(self.host, self._download_file_url.format(token, file_path))
-
-    def get_file_bytes(self, token: str, file_path: str) -> bytes:
-        return self._api_caller.get_file_bytes(self._download_file_url.format(token, file_path))

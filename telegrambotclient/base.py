@@ -1,7 +1,7 @@
 import random
 import string
 from enum import Enum
-from typing import Any, Iterable, List, Optional, Union
+from typing import Any, List, Set, Tuple, Union
 
 try:
     import ujson as json
@@ -27,7 +27,6 @@ class UpdateType(str, Enum):
     POLL_ANSWER = "poll_answer"
     MY_CHAT_MEMBER = "my_chat_member"
     CHAT_MEMBER = "chat_member"
-    # customerize
     FORCE_REPLY = "force_reply"
     COMMAND = "command"
 
@@ -109,7 +108,7 @@ class MessageField(str, Enum):
         return self
 
     @property
-    def fields(self) -> Iterable:
+    def fields(self) -> Union[Tuple, Set]:
         return tuple(self._field_set) if self._fields_or else self._field_set
 
 
@@ -164,10 +163,9 @@ class InputFile:
     def __init__(self,
                  file_name: str,
                  file: Union[str, bytes],
-                 mime_type: Optional[str] = None):
+                 mime_type: str = None):
         self._file_name = file_name
-        if not isinstance(file, (str, bytes)):
-            raise ValueError("file must be a string or bytes")
+        assert isinstance(file, (str, bytes)), True
         self._file = file
         self._mime_type = mime_type
         self._attach_key = None
@@ -177,21 +175,21 @@ class InputFile:
         return self._file_name
 
     @property
-    def file_data(self) -> Optional[bytes]:
+    def file_data(self) -> bytes:
         if isinstance(self._file, str):
             with open(self._file, "rb") as file_obj:
                 return file_obj.read()
         return self._file
 
     @property
-    def mime_type(self):
+    def mime_type(self) -> Union[str, None]:
         return self._mime_type
 
     @property
     def file_tuple(self):
-        if self.mime_type is None:
-            return self.file_name, self.file_data
-        return self.file_name, self.file_data, self.mime_type
+        return (self.file_name, self.file_data,
+                self.mime_type) if self.mime_type else (self.file_name,
+                                                        self.file_data)
 
     @property
     def attach_key(self):
@@ -409,26 +407,34 @@ class InputMediaPhoto(InputMedia):
 
 
 class InputMediaVideo(InputMedia):
-    def __init__(self, media: Union[InputFile, str],
-                 thumb: Optional[Union[InputFile, str]], **kwargs):
+    def __init__(self,
+                 media: Union[InputFile, str],
+                 thumb: Union[InputFile, str] = None,
+                 **kwargs):
         super().__init__(type="video", media=media, thumb=thumb, **kwargs)
 
 
 class InputMediaAnimation(InputMedia):
-    def __init__(self, media: Union[InputFile, str],
-                 thumb: Optional[Union[InputFile, str]], **kwargs):
+    def __init__(self,
+                 media: Union[InputFile, str],
+                 thumb: Union[InputFile, str] = None,
+                 **kwargs):
         super().__init__(type="animation", media=media, thumb=thumb, **kwargs)
 
 
 class InputMediaAudio(InputMedia):
-    def __init__(self, media: Union[InputFile, str],
-                 thumb: Optional[Union[InputFile, str]], **kwargs):
+    def __init__(self,
+                 media: Union[InputFile, str],
+                 thumb: Union[InputFile, str] = None,
+                 **kwargs):
         super().__init__(type="audio", media=media, thumb=thumb, **kwargs)
 
 
 class InputMediaDocument(InputMedia):
-    def __init__(self, media: Union[InputFile, str],
-                 thumb: Optional[Union[InputFile, str]], **kwargs):
+    def __init__(self,
+                 media: Union[InputFile, str],
+                 thumb: Union[InputFile, str] = None,
+                 **kwargs):
         super().__init__(type="document", media=media, thumb=thumb, **kwargs)
 
 
@@ -516,7 +522,7 @@ class InputInvoiceMessageContent(InputMessageContent):
         payload: str,
         provider_token: str,
         currency: str,
-        prices: Iterable[LabeledPrice],
+        prices: Union[List[LabeledPrice], Tuple[LabeledPrice]],
         **kwargs,
     ):
         super().__init__(title=title,
@@ -751,7 +757,7 @@ class Sticker(TelegramObject):
 
 
 class ShippingOption(TelegramObject):
-    def __init__(self, id: str, title: str, prices: List[LabeledPrice],
+    def __init__(self, id: str, title: str, prices: Tuple[LabeledPrice],
                  **kwargs):
         super().__init__(id=id, title=title, prices=prices, **kwargs)
 
@@ -759,14 +765,14 @@ class ShippingOption(TelegramObject):
 class ChatPermissions(TelegramObject):
     def __init__(
         self,
-        can_send_messages: Optional[bool] = None,
-        can_send_media_messages: Optional[bool] = None,
-        can_send_polls: Optional[bool] = None,
-        can_send_other_messages: Optional[bool] = None,
-        can_add_web_page_previews: Optional[bool] = None,
-        can_change_info: Optional[bool] = None,
-        can_invite_users: Optional[bool] = None,
-        can_pin_messages: Optional[bool] = None,
+        can_send_messages: bool = True,
+        can_send_media_messages: bool = True,
+        can_send_polls: bool = True,
+        can_send_other_messages: bool = True,
+        can_add_web_page_previews: bool = True,
+        can_change_info: bool = True,
+        can_invite_users: bool = True,
+        can_pin_messages: bool = True,
     ):
         super().__init__(
             can_send_messages=can_send_messages,
@@ -869,7 +875,7 @@ class PassportElementErrorFiles(PassportElementError):
     def __init__(
         self,
         type: Union[str, PassportElementType],
-        file_hashes: Iterable[str],
+        file_hashes: Union[List[str], Tuple[str]],
         message: str,
     ):
         super().__init__("files",
@@ -891,7 +897,7 @@ class PassportElementErrorTranslationFiles(PassportElementError):
     def __init__(
         self,
         type: Union[str, PassportElementType],
-        file_hashes: Iterable[str],
+        file_hashes: Union[List[str], Tuple[str]],
         message: str,
     ):
         super().__init__("translation_files",

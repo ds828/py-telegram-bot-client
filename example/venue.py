@@ -1,27 +1,24 @@
 """
-run in terminal: python -m example.venue
-for testing this, you can share a venue to this bot though @foursquare
+run: python -m example.venue
+for testing, you can share a venue with this bot though @foursquare bot
 """
-import logging
-
-from telegrambotclient import TelegramBot, bot_client
-from telegrambotclient.base import Message, MessageField
+from telegrambotclient import bot_client
+from telegrambotclient.base import MessageField
 from telegrambotclient.utils import pretty_print
 
-from example.settings import BOT_TOKEN
-
-logger = logging.getLogger("telegram-bot-client")
-logger.setLevel(logging.DEBUG)
+BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
-example_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
-example_bot.delete_webhook(drop_pending_updates=True)
 
 
-# when a venue field is set, the location field will also be set
+# when a venue field is set, a location field is set as well
 @router.message_handler(fields=MessageField.VENUE & MessageField.LOCATION)
-def on_venue(bot: TelegramBot, message: Message):
+def on_venue(bot, message):
     pretty_print(message)
+    bot.send_venue(chat_id=message.chat.id, )
+    return bot.stop_call
 
 
-example_bot.run_polling(timeout=10)
+bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+bot.delete_webhook(drop_pending_updates=True)
+bot.run_polling(timeout=10)
