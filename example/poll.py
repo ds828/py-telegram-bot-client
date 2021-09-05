@@ -36,7 +36,7 @@ def on_show_quiz_poll(bot, message):
 
 
 @router.poll_answer_handler()
-def on_poll_answer(bot, poll_answer: PollAnswer):
+def on_poll_answer(bot, poll_answer):
     bot.send_message(chat_id=poll_answer.user.id,
                      text="you select: {0}".format(poll_answer.option_ids))
     print(poll_answer)

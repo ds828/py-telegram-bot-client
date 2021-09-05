@@ -15,7 +15,6 @@ router = bot_client.router()
 @router.message_handler(fields=MessageField.VENUE & MessageField.LOCATION)
 def on_venue(bot, message):
     pretty_print(message)
-    bot.send_venue(chat_id=message.chat.id, )
     return bot.stop_call
 
 

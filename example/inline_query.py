@@ -38,7 +38,7 @@ def on_query(bot, inline_query: InlineQuery):
 
 
 @router.chosen_inline_result_handler()
-def on_chosen_inline_result(bot, chosen_inline_result: ChosenInlineResult):
+def on_chosen_inline_result(bot, chosen_inline_result):
     bot.send_message(
         chat_id=chosen_inline_result.from_user.id,
         text="you select: {0}".format(chosen_inline_result.result_id),
@@ -46,7 +46,7 @@ def on_chosen_inline_result(bot, chosen_inline_result: ChosenInlineResult):
 
 
 @router.callback_query_handler(callback_data_name="show-url")
-def on_show_url(bot, callback_query: CallbackQuery, query_result_id: str):
+def on_show_url(bot, callback_query, query_result_id: str):
     print(query_result_id)
     bot.send_message(
         chat_id=callback_query.from_user.id,
