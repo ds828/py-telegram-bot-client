@@ -3,7 +3,6 @@ try:
 except ImportError:
     import json
 
-import logging
 import socket
 from typing import Any, Callable, Dict, List, Tuple, Union
 
@@ -13,10 +12,8 @@ from telegrambotclient.base import (BotCommand, BotCommandScope,
                                     InlineQueryResult, InputFile, InputMedia,
                                     LabeledPrice, Message,
                                     PassportElementError, TelegramBotException,
-                                    TelegramObject, Update)
+                                    TelegramObject, Update, logger)
 from telegrambotclient.utils import exclude_none, pretty_format
-
-logger = logging.getLogger("telegram-bot-client")
 
 DEFAULT_API_HOST = "https://api.telegram.org"
 

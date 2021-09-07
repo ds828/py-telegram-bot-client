@@ -1,5 +1,7 @@
+import logging
 import random
 import string
+import sys
 from enum import Enum
 from typing import Any, List, Set, Tuple, Union
 
@@ -8,12 +10,20 @@ try:
 except ImportError:
     import json
 
+logger = logging.getLogger("telegram-bot-client")
+formatter = logging.Formatter(
+    '%(levelname)s %(asctime)s (%(filename)s:%(lineno)d): "%(message)s"')
+console_output_handler = logging.StreamHandler(sys.stderr)
+console_output_handler.setFormatter(formatter)
+logger.addHandler(console_output_handler)
+logger.setLevel(logging.INFO)
+
 
 class TelegramBotException(Exception):
     pass
 
 
-class UpdateType(str, Enum):
+class UpdateField(str, Enum):
     MESSAGE = "message"
     EDITED_MESSAGE = "edited_message"
     CHANNEL_POST = "channel_post"
@@ -27,8 +37,6 @@ class UpdateType(str, Enum):
     POLL_ANSWER = "poll_answer"
     MY_CHAT_MEMBER = "my_chat_member"
     CHAT_MEMBER = "chat_member"
-    FORCE_REPLY = "force_reply"
-    COMMAND = "command"
 
 
 class MessageField(str, Enum):
@@ -258,7 +266,7 @@ Update = (Message) = (CallbackQuery) = (ChosenInlineResult) = (InlineQuery) = (
     CallbackGame
 ) = (
     GameHighScore
-) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = BotCommandScope = TelegramObject
+) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = BotCommandScope = ChatMemberUpdated = TelegramObject
 
 
 class MentionEntity(MessageEntity):

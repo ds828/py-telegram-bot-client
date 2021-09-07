@@ -1,16 +1,14 @@
 from typing import Callable, List, Tuple
 
-from telegrambotclient.api import TelegramBotAPIException
-from telegrambotclient.base import (CallbackQuery, InlineKeyboardButton,
-                                    InlineKeyboardMarkup, KeyboardButton,
-                                    ReplyKeyboardMarkup, TelegramBotException)
-from telegrambotclient.bot import TelegramBot
+from telegrambotclient.base import (InlineKeyboardButton, InlineKeyboardMarkup,
+                                    KeyboardButton, ReplyKeyboardMarkup,
+                                    TelegramBotException)
 from telegrambotclient.router import TelegramRouter
 from telegrambotclient.utils import build_callback_data, parse_callback_data
 
 _RADIO_EMOJI = ("🔘", "⚪")
-_SELECT_EMOJI = ("✔", "")
-_SWITCH_EMOJI = ("🔓", "🔒")
+_SELECT_EMOJI = ("✔️", "")
+_SWITCH_EMOJI = ("✔️", "❌")
 
 
 class Select:
@@ -25,7 +23,8 @@ class Select:
                 changed_data = build_callback_data(name, changed_value)
                 selected, changed_text, keyboard_layout = cls.change_keyboard(
                     callback_query.message.reply_markup.inline_keyboard,
-                    changed_data, emoji)
+                    changed_data,
+                    emoji=emoji)
                 message_text = callback(bot, callback_query, changed_text,
                                         changed_value,
                                         selected) if callback else None
@@ -74,20 +73,19 @@ class Select:
             "the option: {0} is not found".format(changed_data))
 
     @classmethod
-    def create(cls,
-               name: str,
-               *options,
-               emoji=_SELECT_EMOJI) -> List[InlineKeyboardButton]:
+    def build_buttons(cls,
+                      name: str,
+                      *options,
+                      emoji=_SELECT_EMOJI) -> List[InlineKeyboardButton]:
         buttons = []
         # option: (text, value, selected: optional)
         for option in options:
             buttons.append(
-                InlineKeyboardButton(
-                    text="{0}{1}".format(
-                        emoji[0] if len(option) == 3 and option[2] is True else
-                        emoji[1], option[0]),
-                    callback_data=build_callback_data(name, option[1]),
-                ))
+                InlineKeyboardButton(text="{0}{1}".format(
+                    emoji[0] if len(option) == 3 and option[2] is True else
+                    emoji[1], option[0]),
+                                     callback_data=build_callback_data(
+                                         name, option[1])))
         return buttons
 
     @classmethod
@@ -99,12 +97,10 @@ class Select:
                 if "callback_data" in button and button[
                         "text"][:len_emoji_selected] == emoji[0]:
                     if button["callback_data"].startswith(name):
-                        value = parse_callback_data(button["callback_data"],
-                                                    name=name)
-                        if value:
-                            selected_options.append(
-                                (button["text"][len_emoji_selected:],
-                                 value[0]))
+                        selected_options.append(
+                            (button["text"][len_emoji_selected:],
+                             parse_callback_data(button["callback_data"],
+                                                 name=name)[0]))
         return tuple(selected_options)
 
 
@@ -117,6 +113,7 @@ class Radio(Select):
               emoji=_RADIO_EMOJI):
         def on_changed(bot, callback_query, changed_value):
             changed_data = build_callback_data(name, changed_value)
+            print(changed_data)
             changed, changed_text, keyboard_layout = cls.change_keyboard(
                 callback_query.message.reply_markup.inline_keyboard,
                 name,
@@ -145,11 +142,11 @@ class Radio(Select):
                                                callback_data_name=name)
 
     @classmethod
-    def create(cls,
-               name: str,
-               *options,
-               emoji=_RADIO_EMOJI) -> List[InlineKeyboardButton]:
-        return Select.create(name, *options, emoji=emoji)
+    def build_buttons(cls,
+                      name: str,
+                      *options,
+                      emoji=_RADIO_EMOJI) -> List[InlineKeyboardButton]:
+        return Select.build_buttons(name, *options, emoji=emoji)
 
     @classmethod
     def change_keyboard(cls,
@@ -191,11 +188,10 @@ class Radio(Select):
                 if "callback_data" in button and button[
                         "text"][:len_emoji_selected] == emoji[0]:
                     if button["callback_data"].startswith(name):
-                        options = parse_callback_data(button["callback_data"],
-                                                      name)
-                        return (button["text"][len_emoji_selected:],
-                                options[0]) if options else (None, None)
-        return (None, None)
+                        return button["text"][
+                            len_emoji_selected:], parse_callback_data(
+                                button["callback_data"], name)[0] or None
+        return None, None
 
 
 class Switch(Select):
@@ -205,12 +201,13 @@ class Switch(Select):
               name: str,
               callback: Callable = None,
               emoji=_SWITCH_EMOJI):
-        def on_changed(bot, callback_query, status: bool):
+        def on_changed(bot, callback_query, value):
             if callback_query.message or callback_query.from_user:
                 status, text, keyboard_layout = cls.change_keyboard(
-                    callback_query.message.reply_markup.inline_keyboard, name,
-                    emoji)
-                message_text = callback(bot, callback_query,
+                    callback_query.message.reply_markup.inline_keyboard,
+                    name,
+                    emoji=emoji)
+                message_text = callback(bot, callback_query, value,
                                         status) if callback else None
                 if callback_query.message.text:
                     bot.edit_message_text(
@@ -235,7 +232,7 @@ class Switch(Select):
 
     @classmethod
     def change_keyboard(cls,
-                        keyboard_layout,
+                        keyboard_layout: List,
                         name: str,
                         emoji=_SWITCH_EMOJI) -> Tuple:
         len_emoji_0 = len(emoji[0])
@@ -244,58 +241,106 @@ class Switch(Select):
                 if "callback_data" in button:
                     if button["callback_data"].startswith(name):
                         value = parse_callback_data(button["callback_data"],
-                                                    name)
-                        if not value:
-                            raise TelegramBotException(
-                                "switch: {0} can not be matched".format(name))
+                                                    name)[0]
                         if button["text"][:len_emoji_0] == emoji[
                                 0]:  # status is checked
                             # make it be unchecked
                             button["text"] = "{0}{1}".format(
-                                emoji[1], value[0])
-                            return False, value[0], keyboard_layout
+                                emoji[1], button["text"][len_emoji_0:])
+                            return False, value or None, keyboard_layout
                         # otherwise make it be checked
-                        button["text"] = "{0}{1}".format(emoji[0], value[0])
-                        return True, value[0], keyboard_layout
+                        button["text"] = "{0}{1}".format(
+                            emoji[0], button["text"][len(emoji[1]):])
+                        return True, value or None, keyboard_layout
         raise TelegramBotException("switch: {0} is not found".format(name))
 
     @classmethod
-    def create(cls,
-               name: str,
-               text: str,
-               status: bool = False,
-               emoji=_SWITCH_EMOJI) -> InlineKeyboardButton:
+    def build_button(cls,
+                     name: str,
+                     text: str,
+                     value=None,
+                     status: bool = False,
+                     emoji=_SWITCH_EMOJI) -> InlineKeyboardButton:
         return InlineKeyboardButton(
             text="{0}{1}".format(emoji[0] if status else emoji[1], text),
-            callback_data=build_callback_data(name, text))
+            callback_data=build_callback_data(name, value) if value else name)
 
     @classmethod
-    def lookup(cls, keyboard_layout, name: str, emoji=_SWITCH_EMOJI) -> bool:
+    def lookup(cls, keyboard_layout, name: str, emoji=_SWITCH_EMOJI):
         len_emoji_0 = len(emoji[0])
         for line in keyboard_layout:
             for button in line:
                 if "callback_data" in button:
-                    if button["callback_data"].startswith(name):
+                    if button["callback_data"] == name:
                         return button["text"][:len_emoji_0] == emoji[0]
+                    if button["callback_data"].startswith(name):
+                        return button["text"][:len_emoji_0] == emoji[
+                            0], parse_callback_data(button["callback_data"],
+                                                    name)[0]
+
         raise TelegramBotException("switch: {0} is not found".format(name))
 
 
-class Confirm:
-    @classmethod
-    def create(cls,
-               name: str,
-               value=None,
-               ok_text: str = "OK",
-               cancel_text: str = "Cancel"):
+class UIHelper:
+    @staticmethod
+    def setup_select(router: TelegramRouter,
+                     name: str,
+                     callback: Callable = None,
+                     emoji=_SELECT_EMOJI):
+        Select.setup(router, name, callback, emoji=emoji)
 
-        return [
-            InlineKeyboardButton(text=ok_text,
-                                 callback_data=build_callback_data(
-                                     name, True, value)),
-            InlineKeyboardButton(text=cancel_text,
-                                 callback_data=build_callback_data(
-                                     name, False, value)),
-        ]
+    @staticmethod
+    def build_select_buttons(
+            name: str,
+            *options,
+            emoji=_SELECT_EMOJI) -> List[InlineKeyboardButton]:
+        return Select.build_buttons(name, *options, emoji=emoji)
+
+    @staticmethod
+    def lookup_select(keyboard_layout: List,
+                      name: str,
+                      emoji=_SELECT_EMOJI) -> Tuple:
+        return Select.lookup(keyboard_layout, name, emoji=emoji)
+
+    @staticmethod
+    def setup_radio(router: TelegramRouter,
+                    name: str,
+                    callback: Callable = None,
+                    emoji=_RADIO_EMOJI):
+        Radio.setup(router, name, callback, emoji=emoji)
+
+    @staticmethod
+    def build_radio_buttons(name: str,
+                            *options,
+                            emoji=_RADIO_EMOJI) -> List[InlineKeyboardButton]:
+        return Radio.build_buttons(name, *options, emoji=emoji)
+
+    @staticmethod
+    def lookup_radio(keyboard_layout: List, name: str, emoji=_RADIO_EMOJI):
+        return Radio.lookup(keyboard_layout, name, emoji=emoji)
+
+    @staticmethod
+    def setup_switch(router: TelegramRouter,
+                     name: str,
+                     callback: Callable = None,
+                     emoji=_SWITCH_EMOJI):
+        Switch.setup(router, name, callback, emoji=emoji)
+
+    @staticmethod
+    def build_switch_button(name: str,
+                            text: str,
+                            value=None,
+                            status: bool = False,
+                            emoji=_SWITCH_EMOJI) -> InlineKeyboardButton:
+        return Switch.build_button(name,
+                                   text,
+                                   value=value,
+                                   status=status,
+                                   emoji=emoji)
+
+    @staticmethod
+    def lookup_switch(keyboard_layout: List, name: str, emoji=_SWITCH_EMOJI):
+        return Switch.lookup(keyboard_layout, name, emoji=emoji)
 
 
 class ReplyKeyboard:

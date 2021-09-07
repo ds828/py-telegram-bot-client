@@ -1,7 +1,7 @@
 import pprint
 from functools import wraps
 from io import BytesIO, StringIO
-from typing import Dict, List, Pattern, Tuple, Union
+from typing import Any, Dict, List, Pattern, Tuple, Union
 
 import urllib3
 
@@ -18,7 +18,7 @@ def exclude_none(**kwargs) -> Dict:
 _pp = pprint.PrettyPrinter(indent=2)
 
 
-def pretty_print(data: Dict):
+def pretty_print(data: Any):
     _pp.pprint(data)
 
 
@@ -58,15 +58,17 @@ def i18n():
     return decorate
 
 
-def build_callback_data(name: str, *args) -> str:
-    return "{0}|{1}".format(name, json.dumps(args))
+def build_callback_data(name: str, *value) -> str:
+    return "{0}|{1}".format(name, json.dumps(value))
 
 
 def parse_callback_data(callback_data: str, name: str):
-    name_args = callback_data.split("|")
-    if name_args[0] == name:
-        return tuple(json.loads(name_args[1]))
-    return None
+    callback_name_value = callback_data.split("|")
+    if len(callback_name_value) == 2:
+        callback_name, callback_value = tuple(callback_name_value)
+        if callback_name == name:
+            return tuple(json.loads(callback_value))
+    return (None, )
 
 
 def build_force_reply_data(*args):

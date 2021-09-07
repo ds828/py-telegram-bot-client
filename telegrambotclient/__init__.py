@@ -1,7 +1,3 @@
-import logging
-import sys
-from typing import Dict, List, Tuple, Union
-
 from telegrambotclient.api import (DEFAULT_API_HOST, TelegramBotAPI,
                                    TelegramBotAPIException)
 from telegrambotclient.base import TelegramBotException, Update
@@ -9,26 +5,8 @@ from telegrambotclient.bot import TelegramBot
 from telegrambotclient.router import TelegramRouter
 from telegrambotclient.storage import TelegramStorage
 
-logger = logging.getLogger("telegram-bot-client")
-formatter = logging.Formatter(
-    '%(levelname)s %(asctime)s (%(filename)s:%(lineno)d): "%(message)s"')
-console_output_handler = logging.StreamHandler(sys.stderr)
-console_output_handler.setFormatter(formatter)
-logger.addHandler(console_output_handler)
-logger.setLevel(logging.INFO)
-
 
 class TelegramBotClient:
-    """
-    A bots and routers manager and updates dispatcher
-    Attributes:
-        _bot_data: a dict for saving bots
-        _router_data: a dict for saving routers
-        router: a function for creating/getting a router
-        _name: this client's name
-
-    """
-
     __slots__ = ("_bot_data", "_router_data", "_name", "_bot_api_data")
 
     def __init__(self, name: str = "default-client") -> None:
@@ -52,7 +30,7 @@ class TelegramBotClient:
         token: str,
         router: TelegramRouter = None,
         storage: TelegramStorage = None,
-        i18n_source: Dict = None,
+        i18n_source=None,
         bot_api: TelegramBotAPI = None,
     ) -> TelegramBot:
         bot_api = self._bot_api_data.get(
@@ -70,10 +48,10 @@ class TelegramBotClient:
             self._bot_data[token] = bot
             return bot
 
-    def bot(self, token: str) -> Union[TelegramBot, None]:
+    def bot(self, token: str) -> TelegramBot:
         return self._bot_data.get(token, None)
 
-    async def dispatch(self, token: str, raw_update: Dict):
+    async def dispatch(self, token: str, raw_update):
         simple_bot = self._bot_data.get(token, None)
         if simple_bot is None:
             raise TelegramBotException(

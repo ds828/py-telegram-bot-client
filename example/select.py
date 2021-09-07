@@ -1,9 +1,9 @@
 """
-run: python -m example.select_group
+run: python -m example.select
 """
 from telegrambotclient import bot_client
 from telegrambotclient.base import InlineKeyboardButton, MessageField
-from telegrambotclient.ui import InlineKeyboard, Select
+from telegrambotclient.ui import InlineKeyboard, UIHelper
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
@@ -12,27 +12,23 @@ router = bot_client.router()
 emoji = ("✔️✔️", "")
 
 
-def select_callback(bot, callback_query, text, option, selected):
-    text = "you {0}: text={1} option={2}".format(
-        "select" if selected else "unselect", text, option)
-    bot.send_message(chat_id=callback_query.from_user.id, text=text)
-    # message.text will be changed
-    return text
+def select_callback(bot, callback_query, text, value, selected: bool):
+    return "you {0}: text={1} value={2}".format(
+        "select" if selected else "unselect", text, value)
 
 
 select_name = "my-select"
-Select.setup(router, select_name, select_callback, emoji=emoji)
+UIHelper.setup_select(router, select_name, select_callback, emoji=emoji)
 
 
 @router.message_handler(fields=MessageField.TEXT)
 def on_show_keyboard(bot, message):
-    buttons = Select.create(
+    keyboard = InlineKeyboard(*UIHelper.build_select_buttons(
         select_name,
         ("select1", "select-value1", True),  # selected
-        ("select2", "select-value2"),
-        ("select3", "select-value3"),
-        emoji=emoji)
-    keyboard = InlineKeyboard(*buttons)
+        ("select2", None),
+        ("select3", ("select-value3", 123)),
+        emoji=emoji))
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(
@@ -45,7 +41,7 @@ def on_show_keyboard(bot, message):
 
 @router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
-    options = Select.lookup(
+    options = UIHelper.lookup_select(
         callback_query.message.reply_markup.inline_keyboard,
         select_name,
         emoji=emoji)

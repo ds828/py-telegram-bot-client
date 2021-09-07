@@ -1,18 +1,14 @@
 import asyncio
-import logging
-import os
 from contextlib import contextmanager
 from typing import Callable, Dict, Tuple
 
 from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.base import (InputFile, Message, TelegramBotException,
-                                    Update)
+                                    Update, logger)
 from telegrambotclient.storage import (MemoryStorage, TelegramSession,
                                        TelegramStorage)
 from telegrambotclient.utils import (build_force_reply_data,
                                      parse_force_reply_data, pretty_format)
-
-logger = logging.getLogger("telegram-bot-client")
 
 
 class TelegramBot:

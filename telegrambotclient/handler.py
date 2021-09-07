@@ -2,57 +2,42 @@ import asyncio
 import re
 from typing import Callable, Set, Tuple, Union
 
-from telegrambotclient.base import CallbackQuery, MessageField, UpdateType
+from telegrambotclient.base import CallbackQuery, MessageField, UpdateField
 
 
 class UpdateHandler:
-    __slots__ = ("_update_type", "_callback")
+    __slots__ = ("_callback", "_update_field")
 
-    def __init__(
-        self,
-        callback: Callable,
-        update_type: Union[UpdateType, str],
-    ):
+    def __init__(self, callback: Callable, update_field: Union[UpdateField,
+                                                               str]):
         self._callback = callback
-        self._update_type = update_type.value if isinstance(
-            update_type, UpdateType) else update_type
+        self._update_field = update_field.value if isinstance(
+            update_field, UpdateField) else update_field
 
     @property
-    def update_type(self) -> str:
-        return self._update_type
-
-    def __repr__(self) -> str:
+    def name(self):
         return "{0}.{1}".format(self._callback.__module__,
                                 self._callback.__name__)
 
+    @property
+    def update_field(self) -> str:
+        return self._update_field
+
+    def __repr__(self) -> str:
+        return self.name
+
     async def __call__(self, *args, **kwargs):
-        if asyncio.iscoroutinefunction(self._callback):
-            return await self._callback(*args, **kwargs)
-        return self._callback(*args, **kwargs)
+        return await self._callback(
+            *args, **kwargs) if asyncio.iscoroutinefunction(
+                self._callback) else self._callback(*args, **kwargs)
 
 
-class ErrorHandler:
-    __slots__ = (
-        "_callback",
-        "_errors",
-    )
+class ErrorHandler(UpdateHandler):
+    __slots__ = ("_errors", )
 
-    def __init__(
-        self,
-        callback: Callable,
-        errors: Tuple = None,
-    ):
-        self._callback = callback
+    def __init__(self, callback: Callable, errors: Tuple = None):
+        super().__init__(callback=callback, update_field="error")
         self._errors = errors or (Exception, )
-
-    def __repr__(self) -> str:
-        return "{0}.{1}".format(self._callback.__module__,
-                                self._callback.__name__)
-
-    async def __call__(self, *args, **kwargs):
-        if asyncio.iscoroutinefunction(self._callback):
-            return await self._callback(*args, **kwargs)
-        return self._callback(*args, **kwargs)
 
     @property
     def errors(self) -> Tuple:
@@ -63,7 +48,7 @@ class CommandHandler(UpdateHandler):
     __slots__ = ("_cmds", )
 
     def __init__(self, callback: Callable, cmds: Tuple[str]):
-        super().__init__(callback=callback, update_type=UpdateType.COMMAND)
+        super().__init__(callback=callback, update_field="command")
         self._cmds = cmds
 
     @property
@@ -72,83 +57,62 @@ class CommandHandler(UpdateHandler):
 
 
 class ForceReplyHandler(UpdateHandler):
-    def __init__(
-        self,
-        callback: Callable,
-    ):
-        super().__init__(callback=callback, update_type=UpdateType.FORCE_REPLY)
+    def __init__(self, callback: Callable):
+        super().__init__(callback=callback, update_field="force_reply")
 
 
 class _MessageHandler(UpdateHandler):
     __slots__ = ("_message_fields", )
 
-    def __init__(
-        self,
-        callback: Callable,
-        update_type: Union[UpdateType, str] = UpdateType.MESSAGE,
-        fields: Union[MessageField, str] = MessageField.TEXT,
-    ):
-        super().__init__(callback=callback, update_type=update_type)
+    def __init__(self,
+                 callback: Callable,
+                 update_field: Union[UpdateField, str] = UpdateField.MESSAGE,
+                 fields: Union[MessageField, str] = None):
+        super().__init__(callback=callback, update_field=update_field)
         if isinstance(fields, MessageField):
             self._message_fields = fields.fields
         else:
             self._message_fields = fields
 
     @property
-    def message_fields(self) -> Union[str, Set, Tuple]:
+    def message_fields(self) -> Union[str, Set, Tuple, None]:
         return self._message_fields
 
 
 class MessageHandler(_MessageHandler):
-    def __init__(
-        self,
-        callback: Callable,
-        fields: Union[MessageField, str] = MessageField.TEXT,
-    ):
-        super().__init__(
-            callback=callback,
-            update_type=UpdateType.MESSAGE,
-            fields=fields,
-        )
+    def __init__(self,
+                 callback: Callable,
+                 fields: Union[MessageField, str] = None):
+        super().__init__(callback=callback,
+                         update_field=UpdateField.MESSAGE,
+                         fields=fields)
 
 
 class EditedMessageHandler(_MessageHandler):
-    def __init__(
-        self,
-        callback: Callable,
-        fields: Union[MessageField, str] = MessageField.TEXT,
-    ):
-        super().__init__(
-            callback=callback,
-            update_type=UpdateType.EDITED_MESSAGE,
-            fields=fields,
-        )
+    def __init__(self,
+                 callback: Callable,
+                 fields: Union[MessageField, str] = None):
+        super().__init__(callback=callback,
+                         update_field=UpdateField.EDITED_MESSAGE,
+                         fields=fields)
 
 
 class ChannelPostHandler(_MessageHandler):
-    def __init__(
-        self,
-        callback: Callable,
-        fields: Union[MessageField, str] = MessageField.TEXT,
-    ):
-        super().__init__(
-            callback=callback,
-            update_type=UpdateType.CHANNEL_POST,
-            fields=fields,
-        )
+    def __init__(self,
+                 callback: Callable,
+                 fields: Union[MessageField, str] = None):
+        super().__init__(callback=callback,
+                         update_field=UpdateField.CHANNEL_POST,
+                         fields=fields)
 
 
 class EditedChannelPostHandler(_MessageHandler):
-    def __init__(
-        self,
-        callback: Callable,
-        fields: Union[MessageField, str] = MessageField.TEXT,
-    ):
-        super().__init__(
-            callback=callback,
-            update_type=UpdateType.EDITED_CHANNEL_POST,
-            fields=fields,
-        )
+    def __init__(self,
+                 callback: Callable,
+                 fields: Union[MessageField, str] = None):
+        super().__init__(callback=callback,
+                         update_field=UpdateField.EDITED_CHANNEL_POST,
+                         fields=fields)
 
 
 class CallbackQueryHandler(UpdateHandler):
@@ -163,7 +127,7 @@ class CallbackQueryHandler(UpdateHandler):
                  callback_data_parse: Callable = None,
                  **kwargs):
         super().__init__(callback=callback,
-                         update_type=UpdateType.CALLBACK_QUERY)
+                         update_field=UpdateField.CALLBACK_QUERY)
         self._callback_data = callback_data
         self._callback_data_name = callback_data_name
         self._callback_data_patterns = tuple(
@@ -174,12 +138,9 @@ class CallbackQueryHandler(UpdateHandler):
 
     @property
     def have_matchers(self) -> Tuple[bool, bool, bool, bool]:
-        return (
-            bool(self._callback_data),
-            bool(self._callback_data_name),
-            bool(self._callback_data_patterns),
-            bool(self._callback_data_parse),
-        )
+        return (bool(self._callback_data), bool(self._callback_data_name),
+                bool(self._callback_data_patterns),
+                bool(self._callback_data_parse))
 
     @property
     def callback_data(self):
@@ -205,34 +166,59 @@ class CallbackQueryHandler(UpdateHandler):
 
 
 class InlineQueryHandler(UpdateHandler):
-    def __init__(
-        self,
-        callback: Callable,
-    ):
+    def __init__(self, callback: Callable):
         super().__init__(callback=callback,
-                         update_type=UpdateType.INLINE_QUERY)
+                         update_field=UpdateField.INLINE_QUERY)
 
 
 class ChosenInlineResultHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_type=UpdateType.CHOSEN_INLINE_RESULT)
+        super().__init__(callback,
+                         update_field=UpdateField.CHOSEN_INLINE_RESULT)
 
 
 class ShippingQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_type=UpdateType.SHIPPING_QUERY)
+        super().__init__(callback, update_field=UpdateField.SHIPPING_QUERY)
 
 
 class PreCheckoutQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_type=UpdateType.PRE_CHECKOUT_QUERY)
+        super().__init__(callback, update_field=UpdateField.PRE_CHECKOUT_QUERY)
 
 
 class PollHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_type=UpdateType.POLL)
+        super().__init__(callback, update_field=UpdateField.POLL)
 
 
 class PollAnswerHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_type=UpdateType.POLL_ANSWER)
+        super().__init__(callback, update_field=UpdateField.POLL_ANSWER)
+
+
+class MyChatMemberHandler(UpdateHandler):
+    def __init__(self, callback: Callable):
+        super().__init__(callback, update_field=UpdateField.MY_CHAT_MEMBER)
+
+
+class ChatMemberHandler(UpdateHandler):
+    def __init__(self, callback: Callable):
+        super().__init__(callback, update_field=UpdateField.CHAT_MEMBER)
+
+
+HandlerMapping = {
+    UpdateField.MESSAGE: MessageHandler,
+    UpdateField.EDITED_MESSAGE: EditedMessageHandler,
+    UpdateField.CHANNEL_POST: ChannelPostHandler,
+    UpdateField.EDITED_CHANNEL_POST: EditedChannelPostHandler,
+    UpdateField.INLINE_QUERY: InlineQueryHandler,
+    UpdateField.CHOSEN_INLINE_RESULT: ChosenInlineResultHandler,
+    UpdateField.CALLBACK_QUERY: CallbackQueryHandler,
+    UpdateField.SHIPPING_QUERY: ShippingQueryHandler,
+    UpdateField.PRE_CHECKOUT_QUERY: PreCheckoutQueryHandler,
+    UpdateField.POLL: PollHandler,
+    UpdateField.POLL_ANSWER: PollAnswerHandler,
+    UpdateField.MY_CHAT_MEMBER: MyChatMemberHandler,
+    UpdateField.CHAT_MEMBER: ChatMemberHandler
+}
