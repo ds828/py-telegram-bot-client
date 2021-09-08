@@ -10,7 +10,7 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-def on_switch_callback(bot, callback_query, value, status):
+def on_switch_callback(bot, callback_query, value, status: bool):
     return "switch status: {0}, {1}".format(status, value)
 
 
@@ -34,11 +34,11 @@ def on_show_keyboard(bot, message):
 
 @router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
-    status, (value1, value2) = UIHelper.lookup_switch(
+    status, value = UIHelper.lookup_switch(
         callback_query.message.reply_markup.inline_keyboard, switch_name)
     bot.send_message(
         chat_id=callback_query.from_user.id,
-        text="switch status: {0}, {1}, {2}".format(status, value1, value2),
+        text="switch status: {0}, {1}".format(status, value),
     )
     return bot.stop_call
 

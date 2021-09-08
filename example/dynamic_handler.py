@@ -7,7 +7,7 @@ from telegrambotclient.handler import MessageHandler
 from telegrambotclient.ui import InlineKeyboard
 from telegrambotclient.utils import pretty_print
 
-BOT_TOKEN = "1036521102:AAF2BqcC9QD_yKXlKy4CEBzZKPHXsxnL4Ss"
+BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
 

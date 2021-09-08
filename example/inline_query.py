@@ -4,8 +4,7 @@ enable inline mode:
 send the /setinline command to @BotFather and /setinlinefeedback to enable chosen_inline_result
 """
 from telegrambotclient import bot_client
-from telegrambotclient.base import (CallbackQuery, ChosenInlineResult,
-                                    InlineKeyboardButton, InlineQuery,
+from telegrambotclient.base import (InlineKeyboardButton, InlineQuery,
                                     InlineQueryResultPhoto)
 from telegrambotclient.ui import InlineKeyboard
 from telegrambotclient.utils import build_callback_data

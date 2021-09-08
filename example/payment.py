@@ -9,7 +9,7 @@ import logging
 from telegrambotclient import bot_client
 from telegrambotclient.base import (BotCommand, InlineKeyboardButton,
                                     LabeledPrice, MessageField, ShippingOption)
-from telegrambotclient.ui import InlineKeyboard, Select
+from telegrambotclient.ui import InlineKeyboard, Select, UIHelper
 from telegrambotclient.utils import pretty_print
 
 BOT_TOKEN = "<BOT_TOKEN>"
@@ -28,19 +28,18 @@ def on_start(bot, message, *payload):
     return bot.stop_call
 
 
-Select.setup(router, "menu")
+UIHelper.setup_select(router, "menu")
 
 
 @router.command_handler(cmds=("/menu", ))
 def on_show_menu(bot, message):
-    buttons = Select.create(
+    buttons = UIHelper.build_select_buttons(
         "menu",
         ("4 cup cakes $9.98", ("4 cup cake", 998)),
         ("4 egg ta $4.99", ("4 egg ta", 499)),
         ("6 inch cake $49.98", ("6 inch cake", 4998)),
     )
-    keyboard = InlineKeyboard()
-    keyboard.add_buttons(*buttons)
+    keyboard = InlineKeyboard(*buttons)
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(

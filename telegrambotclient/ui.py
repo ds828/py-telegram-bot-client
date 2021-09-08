@@ -55,20 +55,25 @@ class Select:
                         changed_data: str,
                         emoji=_SELECT_EMOJI):
         len_emoji_selected = len(emoji[0])
+        len_emoji_unselected = len(emoji[1])
         for line in keyboard_layout:
             for button in line:
                 if "callback_data" in button:
                     if button["callback_data"] == changed_data:
-                        if button["text"][:len_emoji_selected] == emoji[
-                                0]:  # if it is selected
-                            button["text"] = button["text"][
-                                len_emoji_selected:]  # make it unselect
-                            return False, button["text"], keyboard_layout
+                        # if it is selected
+                        if button["text"][:len_emoji_selected] == emoji[0]:
+                            button["text"] = "{0}{1}".format(
+                                emoji[1], button["text"]
+                                [len_emoji_selected:])  # make it unselect
+                            return False, button["text"][
+                                len_emoji_selected:], keyboard_layout
                         # otherwise make it select
-                        button["text"] = "{0}{1}".format(
-                            emoji[0], button["text"])
-                        return True, button["text"][
-                            len_emoji_selected:], keyboard_layout
+                        if button["text"][:len_emoji_unselected] == emoji[1]:
+                            button["text"] = "{0}{1}".format(
+                                emoji[0],
+                                button["text"][len_emoji_unselected:])
+                            return True, button["text"][
+                                len_emoji_unselected:], keyboard_layout
         raise TelegramBotException(
             "the option: {0} is not found".format(changed_data))
 

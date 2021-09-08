@@ -1,12 +1,12 @@
 """
-NOT fully tested
+NOT tested
 run: python -m example.local_server
 """
 from telegrambotclient import bot_client
 from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.base import MessageField, ParseMode
 
-from example.settings import BOT_TOKEN
+BOT_TOKEN = "BOT_TOKEN"
 
 router = bot_client.router()
 
