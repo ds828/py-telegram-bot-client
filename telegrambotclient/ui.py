@@ -66,14 +66,14 @@ class Select:
                                 emoji[1], button["text"]
                                 [len_emoji_selected:])  # make it unselect
                             return False, button["text"][
-                                len_emoji_selected:], keyboard_layout
+                                len_emoji_unselected:], keyboard_layout
                         # otherwise make it select
                         if button["text"][:len_emoji_unselected] == emoji[1]:
                             button["text"] = "{0}{1}".format(
                                 emoji[0],
                                 button["text"][len_emoji_unselected:])
                             return True, button["text"][
-                                len_emoji_unselected:], keyboard_layout
+                                len_emoji_selected:], keyboard_layout
         raise TelegramBotException(
             "the option: {0} is not found".format(changed_data))
 
@@ -351,9 +351,12 @@ class UIHelper:
 class ReplyKeyboard:
     __slots__ = ("_layout", )
 
-    def __init__(self, *buttons, col=1):
-        self._layout = []
+    def __init__(self, *buttons, col=1, layout=None):
+        self._layout = layout or []
         self.add_buttons(*buttons, col=col)
+
+    def __add__(self, keyboard):
+        return ReplyKeyboard(layout=self._layout + keyboard._layout)
 
     def add_buttons(self, *buttons, col: int = 1):
         for idx in range(0, len(buttons), col):
@@ -377,5 +380,8 @@ class ReplyKeyboard:
 
 
 class InlineKeyboard(ReplyKeyboard):
+    def __add__(self, keyboard):
+        return InlineKeyboard(layout=self._layout + keyboard._layout)
+
     def markup(self):
         return InlineKeyboardMarkup(inline_keyboard=self._layout)

@@ -43,11 +43,13 @@ def regex_match(regex_patterns: Union[List[Pattern], Tuple[Pattern]]):
     return decorate
 
 
-def i18n():
+def i18n(default_lang_code: str = "en"):
     def decorate(method):
         @wraps(method)
         def wrapper(bot, data, *args, **kwargs):
-            def _(text, lang_code=data.from_user.language_code):
+            def _(text,
+                  lang_code=data.from_user.language_code
+                  if data.from_user else default_lang_code):
                 return bot.get_text(lang_code, text)
 
             kwargs.update({"_": _})

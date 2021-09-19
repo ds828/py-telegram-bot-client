@@ -615,7 +615,7 @@ class TelegramRouter:
     @classmethod
     def parse_update_field_and_data(cls, update: Update) -> Tuple:
         for name, value in update.items():
-            if name in cls.update_field_values:
+            if name in cls.update_field_values and value:
                 return name, value
         raise TelegramBotException("unknown update field:\r\n{0}".format(
             pretty_format(update)))
