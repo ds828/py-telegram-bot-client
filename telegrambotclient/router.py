@@ -46,6 +46,7 @@ class DefaultRoute:
             for _handler in route:
                 if _handler.name == handler.name:
                     route.remove(_handler)
+                    break
             if not route:
                 del self._root_route[self._name]
 
@@ -68,8 +69,8 @@ class ErrorRoute(DefaultRoute):
     async def call_handlers(self, bot: TelegramBot, data: TelegramObject,
                             error: Exception) -> bool:
         for handler in self._root_route.get("error", ()):
-            if await self.call_handler(handler, bot, data,
-                                       error) is bot.stop_call:
+            if isinstance(error, handler.errors) and await self.call_handler(
+                    handler, bot, data, error) is bot.stop_call:
                 return bot.stop_call
         return bot.next_call
 

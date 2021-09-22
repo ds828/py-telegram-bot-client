@@ -19,21 +19,19 @@ DEFAULT_API_HOST = "https://api.telegram.org"
 
 
 class TelegramBotAPIException(TelegramBotException):
-    __slots__ = ("_error_data", )
+    __slots__ = ("_error", )
 
-    def __init__(self, error_response: TelegramObject) -> None:
-        super().__init__(error_response["description"])
-        self._error_data = error_response
+    def __init__(self, error: TelegramObject) -> None:
+        super().__init__(
+            error.get("description", "unknown telegrambot api error"))
+        self._error = error
 
     @property
     def error(self):
-        return self._error_data
+        return self._error
 
     def __repr__(self) -> str:
-        return """----------------------- TelegramBotAPIException BEGIN-------------------------
-{0}
------------------------ TelegramBotAPIException END --------------------------""".format(
-            pretty_format(self._error_data))
+        pretty_format(self._error)
 
 
 class TelegramBotAPI:
@@ -94,13 +92,6 @@ class TelegramBotAPI:
                 if response.status == 500:
                     raise TelegramBotException(response.data)
                 json_response = json.loads(response.data.decode("utf-8"))
-                logger.debug(
-                    """
------------------------ JSON RESPONSE BEGIN ---------------------------
-%s
------------------------ JSON RESPONSE  END  ---------------------------""",
-                    pretty_format(json_response),
-                )
                 if response.status == 200:
                     result = json_response["result"]
                     if isinstance(result, dict):

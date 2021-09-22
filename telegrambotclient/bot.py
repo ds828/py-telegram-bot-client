@@ -89,14 +89,7 @@ class TelegramBot:
         return self.router.stop_call
 
     async def dispatch(self, update: Update):
-        logger.debug(
-            """
------------------------ UPDATE BEGIN ---------------------------
-%s
------------------------ UPDATE  END  ---------------------------
-""",
-            pretty_format(update),
-        )
+        logger.debug(pretty_format(update))
         await self._router.route(self, update)
 
     def join_force_reply(self,
@@ -148,13 +141,13 @@ class TelegramBot:
 
     def push_ui(self, user_id: int, message):
         with self.session(user_id) as session:
-            ui_stack = session.get("ui_stack", [])
+            ui_stack = session.get("_ui_", [])
             ui_stack.append(message)
-            session["ui_stack"] = ui_stack
+            session["_ui_"] = ui_stack
 
     def pop_ui(self, user_id: int):
         with self.session(user_id) as session:
-            return session["ui_stack"].pop()
+            return session["_ui_"].pop()
 
     def get_text(self, lang_code: str, text: str) -> str:
         if self._i18n_source:
