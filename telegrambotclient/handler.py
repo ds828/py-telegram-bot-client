@@ -1,6 +1,6 @@
 import asyncio
 import re
-from typing import Callable, Set, Tuple, Union
+from typing import Callable, Tuple, Union
 
 from telegrambotclient.base import CallbackQuery, MessageField, UpdateField
 
@@ -33,27 +33,23 @@ class UpdateHandler:
 
 
 class ErrorHandler(UpdateHandler):
-    __slots__ = ("_errors", )
+    __slots__ = ("errors", )
 
     def __init__(self, callback: Callable, errors: Tuple = None):
         super().__init__(callback=callback, update_field="error")
-        self._errors = errors or (Exception, )
-
-    @property
-    def errors(self) -> Tuple:
-        return self._errors
+        self.errors = errors or (Exception, )
 
 
 class CommandHandler(UpdateHandler):
-    __slots__ = ("_cmds", )
+    __slots__ = ("cmds", "delimiter")
 
-    def __init__(self, callback: Callable, cmds: Tuple[str]):
+    def __init__(self,
+                 callback: Callable,
+                 cmds: Tuple[str],
+                 delimiter: str = " "):
         super().__init__(callback=callback, update_field="command")
-        self._cmds = cmds
-
-    @property
-    def cmds(self) -> Tuple:
-        return self._cmds
+        self.cmds = cmds
+        self.delimiter = delimiter
 
 
 class ForceReplyHandler(UpdateHandler):
@@ -62,7 +58,7 @@ class ForceReplyHandler(UpdateHandler):
 
 
 class _MessageHandler(UpdateHandler):
-    __slots__ = ("_message_fields", )
+    __slots__ = ("fields", )
 
     def __init__(self,
                  callback: Callable,
@@ -70,13 +66,9 @@ class _MessageHandler(UpdateHandler):
                  fields: Union[MessageField, str] = None):
         super().__init__(callback=callback, update_field=update_field)
         if isinstance(fields, MessageField):
-            self._message_fields = fields.fields
+            self.fields = fields.fields
         else:
-            self._message_fields = fields
-
-    @property
-    def message_fields(self) -> Union[str, Set, Tuple, None]:
-        return self._message_fields
+            self.fields = fields
 
 
 class MessageHandler(_MessageHandler):
@@ -116,51 +108,40 @@ class EditedChannelPostHandler(_MessageHandler):
 
 
 class CallbackQueryHandler(UpdateHandler):
-    __slots__ = ("_callback_data", "_callback_data_name",
-                 "_callback_data_patterns", "_callback_data_parse", "_kwargs")
+    __slots__ = ("callback_data", "callback_data_name",
+                 "callback_data_patterns", "callback_data_parser",
+                 "game_short_name", "_kwargs")
 
     def __init__(self,
                  callback: Callable,
                  callback_data: str = None,
                  callback_data_name: str = None,
                  callback_data_regex: Tuple[str] = None,
-                 callback_data_parse: Callable = None,
+                 callback_data_parser: Callable = None,
+                 game_short_name: str = None,
                  **kwargs):
         super().__init__(callback=callback,
                          update_field=UpdateField.CALLBACK_QUERY)
-        self._callback_data = callback_data
-        self._callback_data_name = callback_data_name
-        self._callback_data_patterns = tuple(
+        self.callback_data = callback_data
+        self.callback_data_name = callback_data_name
+        self.callback_data_patterns = tuple(
             re.compile(regex) for regex in callback_data_regex) if isinstance(
                 callback_data_regex, tuple) else ()
-        self._callback_data_parse = callback_data_parse
+        self.callback_data_parser = callback_data_parser
+        self.game_short_name = game_short_name
         self._kwargs = kwargs
 
-    @property
-    def have_matchers(self) -> Tuple[bool, bool, bool, bool]:
-        return (bool(self._callback_data), bool(self._callback_data_name),
-                bool(self._callback_data_patterns),
-                bool(self._callback_data_parse))
-
-    @property
-    def callback_data(self):
-        return self._callback_data
-
-    @property
-    def callback_data_name(self):
-        return self._callback_data_name
-
-    def callback_data_match(self, callback_query: CallbackQuery):
-        for pattern in self._callback_data_patterns:
-            if callback_query.data:
+    def match_callback_data(self, callback_query: CallbackQuery):
+        for pattern in self.callback_data_patterns:
+            if isinstance(callback_query.data, str):
                 result = pattern.match(callback_query.data)
                 if result:
                     return result
         return None
 
-    def callback_data_parse(self, callback_query: CallbackQuery):
-        if self._callback_data_parse:
-            return self._callback_data_parse(callback_query.data,
+    def parse_callback_data(self, callback_query: CallbackQuery):
+        if self.callback_data_parser:
+            return self.callback_data_parser(callback_query.data,
                                              **self._kwargs)
         return False
 

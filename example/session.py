@@ -11,11 +11,11 @@ router = bot_client.router()
 
 @router.message_handler()
 def on_session_example(bot, message):
-    session = bot.get_session(message.from_user.id,
+    session = bot.get_session(message.chat.id,
                               expires=60)  # renew a new expires
-    session.set("key1", 123)  # field, value
+    session["key1"] = 123  # field, value
     bot.send_message(
-        chat_id=message.from_user.id,
+        chat_id=message.chat.id,
         text=str(session),
     )
 
@@ -25,10 +25,10 @@ def on_session_example(bot, message):
     session["key2"] = key2_data
     session.save()  # save persistently
     bot.send_message(
-        chat_id=message.from_user.id,
+        chat_id=message.chat.id,
         text=str(session),
     )
-    print(session.data)
+    print(session)
     # access session with context manager
     with bot.session(message.chat.id) as session:
         # delete mulit keys
@@ -36,14 +36,14 @@ def on_session_example(bot, message):
         # delete one key
         del session["key3"]
         if "key3" not in session:
-            session.set("key3", 789)
+            session["key3"] = 789
             bot.send_message(
-                chat_id=message.from_user.id,
+                chat_id=message.chat.id,
                 text=str(session),
             )
         session.clear()
         bot.send_message(
-            chat_id=message.from_user.id,
+            chat_id=message.chat.id,
             text=str(session),
         )
         print(session.data)

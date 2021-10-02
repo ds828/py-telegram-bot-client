@@ -8,12 +8,12 @@ with open("README.md", 'r') as f:
 
 setup(
     name='py-telegram-bot-client',
-    version="{0}.{1}".format(TelegramBotAPI.__version__, 5.5),
+    version="{0}.{1}".format(TelegramBotAPI.__version__, 5.6),
     description='A Telegram Bot API Python Client',
     long_description_content_type="text/markdown",
     long_description=long_description,
-    url='https://github.com/songdi/py-telegram-bot-client',
-    author='Di SONG',
+    url='https://github.com/daoleme/py-telegram-bot-client',
+    author='ds992',
     author_email='songdi19@gmail.com',
     packages=['telegrambotclient'],
     install_requires=['urllib3', 'ujson'],
