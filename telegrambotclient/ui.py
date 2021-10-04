@@ -118,7 +118,6 @@ class Radio(Select):
               emoji=_RADIO_EMOJI):
         def on_changed(bot, callback_query, changed_value):
             changed_data = build_callback_data(name, changed_value)
-            print(changed_data)
             changed, changed_text, keyboard_layout = cls.change_keyboard(
                 callback_query.message.reply_markup.inline_keyboard,
                 name,

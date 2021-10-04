@@ -7,19 +7,19 @@ from telegrambotclient.storage import TelegramStorage
 
 
 class TelegramBotClient:
-    __slots__ = ("_bot_data", "_router_data", "name", "_bot_api_data")
+    __slots__ = ("bots", "routers", "name", "api_callers")
 
     def __init__(self, name: str = "default-client") -> None:
-        self._bot_data = {}
-        self._router_data = {}
-        self._bot_api_data = {}
+        self.bots = {}
+        self.routers = {}
+        self.api_callers = {}
         self.name = name
 
     def router(self, name: str = "default-router") -> TelegramRouter:
-        router = self._router_data.get(name, None)
+        router = self.routers.get(name, None)
         if router is None:
-            self._router_data[name] = TelegramRouter(name)
-        return self._router_data[name]
+            self.routers[name] = TelegramRouter(name)
+        return self.routers[name]
 
     def create_bot(
         self,
@@ -29,30 +29,27 @@ class TelegramBotClient:
         i18n_source=None,
         bot_api: TelegramBotAPI = None,
     ) -> TelegramBot:
-        bot_api = self._bot_api_data.get(
+        bot_api = self.api_callers.get(
             bot_api.host if bot_api else DEFAULT_API_HOST, None)
         if bot_api is None:
             bot_api = TelegramBotAPI()
-            self._bot_api_data[bot_api.host] = bot_api
+            self.api_callers[bot_api.host] = bot_api
         router = router or self.router()
+        if router.name not in self.routers:
+            self.routers[router.name] = router
         bot = TelegramBot(token, router, storage, i18n_source, bot_api)
         try:
             bot.user
         except TelegramBotAPIException as error:
             raise TelegramBotException("The bot is not available") from error
         else:
-            self._bot_data[token] = bot
+            self.bots[token] = bot
             return bot
 
-    def bot(self, token: str) -> TelegramBot:
-        return self._bot_data.get(token, None)
-
     async def dispatch(self, token: str, update):
-        bot = self.bot(token)
-        if bot is None:
-            raise TelegramBotException(
-                "There is not a bot with token: '{0}'".format(token))
-        await bot.dispatch(update)
+        bot = self.bots.get(token, None)
+        if bot:
+            await bot.dispatch(update)
 
 
 # default bot proxy

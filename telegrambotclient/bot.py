@@ -6,12 +6,11 @@ from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.base import Message, TelegramBotException, logger
 from telegrambotclient.storage import (MemoryStorage, TelegramSession,
                                        TelegramStorage)
-from telegrambotclient.utils import (build_force_reply_data,
-                                     parse_force_reply_data, pretty_format)
+from telegrambotclient.utils import pretty_format
 
 
 class TelegramBot:
-    _force_reply_key_format = "bot:force_reply:{0}"
+    FORCE_REPLY_KEY_FORMAT = "bot:force_reply:{0}"
     __slots__ = ("id", "token", "router", "api", "_storage", "_i18n_source",
                  "last_update_id", "_bot_user")
 
@@ -57,11 +56,11 @@ class TelegramBot:
 
     @property
     def next_call(self):
-        return self.router.next_call
+        return self.router.NEXT_CALL
 
     @property
     def stop_call(self):
-        return self.router.stop_call
+        return self.router.STOP_CALL
 
     def join_force_reply(self,
                          user_id: int,
@@ -70,30 +69,27 @@ class TelegramBot:
                          expires: int = 1800):
         force_reply_callback_name = "{0}.{1}".format(callback.__module__,
                                                      callback.__name__)
-        if not self.router.has_force_reply_callback(force_reply_callback_name):
-            raise TelegramBotException(
-                "{0} is not a force reply callback".format(
-                    force_reply_callback_name))
-        field = self._force_reply_key_format.format(user_id)
+        assert self.router.has_force_reply_callback(
+            force_reply_callback_name), True
+        field = self.FORCE_REPLY_KEY_FORMAT.format(user_id)
         with self.session(user_id, expires) as session:
             if force_reply_args:
-                session[field] = build_force_reply_data(
-                    force_reply_callback_name, *force_reply_args)
+                session[field] = [force_reply_callback_name
+                                  ] + list(force_reply_args)
             else:
-                session[field] = build_force_reply_data(
-                    force_reply_callback_name)
+                session[field] = [force_reply_callback_name]
 
     def force_reply_done(self, user_id):
         session = self.get_session(user_id)
-        del session[self._force_reply_key_format.format(user_id)]
+        del session[self.FORCE_REPLY_KEY_FORMAT.format(user_id)]
 
     def get_force_reply(self, user_id):
         session = self.get_session(user_id)
         force_reply_data = session.get(
-            self._force_reply_key_format.format(user_id), None)
+            self.FORCE_REPLY_KEY_FORMAT.format(user_id), None)
         if not force_reply_data:
             return None, None
-        return parse_force_reply_data(force_reply_data)
+        return force_reply_data[0], tuple(force_reply_data[1:])
 
     def get_session(self, user_id: int, expires: int = 1800):
         return TelegramSession(self.id, user_id, self._storage, expires)
@@ -130,8 +126,14 @@ class TelegramBot:
         return self.send_message(chat_id=message.chat.id, **kwargs)
 
     def get_file_url(self, file_path: str):
-        return "{0}{1}".format(
-            self.api.host, self.api.download_url.format(self.token, file_path))
+        return "{0}{1}".format(self.api.host,
+                               self.api.FILE_URL.format(self.token, file_path))
+
+    def get_file_bytes(self, file_path: str, chunk_size=128):
+        return self.api.api_caller.get_bytes(
+            self.api.FILE_URL.format(self.token, file_path),
+            chunk_size=chunk_size,
+        )
 
     def get_deep_link(self,
                       payload: str,
@@ -142,7 +144,9 @@ class TelegramBot:
             payload)
 
     async def dispatch(self, update):
-        logger.debug(pretty_format(update))
+        logger.debug(
+            "\n---------------------------- update ---------------------------------\n{0}"
+            .format(pretty_format(update)))
         await self.router.route(self, update)
 
     def run_polling(self,
@@ -164,7 +168,7 @@ class TelegramBot:
                 **kwargs,
             )
             if updates:
-                self.last_update_id = updates[-1].update_id
+                self.last_update_id = updates[-1]["update_id"]
                 for update in updates:
                     asyncio.run(self.dispatch(update))
 

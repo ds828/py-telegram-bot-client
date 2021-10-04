@@ -32,7 +32,7 @@ def on_reply_media_group(bot, message):
     bot.send_media_group(chat_id=message.chat.id, media=(audio, audio))
     # Documents and audio files can be only grouped in an album with messages of the same type.
     # here will raise Bad Request: document can't be mixed with other media types
-    bot.send_media_group(chat_id=message.chat.id, media=(audio, document))
+    # bot.send_media_group(chat_id=message.chat.id, media=(audio, document))
     return bot.stop_call
 
 

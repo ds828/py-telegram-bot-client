@@ -2,7 +2,6 @@ import logging
 import random
 import string
 import sys
-from collections import UserList
 from enum import Enum
 from typing import Any, List, Set, Tuple, Union
 
@@ -205,64 +204,34 @@ class InputFile:
         return "attach://{0}".format(self.attach_key)
 
 
-class TelegramList(UserList):
-    __slots__ = ("_idx", )
-
-    def __iter__(self):
-        self._idx = 0
-        return self
-
-    def __next__(self):
-        if self._idx < len(self.data):
-            self._idx += 1
-            return self[self._idx - 1]
-        raise StopIteration
-
-    def __getitem__(self, key: int) -> Any:
-        value = self.data[key]
-        if value is None:
-            return value
-        if isinstance(value, TelegramDict):
-            return value
-        if isinstance(value, (int, str, float)):
-            return value
-        if isinstance(value, dict):
-            value = TelegramDict(**value)
-            self.data[key] = value
-            return value
-        if isinstance(value, list):
-            value = TelegramList(value)
-            self.data[key] = value
-            return value
-        return value
-
-
-class TelegramDict(dict):
+class TelegramObject(dict):
     def __init__(self, **kwargs):
         if "from" in kwargs:
-            kwargs["from_user"] = kwargs["from"]
-            del kwargs["from"]
+            kwargs["from_user"] = kwargs.pop("from")
         super().__init__(kwargs)
+
+    def __parse__(self, value):
+        if isinstance(value, (TelegramObject, str, int, float, bool)):
+            return value
+        if isinstance(value, dict):
+            return TelegramObject(**value)
+        if isinstance(value, (tuple, list)):
+            return tuple(self.__parse__(_) for _ in value)
+        return None
 
     def __getitem__(self, name: str) -> Any:
         value = self.get(name, None)
         if value is None:
-            return value
-        if isinstance(value, TelegramDict):
-            return value
-        if isinstance(value, (str, int, float)):
-            return value
-        if isinstance(value, dict):
-            value = TelegramDict(**value)
-            self[name] = value
-            return value
-        if isinstance(value, list):
-            value = TelegramList(value)
-            self[name] = value
-        return value
+            return None
+        self[name] = self.__parse__(value)
+        return self.get(name, None)
 
     def __getattr__(self, name: str) -> Any:
         return self[name]
+
+    @property
+    def _data(self):
+        return self
 
 
 Message = (CallbackQuery) = (ChosenInlineResult) = (InlineQuery) = (
@@ -277,7 +246,7 @@ Message = (CallbackQuery) = (ChosenInlineResult) = (InlineQuery) = (
     CallbackGame
 ) = (
     GameHighScore
-) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = BotCommandScope = ChatMemberUpdated = TelegramDict
+) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = BotCommandScope = ChatMemberUpdated = TelegramObject
 
 
 class MentionEntity(MessageEntity):
@@ -390,34 +359,18 @@ class BotCommandScopeChatMember(BotCommandScope):
         super().__init__(type="chat_member", chat_id=chat_id, user_id=user_id)
 
 
-class InputMedia(TelegramDict):
+class InputMedia(TelegramObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._attached_files = []
+        self.files = []
         media = self.get("media", None)
         if media and isinstance(media, InputFile):
-            self._attached_files.append((media.attach_key, media.file_tuple))
+            self.files.append((media.attach_key, media.file_tuple))
             self["media"] = media.attach_str
         thumb = self.get("thumb", None)
         if thumb and isinstance(thumb, InputFile):
-            self._attached_files.append((thumb.attach_key, thumb.file_tuple))
+            self.files.append((thumb.attach_key, thumb.file_tuple))
             self["thumb"] = thumb.attach_str
-        self._media_data = {
-            name: value
-            for name, value in self.items() if name != "_attached_files"
-        }
-
-    @property
-    def param(self):
-        return json.dumps(self._media_data)
-
-    @property
-    def media_data(self):
-        return self._media_data
-
-    @property
-    def attached_files(self):
-        return self._attached_files
 
 
 class InputMediaPhoto(InputMedia):
@@ -457,48 +410,48 @@ class InputMediaDocument(InputMedia):
         super().__init__(type="document", media=media, thumb=thumb, **kwargs)
 
 
-class InlineKeyboardButton(TelegramDict):
+class InlineKeyboardButton(TelegramObject):
     def __init__(self, text: str, **kwargs):
         super().__init__(text=text, **kwargs)
 
 
-class KeyboardButtonPollType(TelegramDict):
+class KeyboardButtonPollType(TelegramObject):
     def __init__(self, poll_type: Union[str, PollType]):
         super().__init__(type=poll_type)
 
 
-class KeyboardButton(TelegramDict):
+class KeyboardButton(TelegramObject):
     def __init__(self, text: str, **kwargs):
         super().__init__(text=text, **kwargs)
 
 
-class MarkupObject(TelegramDict):
+class ReplyMarkup(TelegramObject):
     @property
-    def param(self):
+    def _data(self):
         return json.dumps(self)
 
 
-class InlineKeyboardMarkup(MarkupObject):
+class InlineKeyboardMarkup(ReplyMarkup):
     def __init__(self, inline_keyboard: List[InlineKeyboardButton]):
         super().__init__(inline_keyboard=inline_keyboard)
 
 
-class ReplyKeyboardMarkup(MarkupObject):
+class ReplyKeyboardMarkup(ReplyMarkup):
     def __init__(self, keyboard: List[KeyboardButton], **kwargs):
         super().__init__(keyboard=keyboard, **kwargs)
 
 
-class ReplyKeyboardRemove(MarkupObject):
+class ReplyKeyboardRemove(ReplyMarkup):
     def __init__(self, remove_keyboard: bool = True, **kwargs):
         super().__init__(remove_keyboard=remove_keyboard, **kwargs)
 
 
-class ForceReply(MarkupObject):
+class ForceReply(ReplyMarkup):
     def __init__(self, force_reply: bool = True, **kwargs):
         super().__init__(force_reply=force_reply, **kwargs)
 
 
-InputMessageContent = TelegramDict
+InputMessageContent = TelegramObject
 
 
 class InputTextMessageContent(InputMessageContent):
@@ -528,7 +481,7 @@ class InputContactMessageContent(InputMessageContent):
                          **kwargs)
 
 
-class LabeledPrice(TelegramDict):
+class LabeledPrice(TelegramObject):
     def __init__(self, label: str, amount: int, **kwargs):
         super().__init__(label=label, amount=amount, **kwargs)
 
@@ -553,7 +506,7 @@ class InputInvoiceMessageContent(InputMessageContent):
                          **kwargs)
 
 
-InlineQueryResult = TelegramDict
+InlineQueryResult = TelegramObject
 
 
 class InlineQueryResultArticle(InlineQueryResult):
@@ -592,7 +545,7 @@ class InlineQueryResultMpeg4Gif(InlineQueryResult):
                          **kwargs)
 
 
-class InlineQueryResultAudio(TelegramDict):
+class InlineQueryResultAudio(TelegramObject):
     def __init__(self, id: str, audio_url: str, file: str, **kwargs):
         super().__init__(type="audio",
                          id=id,
@@ -601,7 +554,7 @@ class InlineQueryResultAudio(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultVoice(TelegramDict):
+class InlineQueryResultVoice(TelegramObject):
     def __init__(self, id: str, voice_url: str, title: str, **kwargs):
         super().__init__(type="voice",
                          id=id,
@@ -610,7 +563,7 @@ class InlineQueryResultVoice(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultDocument(TelegramDict):
+class InlineQueryResultDocument(TelegramObject):
     def __init__(self, id: str, title: str, document_url: str, mime_type: str,
                  **kwargs):
         super().__init__(type="document",
@@ -621,7 +574,7 @@ class InlineQueryResultDocument(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultLocation(TelegramDict):
+class InlineQueryResultLocation(TelegramObject):
     def __init__(self, id: str, latitude: float, longitude: float, title: str,
                  **kwargs):
         super().__init__(type="location",
@@ -644,7 +597,7 @@ class InlineQueryResultVenue(InlineQueryResult):
                          **kwargs)
 
 
-class InlineQueryResultContact(TelegramDict):
+class InlineQueryResultContact(TelegramObject):
     def __init__(self, id: str, phone_number: str, first_name: str, **kwargs):
         super().__init__(type="contact",
                          id=id,
@@ -653,7 +606,7 @@ class InlineQueryResultContact(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultGame(TelegramDict):
+class InlineQueryResultGame(TelegramObject):
     def __init__(self, id: str, game_short_name: str, **kwargs):
         super().__init__(type="game",
                          id=id,
@@ -661,7 +614,7 @@ class InlineQueryResultGame(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultCachedPhoto(TelegramDict):
+class InlineQueryResultCachedPhoto(TelegramObject):
     def __init__(self, id: str, photo_file_id: str, **kwargs):
         super().__init__(type="photo",
                          id=id,
@@ -669,12 +622,12 @@ class InlineQueryResultCachedPhoto(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultCachedGif(TelegramDict):
+class InlineQueryResultCachedGif(TelegramObject):
     def __init__(self, id: str, gif_file_id: str, **kwargs):
         super().__init__(type="git", id=id, gif_file_id=gif_file_id, **kwargs)
 
 
-class InlineQueryResultCachedMpeg4Gif(TelegramDict):
+class InlineQueryResultCachedMpeg4Gif(TelegramObject):
     def __init__(self, id: str, mpeg4_file_id: str, **kwargs):
         super().__init__(type="mpeg4_gif",
                          id=id,
@@ -682,7 +635,7 @@ class InlineQueryResultCachedMpeg4Gif(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultCachedSticker(TelegramDict):
+class InlineQueryResultCachedSticker(TelegramObject):
     def __init__(self, id: str, sticker_file_id: str, **kwargs):
         super().__init__(type="sticker",
                          id=id,
@@ -690,7 +643,7 @@ class InlineQueryResultCachedSticker(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultCachedDocument(TelegramDict):
+class InlineQueryResultCachedDocument(TelegramObject):
     def __init__(self, id: str, title: str, document_file_id: str, **kwargs):
         super().__init__(type="document",
                          id=id,
@@ -699,7 +652,7 @@ class InlineQueryResultCachedDocument(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultCachedVideo(TelegramDict):
+class InlineQueryResultCachedVideo(TelegramObject):
     def __init__(self, id: str, title: str, video_file_id: str, **kwargs):
         super().__init__(type="video",
                          id=id,
@@ -708,7 +661,7 @@ class InlineQueryResultCachedVideo(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultCachedVoice(TelegramDict):
+class InlineQueryResultCachedVoice(TelegramObject):
     def __init__(self, id: str, title: str, voice_file_id: str, **kwargs):
         super().__init__(type="voice",
                          id=id,
@@ -717,7 +670,7 @@ class InlineQueryResultCachedVoice(TelegramDict):
                          **kwargs)
 
 
-class InlineQueryResultCachedAudio(TelegramDict):
+class InlineQueryResultCachedAudio(TelegramObject):
     def __init__(self, id: str, audio_file_id: str, **kwargs):
         super().__init__(type="audio",
                          id=id,
@@ -725,22 +678,22 @@ class InlineQueryResultCachedAudio(TelegramDict):
                          **kwargs)
 
 
-class UserProfilePhotos(TelegramDict):
+class UserProfilePhotos(TelegramObject):
     def __init__(self, total_count: int, photos: List[List[PhotoSize]]):
         super().__init__(total_count=total_count, photos=photos)
 
 
-class LoginUrl(TelegramDict):
+class LoginUrl(TelegramObject):
     def __init__(self, url: str, **kwargs):
         super().__init__(url=url, **kwargs)
 
 
-class BotCommand(TelegramDict):
+class BotCommand(TelegramObject):
     def __init__(self, command: str, description: str):
         super().__init__(command=command, description=description)
 
 
-class Animation(TelegramDict):
+class Animation(TelegramObject):
     def __init__(self, file_id: str, file_unique_id: str, width: int,
                  length: int, duration: int, **kwargs):
         super().__init__(file_id=file_id,
@@ -751,7 +704,7 @@ class Animation(TelegramDict):
                          **kwargs)
 
 
-class MaskPosition(TelegramDict):
+class MaskPosition(TelegramObject):
     def __init__(self, point: str, x_shift: float, y_shift: float,
                  scale: float, **kwargs):
         super().__init__(point=point,
@@ -765,7 +718,7 @@ class MaskPosition(TelegramDict):
         return json.dumps(self)
 
 
-class Sticker(TelegramDict):
+class Sticker(TelegramObject):
     def __init__(self, file_id: str, file_unique_id: str, width: int,
                  length: int, **kwargs):
         super().__init__(file_id=file_id,
@@ -775,13 +728,13 @@ class Sticker(TelegramDict):
                          **kwargs)
 
 
-class ShippingOption(TelegramDict):
+class ShippingOption(TelegramObject):
     def __init__(self, id: str, title: str, prices: Tuple[LabeledPrice],
                  **kwargs):
         super().__init__(id=id, title=title, prices=prices, **kwargs)
 
 
-class ChatPermissions(TelegramDict):
+class ChatPermissions(TelegramObject):
     def __init__(
         self,
         can_send_messages: bool = True,
@@ -825,7 +778,7 @@ class PassportElementType(str, Enum):
     EMAIL = "email"
 
 
-class PassportElementError(TelegramDict):
+class PassportElementError(TelegramObject):
     __slots__ = (
         "source",
         "type",

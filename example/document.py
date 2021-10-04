@@ -36,6 +36,8 @@ def on_send_document(bot, message):
 def on_receive_document(bot, message):
     file_obj = bot.get_file(file_id=message.document.file_id)
     file_url = bot.get_file_url(file_path=file_obj.file_path)
+    file_data = bot.get_file_bytes(file_obj.file_path)
+    print(file_data)
     bot.reply_message(message, text="download url: {0}".format(file_url))
     return bot.stop_call
 

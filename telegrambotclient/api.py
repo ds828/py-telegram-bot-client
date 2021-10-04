@@ -4,12 +4,13 @@ except ImportError:
     import json
 
 import socket
+from io import BytesIO
+from typing import List
 
 import urllib3
 
 from telegrambotclient.base import (BotCommandScope, InputFile, InputMedia,
-                                    TelegramBotException, TelegramDict,
-                                    TelegramList)
+                                    TelegramBotException, TelegramObject)
 from telegrambotclient.utils import exclude_none
 
 DEFAULT_API_HOST = "https://api.telegram.org"
@@ -20,15 +21,15 @@ class TelegramBotAPIException(TelegramBotException):
         super().__init__(description)
         self.ok = ok
         self.error_code = error_code
-        self.parameters = TelegramDict(**parameters)
+        self.parameters = TelegramObject(**parameters)
 
 
 class TelegramBotAPI:
 
     __version__ = "5.3"
-    _api_url = "/bot{0}/{1}"
-    download_url = "/file/bot{0}/{1}"
-    __slots__ = ("_api_caller", )
+    API_URL = "/bot{0}/{1}"
+    FILE_URL = "/file/bot{0}/{1}"
+    __slots__ = ("api_caller", )
 
     def __init__(self,
                  api_host: str = DEFAULT_API_HOST,
@@ -37,7 +38,7 @@ class TelegramBotAPI:
                  **pool_kwargs):
         class TelegramBotAPICaller:
             __slots__ = ("_pool", "api_host")
-            _json_header = {"Content-Type": "application/json"}
+            JSON_HEADER = {"Content-Type": "application/json"}
 
             def __init__(self, api_host: str, maxsize: int, block: bool,
                          **other_pool_kwargs):
@@ -79,14 +80,12 @@ class TelegramBotAPI:
                 json_response = json.loads(response.data.decode("utf-8"))
                 if response.status == 200 and json_response["ok"]:
                     result = json_response["result"]
-                    if isinstance(result, dict):
-                        return TelegramDict(**result)
-                    if isinstance(result, list):
-                        return TelegramList(result)
+                    if result and isinstance(result, dict):
+                        return TelegramObject(**result)
                     return result
                 raise TelegramBotAPIException(**json_response)
 
-            def __call__(self, api_url: str, data=None, files=None):
+            def call(self, api_url: str, data=None, files=None):
                 if data is None:
                     data = {}
                 if not files:
@@ -95,52 +94,66 @@ class TelegramBotAPI:
                             "POST",
                             api_url,
                             body=json.dumps(data).encode("utf-8"),
-                            headers=self._json_header,
+                            headers=self.JSON_HEADER,
                         ))
                 for _ in files:
                     data[_[0]] = _[1]
                 return self.__format_response(
                     self._pool.request("POST", api_url, fields=data))
 
-        self._api_caller = TelegramBotAPICaller(api_host=api_host,
-                                                maxsize=maxsize,
-                                                block=block,
-                                                **pool_kwargs)
+            def get_bytes(self,
+                          file_path: str,
+                          chunk_size: int = 128) -> bytes:
+                response = self._pool.request("GET",
+                                              file_path,
+                                              preload_content=False)
+                try:
+                    if response.status == 200:
+                        with BytesIO() as buffer:
+                            for chunk in response.stream(chunk_size):
+                                buffer.write(chunk)
+                            return buffer.getvalue()
+                    raise TelegramBotException(response.data)
+                finally:
+                    response.release_conn()
+
+        self.api_caller = TelegramBotAPICaller(api_host=api_host,
+                                               maxsize=maxsize,
+                                               block=block,
+                                               **pool_kwargs)
 
     @property
     def host(self):
-        return self._api_caller.api_host
+        return self.api_caller.api_host
 
     @staticmethod
-    def __prepare_request_data(api_name, **kwargs):
+    def __prepare_request_data(**kwargs):
         api_data = exclude_none(**kwargs)
-        attached_files = []
+        files = []
         for field in tuple(api_data.keys()):
             value = api_data[field]
-            if isinstance(value, TelegramDict):
-                api_data[field] = value.param
+            if isinstance(value, TelegramObject):
+                api_data[field] = value._data
                 continue
             if isinstance(value, InputFile):
                 if field == "thumb":
-                    attached_files.append((value.attach_key, value.file_tuple))
+                    files.append((value.attach_key, value.file_tuple))
                     api_data["thumb"] = value.attach_str
                 else:
-                    attached_files.append((field, value.file_tuple))
+                    files.append((field, value.file_tuple))
                     del api_data[field]
-        return api_name.replace("_", "").lower(), api_data, attached_files
+        return api_data, files
 
-    def __call_api(self, token: str, api_name: str, data=None, files=None):
-        return self._api_caller(self._api_url.format(token, api_name), data,
-                                files)
+    def call_api(self, token: str, api_name: str, data=None, files=None):
+        return self.api_caller.call(
+            self.API_URL.format(token,
+                                api_name.replace("_", "").lower()), data,
+            files)
 
     def __getattr__(self, api_name: str):
         def bot_api_method(token: str, **kwargs):
-            real_api_name, form_data, attached_files = self.__prepare_request_data(
-                api_name, **kwargs)
-            return self.__call_api(token,
-                                   real_api_name,
-                                   data=form_data,
-                                   files=attached_files)
+            api_data, files = self.__prepare_request_data(**kwargs)
+            return self.call_api(token, api_name, data=api_data, files=files)
 
         return bot_api_method
 
@@ -152,28 +165,23 @@ class TelegramBotAPI:
     def set_webhook(self, token: str, **kwargs):
         if "allowed_updates" in kwargs:
             kwargs["allowed_updates"] = json.dumps(kwargs["allowed_updates"])
-        return self.setwebhook(token, **kwargs)
+        return self.setWebhook(token, **kwargs)
 
-    def send_media_group(self, token: str, chat_id, media, **kwargs):
-        if 2 <= len(media) <= 10:
-            files = []
-            media_group = []
-            for input_media in media:
-                if isinstance(input_media, InputMedia):
-                    files.extend(input_media.attached_files)
-                    media_group.append(input_media.media_data)
-            real_api_name, form_data, attached_files = self.__prepare_request_data(
-                "sendMediaGroup",
-                chat_id=chat_id,
-                media=json.dumps(media_group),
-                **kwargs)
-            return self.__call_api(
-                token,
-                real_api_name,
-                data=form_data,
-                files=attached_files + files if attached_files else files,
-            )
-        raise TelegramBotException("'media' must include 2-10 items")
+    def send_media_group(self, token: str, chat_id, media: List[InputMedia],
+                         **kwargs):
+        assert 2 <= len(media) <= 10, True
+        all_files = []
+        media_group = []
+        for input_media in media:
+            assert isinstance(input_media, InputMedia), True
+            all_files.extend(input_media.files)
+            media_group.append(input_media._data)
+        api_data, files = self.__prepare_request_data(
+            chat_id=chat_id, media=json.dumps(media_group), **kwargs)
+        return self.call_api(token,
+                             "sendMediaGroup",
+                             data=api_data,
+                             files=all_files + files)
 
     def edit_message_media(self,
                            token: str,
@@ -182,36 +190,30 @@ class TelegramBotAPI:
                            inline_message_id: int = None,
                            media: InputMedia = None,
                            **kwargs):
-        if not media:
-            raise TelegramBotException("'media' is required")
-        real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "editMessageMedia",
+        assert isinstance(media, InputMedia), True
+        api_data, files = self.__prepare_request_data(
             chat_id=chat_id,
             message_id=message_id,
             inline_message_id=inline_message_id,
-            media=json.dumps(media.media_data),
+            media=json.dumps(media._data),
             **kwargs)
-        return self.__call_api(
-            token,
-            real_api_name,
-            data=form_data,
-            files=attached_files +
-            media.attached_files if attached_files else media.attached_files,
-        )
+        return self.call_api(token,
+                             "editMessageMedia",
+                             data=api_data,
+                             files=media.files + files)
 
     def set_my_commands(self,
                         token: str,
                         commands,
                         scope: BotCommandScope = None,
                         language_code: str = None):
+        assert len(commands) <= 100, True
         data = {
             "commands": json.dumps(commands),
             "scope": json.dumps(scope) if scope else None,
             "language_code": language_code
         }
-        return self.__call_api(token,
-                               "setmycommands",
-                               data=exclude_none(**data))
+        return self.call_api(token, "setmycommands", data=exclude_none(**data))
 
     def delete_my_commands(self,
                            token: str,
@@ -221,9 +223,9 @@ class TelegramBotAPI:
             "scope": json.dumps(scope) if scope else None,
             "language_code": language_code,
         }
-        return self.__call_api(token,
-                               "deletemycommands",
-                               data=exclude_none(**data))
+        return self.call_api(token,
+                             "deletemycommands",
+                             data=exclude_none(**data))
 
     def get_my_commands(self,
                         token: str,
@@ -233,33 +235,31 @@ class TelegramBotAPI:
             "scope": json.dumps(scope) if scope else None,
             "language_code": language_code,
         }
-        return self.__call_api(token,
-                               "getmycommands",
-                               data=exclude_none(**data))
+        return tuple(
+            TelegramObject(**command) for command in self.call_api(
+                token, "getmycommands", data=exclude_none(**data)))
 
-    def send_poll(self, token: str, chat_id, question: str, options, **kwargs):
-        real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "sendPoll",
+    def send_poll(self, token: str, chat_id, question: str, options: List[str],
+                  **kwargs):
+        assert 2 <= len(options) <= 10, True
+        api_data, files = self.__prepare_request_data(
             chat_id=chat_id,
             question=question,
             options=json.dumps(options),
             **kwargs)
-        return self.__call_api(token,
-                               real_api_name,
-                               data=form_data,
-                               files=attached_files)
+        return self.call_api(token, "sendPoll", data=api_data, files=files)
 
     def answer_inline_query(self, token: str, inline_query_id: str, results,
                             **kwargs):
-        real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "answerInlineQuery",
+        assert len(results) <= 50, True
+        api_data, files = self.__prepare_request_data(
             inline_query_id=inline_query_id,
             results=json.dumps(results),
             **kwargs)
-        return self.__call_api(token,
-                               real_api_name,
-                               data=form_data,
-                               files=attached_files)
+        return self.call_api(token,
+                             "answerInlineQuery",
+                             data=api_data,
+                             files=files)
 
     def send_invoice(self, token: str, chat_id: int, title: str,
                      description: str, payload: str, provider_token: str,
@@ -270,8 +270,7 @@ class TelegramBotAPI:
         suggested_tip_amounts = kwargs.get("suggested_tip_amounts", None)
         if suggested_tip_amounts:
             kwargs["suggested_tip_amounts"] = json.dumps(suggested_tip_amounts)
-        real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "sendInvoice",
+        api_data, files = self.__prepare_request_data(
             chat_id=chat_id,
             title=title,
             description=description,
@@ -280,10 +279,7 @@ class TelegramBotAPI:
             currency=currency,
             prices=json.dumps(prices),
             **kwargs)
-        return self.__call_api(token,
-                               real_api_name,
-                               data=form_data,
-                               files=attached_files)
+        return self.call_api(token, "sendInvoice", data=api_data, files=files)
 
     def answer_shipping_query(self,
                               token: str,
@@ -292,30 +288,21 @@ class TelegramBotAPI:
                               **kwargs):
 
         if ok:
-            if "shipping_options" not in kwargs:
-                raise TelegramBotException(
-                    "'shipping_options' is required when ok is True")
+            assert "shipping_options" in kwargs, True
             kwargs["shipping_options"] = json.dumps(kwargs["shipping_options"])
         else:
-            if "error_message" not in kwargs:
-                raise TelegramBotException(
-                    "'error_message' is required when ok is False")
-        real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "answerShippingQuery",
-            shipping_query_id=shipping_query_id,
-            ok=ok,
-            **kwargs)
-        return self.__call_api(token,
-                               real_api_name,
-                               data=form_data,
-                               files=attached_files)
+            assert "error_message" in kwargs, True
+        api_data, files = self.__prepare_request_data(
+            shipping_query_id=shipping_query_id, ok=ok, **kwargs)
+        return self.call_api(token,
+                             "answerShippingQuery",
+                             data=api_data,
+                             files=files)
 
     def set_passport_data_errors(self, token: str, user_id: int, errors):
-        real_api_name, form_data, attached_files = self.__prepare_request_data(
-            "setPassportDataErrors",
-            user_id=user_id,
-            errors=json.dumps(errors))
-        return self.__call_api(token,
-                               real_api_name,
-                               data=form_data,
-                               files=attached_files)
+        api_data, files = self.__prepare_request_data(
+            user_id=user_id, errors=json.dumps(errors))
+        return self.call_api(token,
+                             "setPassportDataErrors",
+                             data=api_data,
+                             files=files)
