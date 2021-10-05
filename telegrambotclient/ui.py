@@ -1,3 +1,4 @@
+from collections import UserList
 from typing import Callable, List, Tuple
 
 from telegrambotclient.base import (InlineKeyboardButton, InlineKeyboardMarkup,
@@ -19,30 +20,27 @@ class Select:
               callback: Callable = None,
               emoji=_SELECT_EMOJI):
         def on_changed(bot, callback_query, changed_value):
-            if callback_query.from_user and callback_query.message:
+            if callback_query.message:
                 changed_data = build_callback_data(name, changed_value)
                 selected, changed_text, keyboard_layout = cls.change_keyboard(
                     callback_query.message.reply_markup.inline_keyboard,
                     changed_data,
                     emoji=emoji)
-                message_text = callback(bot, callback_query, changed_text,
-                                        changed_value,
-                                        selected) if callback else None
-                if callback_query.message.text:
-                    bot.edit_message_text(
-                        chat_id=callback_query.from_user.id,
-                        message_id=callback_query.message.message_id,
-                        text=message_text or callback_query.message.text,
-                        reply_markup=InlineKeyboardMarkup(
-                            inline_keyboard=keyboard_layout),
-                    )
-                else:
-                    bot.edit_message_reply_markup(
-                        chat_id=callback_query.from_user.id,
-                        message_id=callback_query.message.message_id,
-                        reply_markup=InlineKeyboardMarkup(
-                            inline_keyboard=keyboard_layout),
-                    )
+                params = {
+                    "chat_id":
+                    callback_query.from_user.id,
+                    "message_id":
+                    callback_query.message.message_id,
+                    "text":
+                    callback_query.message.text,
+                    "reply_markup":
+                    InlineKeyboardMarkup(inline_keyboard=keyboard_layout)
+                }
+                message_params = callback(bot, callback_query, changed_text,
+                                          changed_value,
+                                          selected) if callback else {}
+                params.update(message_params)
+                bot.edit_message_text(**params)
 
         router.register_callback_query_handler(
             callback=on_changed,
@@ -86,7 +84,7 @@ class Select:
         # option: (text, value, selected: optional)
         for option in options:
             buttons.append(
-                InlineKeyboardButton(text="{0}{1}".format(
+                InlineKeyboardButton(text="{0} {1}".format(
                     emoji[0] if len(option) == 3 and option[2] is True else
                     emoji[1], option[0]),
                                      callback_data=build_callback_data(
@@ -117,30 +115,29 @@ class Radio(Select):
               callback: Callable = None,
               emoji=_RADIO_EMOJI):
         def on_changed(bot, callback_query, changed_value):
-            changed_data = build_callback_data(name, changed_value)
-            changed, changed_text, keyboard_layout = cls.change_keyboard(
-                callback_query.message.reply_markup.inline_keyboard,
-                name,
-                changed_data,
-                emoji=emoji)
-            if changed and callback_query.message and callback_query.from_user:
-                message_text = callback(bot, callback_query, changed_text,
-                                        changed_value) if callback else None
-                if callback_query.message.text:
-                    bot.edit_message_text(
-                        chat_id=callback_query.from_user.id,
-                        message_id=callback_query.message.message_id,
-                        text=message_text or callback_query.message.text,
-                        reply_markup=InlineKeyboardMarkup(
-                            inline_keyboard=keyboard_layout),
-                    )
-                else:
-                    bot.edit_message_reply_markup(
-                        chat_id=callback_query.from_user.id,
-                        message_id=callback_query.message.message_id,
-                        reply_markup=InlineKeyboardMarkup(
-                            inline_keyboard=keyboard_layout),
-                    )
+            if callback_query.message:
+                changed_data = build_callback_data(name, changed_value)
+                changed, changed_text, keyboard_layout = cls.change_keyboard(
+                    callback_query.message.reply_markup.inline_keyboard,
+                    name,
+                    changed_data,
+                    emoji=emoji)
+                if changed:
+                    params = {
+                        "chat_id":
+                        callback_query.from_user.id,
+                        "message_id":
+                        callback_query.message.message_id,
+                        "text":
+                        callback_query.message.text,
+                        "reply_markup":
+                        InlineKeyboardMarkup(inline_keyboard=keyboard_layout)
+                    }
+                    message_params = callback(
+                        bot, callback_query, changed_text,
+                        changed_value) if callback else {}
+                    params.update(message_params)
+                    bot.edit_message_text(**params)
 
         router.register_callback_query_handler(callback=on_changed,
                                                callback_data_name=name)
@@ -207,27 +204,24 @@ class Switch(Select):
               emoji=_SWITCH_EMOJI):
         def on_changed(bot, callback_query, value):
             if callback_query.message or callback_query.from_user:
-                status, text, keyboard_layout = cls.change_keyboard(
+                status, keyboard_layout = cls.change_keyboard(
                     callback_query.message.reply_markup.inline_keyboard,
                     name,
                     emoji=emoji)
-                message_text = callback(bot, callback_query, value,
-                                        status) if callback else None
-                if callback_query.message.text:
-                    bot.edit_message_text(
-                        chat_id=callback_query.from_user.id,
-                        message_id=callback_query.message.message_id,
-                        text=message_text or callback_query.message.text,
-                        reply_markup=InlineKeyboardMarkup(
-                            inline_keyboard=keyboard_layout),
-                    )
-                else:
-                    bot.edit_message_reply_markup(
-                        chat_id=callback_query.from_user.id,
-                        message_id=callback_query.message.message_id,
-                        reply_markup=InlineKeyboardMarkup(
-                            inline_keyboard=keyboard_layout),
-                    )
+                params = {
+                    "chat_id":
+                    callback_query.from_user.id,
+                    "message_id":
+                    callback_query.message.message_id,
+                    "text":
+                    callback_query.message.text,
+                    "reply_markup":
+                    InlineKeyboardMarkup(inline_keyboard=keyboard_layout)
+                }
+                message_params = callback(bot, callback_query, value,
+                                          status) if callback else {}
+                params.update(message_params)
+                bot.edit_message_text(**params)
 
         router.register_callback_query_handler(
             callback=on_changed,
@@ -244,18 +238,16 @@ class Switch(Select):
             for button in line:
                 if "callback_data" in button:
                     if button["callback_data"].startswith(name):
-                        value = parse_callback_data(button["callback_data"],
-                                                    name)[0]
                         if button["text"][:len_emoji_0] == emoji[
                                 0]:  # status is checked
                             # make it be unchecked
                             button["text"] = "{0}{1}".format(
                                 emoji[1], button["text"][len_emoji_0:])
-                            return False, value or None, keyboard_layout
+                            return False, keyboard_layout
                         # otherwise make it be checked
                         button["text"] = "{0}{1}".format(
                             emoji[0], button["text"][len(emoji[1]):])
-                        return True, value or None, keyboard_layout
+                        return True, keyboard_layout
         raise TelegramBotException("switch: {0} is not found".format(name))
 
     @classmethod
@@ -347,40 +339,18 @@ class UIHelper:
         return Switch.lookup(keyboard_layout, name, emoji=emoji)
 
 
-class ReplyKeyboard:
-    __slots__ = ("_layout", )
-
-    def __init__(self, *buttons, col=1, layout=None):
-        self._layout = layout or []
-        self.add_buttons(*buttons, col=col)
-
-    def __add__(self, keyboard):
-        return ReplyKeyboard(layout=self._layout + keyboard._layout)
+class ReplyKeyboard(UserList):
+    def __init__(self, layout=None):
+        super().__init__(layout or [])
 
     def add_buttons(self, *buttons, col: int = 1):
         for idx in range(0, len(buttons), col):
-            self.add_line(*buttons[idx:idx + col])
-
-    def add_line(self, *buttons):
-        self._layout.append(tuple(buttons))
-
-    def delete_line(self, line_idx: int):
-        del self._layout[line_idx]
-
-    def delete_button(self, line_idx: int, col_idx: int):
-        del self._layout[line_idx][col_idx]
-
-    def replace_button(self, line_idx: int, col_idx: int,
-                       button: KeyboardButton):
-        self._layout[line_idx][col_idx] = button
+            self.append(buttons[idx:idx + col])
 
     def markup(self, **kwargs):
-        return ReplyKeyboardMarkup(keyboard=self._layout, **kwargs)
+        return ReplyKeyboardMarkup(keyboard=self.data, **kwargs)
 
 
 class InlineKeyboard(ReplyKeyboard):
-    def __add__(self, keyboard):
-        return InlineKeyboard(layout=self._layout + keyboard._layout)
-
     def markup(self):
-        return InlineKeyboardMarkup(inline_keyboard=self._layout)
+        return InlineKeyboardMarkup(inline_keyboard=self.data)

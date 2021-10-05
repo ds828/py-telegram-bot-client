@@ -11,8 +11,8 @@ from telegrambotclient.base import (CallbackQuery, ChatMemberUpdated,
                                     MessageField, Poll, PollAnswer,
                                     PreCheckoutQuery, ShippingQuery,
                                     TelegramBotException, TelegramObject,
-                                    UpdateField, logger)
-from telegrambotclient.bot import TelegramBot
+                                    UpdateField)
+from telegrambotclient.bot import TelegramBot, logger
 from telegrambotclient.handler import (
     CallbackQueryHandler, ChannelPostHandler, ChatMemberHandler,
     ChosenInlineResultHandler, CommandHandler, EditedChannelPostHandler,
@@ -288,14 +288,16 @@ class CallbackQueryRoute(DefaultRoute):
                         handler, bot, callback_query) is bot.stop_call:
                     return bot.stop_call
                 #for callback_data_name
-                callback_name, callback_data = tuple(
-                    callback_query.data.split("|", maxsplit=1))
-                if callback_data:
-                    handler = route.get("name", {}).get(callback_name, None)
-                    if handler and await self.call_handler(
-                            handler, bot, callback_query,
-                            *json.loads(callback_data)) is bot.stop_call:
-                        return bot.stop_call
+                if "|" in callback_query.data:
+                    callback_name, callback_data = tuple(
+                        callback_query.data.split("|", maxsplit=1))
+                    if callback_data:
+                        handler = route.get("name",
+                                            {}).get(callback_name, None)
+                        if handler and await self.call_handler(
+                                handler, bot, callback_query,
+                                *json.loads(callback_data)) is bot.stop_call:
+                            return bot.stop_call
                 # for callback_data_regex
                 for handler in route.get("regex", ()):
                     result = handler.match_callback_data(callback_query)

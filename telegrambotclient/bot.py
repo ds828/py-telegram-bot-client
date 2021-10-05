@@ -1,12 +1,23 @@
 import asyncio
+import logging
+import sys
 from contextlib import contextmanager
 from typing import Callable, Dict, Tuple
 
 from telegrambotclient.api import TelegramBotAPI
-from telegrambotclient.base import Message, TelegramBotException, logger
+from telegrambotclient.base import (Message, TelegramBotException,
+                                    TelegramObject)
 from telegrambotclient.storage import (MemoryStorage, TelegramSession,
                                        TelegramStorage)
 from telegrambotclient.utils import pretty_format
+
+logger = logging.getLogger("telegram-bot-client")
+formatter = logging.Formatter(
+    '%(levelname)s %(asctime)s (%(filename)s:%(lineno)d): "%(message)s"')
+console_output_handler = logging.StreamHandler(sys.stderr)
+console_output_handler.setFormatter(formatter)
+logger.addHandler(console_output_handler)
+logger.setLevel(logging.INFO)
 
 
 class TelegramBot:
@@ -109,8 +120,11 @@ class TelegramBot:
             session["_ui_"] = ui_stack
 
     def pop_ui(self, user_id: int):
-        with self.session(user_id) as session:
-            return session.get("_ui_", []).pop()
+        session = self.get_session(user_id)
+        ui_data = session.get("_ui_", []).pop()
+        if isinstance(ui_data, dict):
+            return TelegramObject(**ui_data)
+        return ui_data
 
     def get_text(self, language_code: str, text: str):
         if self._i18n_source:

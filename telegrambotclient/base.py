@@ -1,7 +1,5 @@
-import logging
 import random
 import string
-import sys
 from enum import Enum
 from typing import Any, List, Set, Tuple, Union
 
@@ -9,14 +7,6 @@ try:
     import ujson as json
 except ImportError:
     import json
-
-logger = logging.getLogger("telegram-bot-client")
-formatter = logging.Formatter(
-    '%(levelname)s %(asctime)s (%(filename)s:%(lineno)d): "%(message)s"')
-console_output_handler = logging.StreamHandler(sys.stderr)
-console_output_handler.setFormatter(formatter)
-logger.addHandler(console_output_handler)
-logger.setLevel(logging.INFO)
 
 
 class TelegramBotException(Exception):
@@ -510,7 +500,7 @@ InlineQueryResult = TelegramObject
 
 
 class InlineQueryResultArticle(InlineQueryResult):
-    def __init__(self, id: str, title: float,
+    def __init__(self, id: str, title: str,
                  input_message_content: InputMessageContent, **kwargs):
         super().__init__(type="article",
                          id=id,

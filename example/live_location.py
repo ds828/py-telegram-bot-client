@@ -5,7 +5,7 @@ run: python -m example.live_location
 from telegrambotclient import bot_client
 from telegrambotclient.base import MessageField
 
-BOT_TOKEN = ""
+BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
 

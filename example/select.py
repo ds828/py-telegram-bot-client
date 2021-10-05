@@ -2,7 +2,8 @@
 run: python -m example.select
 """
 from telegrambotclient import bot_client
-from telegrambotclient.base import InlineKeyboardButton, MessageField
+from telegrambotclient.base import (InlineKeyboardButton, MessageField,
+                                    ParseMode)
 from telegrambotclient.ui import InlineKeyboard, UIHelper
 
 BOT_TOKEN = "<BOT_TOKEN>"
@@ -13,8 +14,14 @@ emoji = ("✔️✔️", "")
 
 
 def select_callback(bot, callback_query, text, value, selected: bool):
-    return "you {0}: text={1} value={2}".format(
-        "select" if selected else "unselect", text, value)
+    # same fields with send_message
+    return {
+        "text":
+        "<strong>{0}</strong> text={1} value={2}".format(
+            "select" if selected else "unselect", text, value),
+        "parse_mode":
+        ParseMode.HTML
+    }
 
 
 select_name = "my-select"
@@ -23,12 +30,14 @@ UIHelper.setup_select(router, select_name, select_callback, emoji=emoji)
 
 @router.message_handler(fields=MessageField.TEXT)
 def on_show_keyboard(bot, message):
-    keyboard = InlineKeyboard(*UIHelper.build_select_buttons(
-        select_name,
-        ("select1", "select-value1", True),  # selected
-        ("select2", None),
-        ("select3", ("select-value3", 123)),
-        emoji=emoji))
+    keyboard = InlineKeyboard(layout=[
+        UIHelper.build_select_buttons(
+            select_name,
+            ("select1", "select-value1", True),  # selected
+            ("select2", None),
+            ("select3", ("select-value3", 123)),
+            emoji=emoji)
+    ])
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(

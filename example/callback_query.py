@@ -24,8 +24,8 @@ def on_show_items(bot, message):
     btn_3 = InlineKeyboardButton(
         text="match callback datas with a parse function",
         callback_data="some data")
-    keyboard = InlineKeyboard(btn_0, btn_1)
-    keyboard.add_buttons(btn_2, btn_3)
+    keyboard = InlineKeyboard(layout=((btn_0, btn_1), (btn_2, )))
+    keyboard.append((btn_3, ))  # add a line
     bot.send_message(chat_id=message.chat.id,
                      text="select one",
                      reply_markup=keyboard.markup())

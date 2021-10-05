@@ -1,38 +1,36 @@
 """
-run: python -m example.callback_query
+run: python -m example.inline_query
 enable inline mode:
 send the /setinline command to @BotFather and /setinlinefeedback to enable chosen_inline_result
 """
+import logging
+
 from telegrambotclient import bot_client
 from telegrambotclient.base import (InlineKeyboardButton, InlineQuery,
-                                    InlineQueryResultPhoto)
+                                    InlineQueryResultArticle,
+                                    InputTextMessageContent)
 from telegrambotclient.ui import InlineKeyboard
-from telegrambotclient.utils import build_callback_data
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
+logger = logging.getLogger("telegram-bot-client")
+logger.setLevel(logging.DEBUG)
 router = bot_client.router()
 
 
 @router.inline_query_handler()
 def on_query(bot, inline_query: InlineQuery):
-    keyboard = InlineKeyboard()
-    keyboard.add_buttons(
-        InlineKeyboardButton(text="show url",
-                             callback_data=build_callback_data(
-                                 "show-url", "photo-1")))
-    query = inline_query.query
-    results = (InlineQueryResultPhoto(
-        id="photo-1",
-        photo_url=
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1200px-Telegram_logo.svg.png",
+    keyboard = InlineKeyboard(layout=[[
+        InlineKeyboardButton(text="show this article", callback_data="show"),
+    ]])
+    results = (InlineQueryResultArticle(
+        id="article",
+        title=inline_query.query or "article title",
+        input_message_content=InputTextMessageContent(
+            message_text="article content"),
         thumb_url=
         "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1200px-Telegram_logo.svg.png",
-        title="results",
-        description="find out with: {0}".format(query),
-        caption="telegram photo",
-        reply_markup=keyboard.markup(),
-    ), )
+        reply_markup=keyboard.markup()), )
     bot.answer_inline_query(inline_query_id=inline_query.id, results=results)
 
 
@@ -44,13 +42,11 @@ def on_chosen_inline_result(bot, chosen_inline_result):
     )
 
 
-@router.callback_query_handler(callback_data_name="show-url")
-def on_show_url(bot, callback_query, query_result_id: str):
-    print(query_result_id)
+@router.callback_query_handler(callback_data="show")
+def on_show(bot, callback_query):
     bot.send_message(
         chat_id=callback_query.from_user.id,
-        text=
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Telegram_logo.svg/1200px-Telegram_logo.svg.png",
+        text="article content",
     )
 
 

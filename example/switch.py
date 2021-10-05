@@ -2,7 +2,8 @@
 run: python -m example.switch
 """
 from telegrambotclient import bot_client
-from telegrambotclient.base import InlineKeyboardButton, MessageField
+from telegrambotclient.base import (InlineKeyboardButton, MessageField,
+                                    ParseMode)
 from telegrambotclient.ui import InlineKeyboard, UIHelper
 
 BOT_TOKEN = "<BOT_TOKEN>"
@@ -11,7 +12,11 @@ router = bot_client.router()
 
 
 def on_switch_callback(bot, callback_query, value, status: bool):
-    return "switch status: {0}, {1}".format(status, value)
+    return {
+        "text":
+        "switch status: {0}, <strong>{1}</strong>".format(value, status),
+        "parse_mode": ParseMode.HTML
+    }
 
 
 switch_name = "my-switch"
@@ -20,10 +25,10 @@ UIHelper.setup_switch(router, switch_name, on_switch_callback)
 
 @router.message_handler(fields=MessageField.TEXT)
 def on_show_keyboard(bot, message):
-    keyboard = InlineKeyboard(
-        UIHelper.build_switch_button(switch_name,
-                                     "my switch", ("abc", 123),
-                                     status=True))
+    keyboard = InlineKeyboard(layout=[
+        UIHelper.build_switch_button(
+            switch_name, "my switch", ("abc", 123), status=True)
+    ])
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(chat_id=message.chat.id,

@@ -5,20 +5,10 @@ import os
 
 from telegrambotclient import bot_client
 from telegrambotclient.base import MessageField, ParseMode
-from telegrambotclient.utils import get_file_bytes
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
-
-
-def download_file(src_url: str, save_to_file: str):
-    file_path = os.path.dirname(save_to_file)
-    if not os.path.exists(file_path):
-        os.makedirs(file_path)
-    file_bytes = get_file_bytes(src_url)
-    with open(save_to_file, "wb") as new_file:
-        new_file.write(file_bytes)
 
 
 @router.message_handler(fields=MessageField.PHOTO)
@@ -31,7 +21,12 @@ def on_photo_received(bot, message):
     save_to_file = os.path.abspath(
         os.path.join("./sample", str(bot.id), file_obj.file_path))
     # download it
-    download_file(bot.get_file_url(file_path=file_obj.file_path), save_to_file)
+    file_path = os.path.dirname(save_to_file)
+    if not os.path.exists(file_path):
+        os.makedirs(file_path)
+    file_bytes = bot.get_file_bytes(file_obj.file_path)
+    with open(save_to_file, "wb") as new_file:
+        new_file.write(file_bytes)
     # reply it
     bot.send_photo(
         chat_id=message.chat.id,

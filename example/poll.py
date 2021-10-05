@@ -2,7 +2,7 @@
 run: python -m example.poll.py
 """
 from telegrambotclient import bot_client
-from telegrambotclient.base import Poll, PollAnswer, PollType
+from telegrambotclient.base import Poll, PollType
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
