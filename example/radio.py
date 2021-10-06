@@ -26,12 +26,9 @@ UIHelper.setup_radio(router, radio_name, radio_callback)
 
 @router.message_handler(fields=MessageField.TEXT)
 def on_show_keyboard(bot, message):
-    keyboard = InlineKeyboard(layout=[
-        UIHelper.build_radio_buttons(radio_name, ("key1", ("value1", 123),
-                                                  True), ("key2",
-                                                          None), ("key3",
-                                                                  "value3"))
-    ])
+    keyboard = InlineKeyboard()
+    keyboard.add_buttons(*UIHelper.build_radio_buttons(radio_name, ("key1", (
+        "value1", 123), True), ("key2", None), ("key3", "value3")))
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(chat_id=message.chat.id,

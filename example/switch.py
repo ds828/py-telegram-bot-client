@@ -25,10 +25,11 @@ UIHelper.setup_switch(router, switch_name, on_switch_callback)
 
 @router.message_handler(fields=MessageField.TEXT)
 def on_show_keyboard(bot, message):
-    keyboard = InlineKeyboard(layout=[
-        UIHelper.build_switch_button(
-            switch_name, "my switch", ("abc", 123), status=True)
-    ])
+    keyboard = InlineKeyboard()
+    keyboard.add_buttons(
+        UIHelper.build_switch_button(switch_name,
+                                     "my switch", ("abc", 123),
+                                     status=True))
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(chat_id=message.chat.id,

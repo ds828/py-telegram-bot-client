@@ -2,8 +2,7 @@ from collections import UserList
 from typing import Callable, List, Tuple
 
 from telegrambotclient.base import (InlineKeyboardButton, InlineKeyboardMarkup,
-                                    KeyboardButton, ReplyKeyboardMarkup,
-                                    TelegramBotException)
+                                    ReplyKeyboardMarkup, TelegramBotException)
 from telegrambotclient.router import TelegramRouter
 from telegrambotclient.utils import build_callback_data, parse_callback_data
 
@@ -39,7 +38,7 @@ class Select:
                 message_params = callback(bot, callback_query, changed_text,
                                           changed_value,
                                           selected) if callback else {}
-                params.update(message_params)
+                params.update(message_params or {})
                 bot.edit_message_text(**params)
 
         router.register_callback_query_handler(
@@ -136,7 +135,7 @@ class Radio(Select):
                     message_params = callback(
                         bot, callback_query, changed_text,
                         changed_value) if callback else {}
-                    params.update(message_params)
+                    params.update(message_params or {})
                     bot.edit_message_text(**params)
 
         router.register_callback_query_handler(callback=on_changed,
@@ -220,7 +219,7 @@ class Switch(Select):
                 }
                 message_params = callback(bot, callback_query, value,
                                           status) if callback else {}
-                params.update(message_params)
+                params.update(message_params or {})
                 bot.edit_message_text(**params)
 
         router.register_callback_query_handler(
@@ -340,15 +339,22 @@ class UIHelper:
 
 
 class ReplyKeyboard(UserList):
-    def __init__(self, layout=None):
-        super().__init__(layout or [])
+    def __init__(self, *lines):
+        super().__init__(lines)
 
     def add_buttons(self, *buttons, col: int = 1):
         for idx in range(0, len(buttons), col):
             self.append(buttons[idx:idx + col])
 
+    def add_lines(self, *lines):
+        self.data += lines
+
     def markup(self, **kwargs):
         return ReplyKeyboardMarkup(keyboard=self.data, **kwargs)
+
+    def __add__(self, keyboard):
+        self.data += keyboard.data
+        return self
 
 
 class InlineKeyboard(ReplyKeyboard):

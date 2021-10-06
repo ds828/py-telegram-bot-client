@@ -13,15 +13,17 @@ router = bot_client.router()
 
 @router.message_handler(fields=MessageField.TEXT)
 def on_show_keyboard(bot, message):
-    keyboard = ReplyKeyboard()
     btn_text = KeyboardButton(text="click")
     btn_contact = KeyboardButton(text="contact", request_contact=True)
     btn_location = KeyboardButton(text="location", request_location=True)
-    keyboard.add_buttons(btn_text, btn_contact, col=2)
+    keyboard = ReplyKeyboard()
+    keyboard.add_buttons(btn_text, btn_contact, btn_location, col=2)
     keyboard.append((btn_location, ))  # add a line
     # compose keyboards
-    keyboard += ReplyKeyboard(layout=((btn_text, btn_contact),
-                                      (btn_location, )))
+    keyboard += ReplyKeyboard((btn_text, btn_contact),
+                              (btn_location, ))  # lines
+    # add lines
+    keyboard.add_lines((btn_text, ), (btn_contact, ), (btn_location, ))
 
     bot.send_message(
         chat_id=message.chat.id,

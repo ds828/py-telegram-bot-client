@@ -30,14 +30,13 @@ UIHelper.setup_select(router, select_name, select_callback, emoji=emoji)
 
 @router.message_handler(fields=MessageField.TEXT)
 def on_show_keyboard(bot, message):
-    keyboard = InlineKeyboard(layout=[
-        UIHelper.build_select_buttons(
-            select_name,
-            ("select1", "select-value1", True),  # selected
-            ("select2", None),
-            ("select3", ("select-value3", 123)),
-            emoji=emoji)
-    ])
+    keyboard = InlineKeyboard()
+    keyboard.add_buttons(*UIHelper.build_select_buttons(
+        select_name,
+        ("select1", "select-value1", True),  # selected
+        ("select2", None),
+        ("select3", ("select-value3", 123)),
+        emoji=emoji))
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(

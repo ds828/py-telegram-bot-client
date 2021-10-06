@@ -39,12 +39,13 @@ def on_show_menu(bot, message):
         ("4 egg ta $4.99", ("4 egg ta", 499)),
         ("6 inch cake $49.98", ("6 inch cake", 4998)),
     )
-    keyboard = InlineKeyboard([buttons])
+    keyboard = InlineKeyboard()
+    keyboard.add_buttons(*buttons)
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(
         chat_id=message.chat.id,
-        text="your menu is below",
+        text="your menu",
         reply_markup=keyboard.markup(),
     )
     return bot.stop_call

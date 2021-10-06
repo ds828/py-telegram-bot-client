@@ -1,14 +1,10 @@
 """
 run in terminal: python -m example.echo
 """
-import logging
-
 from telegrambotclient import bot_client
 from telegrambotclient.base import MessageField, ParseMode
 
 BOT_TOKEN = "<BOT_TOKEN>"
-logger = logging.getLogger("telegram-bot-client")
-logger.setLevel(logging.DEBUG)
 
 router = bot_client.router()
 
