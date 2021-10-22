@@ -26,10 +26,8 @@ class Select:
                     changed_data,
                     emoji=emoji)
                 params = {
-                    "chat_id":
-                    callback_query.from_user.id,
-                    "message_id":
-                    callback_query.message.message_id,
+                    "entities":
+                    callback_query.message.entities,
                     "text":
                     callback_query.message.text,
                     "reply_markup":
@@ -39,6 +37,16 @@ class Select:
                                           changed_value,
                                           selected) if callback else {}
                 params.update(message_params or {})
+                if callback_query.inline_message_id:
+                    params[
+                        "inline_message_id"] = callback_query.inline_message_id
+                else:
+                    params.update({
+                        "chat_id":
+                        callback_query.from_user.id,
+                        "message_id":
+                        callback_query.message.message_id
+                    })
                 bot.edit_message_text(**params)
 
         router.register_callback_query_handler(
@@ -113,20 +121,19 @@ class Radio(Select):
               name: str,
               callback: Callable = None,
               emoji=_RADIO_EMOJI):
-        def on_changed(bot, callback_query, changed_value):
+        def on_changed(bot, callback_query, selected_value):
             if callback_query.message:
-                changed_data = build_callback_data(name, changed_value)
+                selected_data = build_callback_data(name, selected_value)
                 changed, changed_text, keyboard_layout = cls.change_keyboard(
                     callback_query.message.reply_markup.inline_keyboard,
                     name,
-                    changed_data,
+                    selected_data,
                     emoji=emoji)
+
                 if changed:
                     params = {
-                        "chat_id":
-                        callback_query.from_user.id,
-                        "message_id":
-                        callback_query.message.message_id,
+                        "entities":
+                        callback_query.message.entities,
                         "text":
                         callback_query.message.text,
                         "reply_markup":
@@ -134,8 +141,18 @@ class Radio(Select):
                     }
                     message_params = callback(
                         bot, callback_query, changed_text,
-                        changed_value) if callback else {}
+                        selected_value) if callback else {}
                     params.update(message_params or {})
+                    if callback_query.inline_message_id:
+                        params[
+                            "inline_message_id"] = callback_query.inline_message_id
+                    else:
+                        params.update({
+                            "chat_id":
+                            callback_query.from_user.id,
+                            "message_id":
+                            callback_query.message.message_id
+                        })
                     bot.edit_message_text(**params)
 
         router.register_callback_query_handler(callback=on_changed,
@@ -152,7 +169,7 @@ class Radio(Select):
     def change_keyboard(cls,
                         keyboard_layout,
                         name: str,
-                        changed_data: str,
+                        selected_data: str,
                         emoji=_RADIO_EMOJI) -> Tuple:
         len_emoji_selected = len(emoji[0])
         len_emoji_unselected = len(emoji[1])
@@ -164,7 +181,7 @@ class Radio(Select):
                     # it is a radio I want
                     if button["callback_data"].split("|")[0] == name:
                         # it is the radio I click
-                        if button["callback_data"] == changed_data:
+                        if button["callback_data"] == selected_data:
                             if button["text"][:len_emoji_selected] == emoji[0]:
                                 # click on the same button
                                 return None, None, None
@@ -208,10 +225,8 @@ class Switch(Select):
                     name,
                     emoji=emoji)
                 params = {
-                    "chat_id":
-                    callback_query.from_user.id,
-                    "message_id":
-                    callback_query.message.message_id,
+                    "entities":
+                    callback_query.message.entities,
                     "text":
                     callback_query.message.text,
                     "reply_markup":
@@ -220,6 +235,16 @@ class Switch(Select):
                 message_params = callback(bot, callback_query, value,
                                           status) if callback else {}
                 params.update(message_params or {})
+                if callback_query.inline_message_id:
+                    params[
+                        "inline_message_id"] = callback_query.inline_message_id
+                else:
+                    params.update({
+                        "chat_id":
+                        callback_query.from_user.id,
+                        "message_id":
+                        callback_query.message.message_id
+                    })
                 bot.edit_message_text(**params)
 
         router.register_callback_query_handler(

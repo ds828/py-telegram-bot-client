@@ -142,13 +142,15 @@ class ForceReplyRoute(DefaultRoute):
                 del self._root_route[self.name]
 
     async def call_handlers(self, bot: TelegramBot, message: Message):
+        route = self._root_route.get(self.name, {})
+        if not route:
+            return bot.next_call
         force_reply_callback_name, force_reply_args = bot.get_force_reply(
             message.chat.id if message.chat else message.from_user.
             id if message.from_user else 0)
         if force_reply_callback_name is None:
             return bot.next_call
-        handler = self._root_route.get(self.name,
-                                       {}).get(force_reply_callback_name, None)
+        handler = route.get(force_reply_callback_name, None)
         if handler is None:
             raise TelegramBotException(
                 "{0} is not found as a force reply callback".format(

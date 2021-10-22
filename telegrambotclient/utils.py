@@ -3,6 +3,8 @@ from functools import wraps
 from io import StringIO
 from typing import Any, Dict, List, Pattern, Tuple, Union
 
+from telegrambotclient.base import TelegramBotException
+
 try:
     import ujson as json
 except ImportError:
@@ -59,7 +61,13 @@ def i18n(default_lang_code: str = "en"):
 
 
 def build_callback_data(name: str, *value) -> str:
-    return "{0}|{1}".format(name, json.dumps(value))
+    data = "{0}|{1}".format(name, json.dumps(value))
+    bytes_len = len(data.encode("utf-8"))
+    if bytes_len > 64:
+        raise TelegramBotException(
+            "callback_data must be 1-64 bytes. {0}/{1}".format(
+                data, bytes_len))
+    return data
 
 
 def parse_callback_data(callback_data: str, name: str):

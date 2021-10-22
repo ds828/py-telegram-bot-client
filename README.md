@@ -3,6 +3,10 @@
 A telegram bot API client is written in python 3.5+ and currently compatible with Telegram Bot API 5.3 and later.
 The reason for writing this bot utility is that I wish to run multi telegram bots which could have same or different business logic **(route policy)** in one process . I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 
+# Update 5.3.6.2
+1. remove ui stack
+2. fix bugs
+
 # Update 5.3.6.1
 
 1. add add_lines in ReplyKeyboard. see example/keyboard.py

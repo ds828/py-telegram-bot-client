@@ -1,8 +1,10 @@
 """
 run: python -m example.session
 """
+#from pymongo import MongoClient
 from telegrambotclient import bot_client
-from telegrambotclient.storage import SQLiteStorage
+from telegrambotclient.storage import (MongoDBStorage, RedisStorage,
+                                       SQLiteStorage)
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
@@ -16,7 +18,7 @@ def on_session_example(bot, message):
     session["key1"] = 123  # field, value
     bot.send_message(
         chat_id=message.chat.id,
-        text=str(session),
+        text=str(session.data),
     )
 
     session["key2"] = {"foo": "abc"}
@@ -26,7 +28,7 @@ def on_session_example(bot, message):
     session.save()  # save persistently
     bot.send_message(
         chat_id=message.chat.id,
-        text=str(session),
+        text=str(session.data),
     )
     print(session)
     # access session with context manager
@@ -39,15 +41,18 @@ def on_session_example(bot, message):
             session["key3"] = 789
             bot.send_message(
                 chat_id=message.chat.id,
-                text=str(session),
+                text=str(session.data),
             )
         session.clear()
         bot.send_message(
             chat_id=message.chat.id,
-            text=str(session),
+            text=str(session.data),
         )
-        print(session.data)
+        print(session)
 
+
+storage = None  # uncomment for memory session
+#storage = SQLiteStorage("/tmp/session.db")
 
 # using redis
 # import redis
@@ -61,8 +66,8 @@ def on_session_example(bot, message):
 #    decode_responses=True,
 # )
 # storage = RedisStorage(redis_client)
-# storage = None # uncomment for memory session
-storage = SQLiteStorage("/tmp/session.db")
+# storage = MongoDBStorage(
+#     MongoClient("mongodb://localhost:27017")["session_db"])
 bot = bot_client.create_bot(token=BOT_TOKEN, router=router, storage=storage)
 bot.delete_webhook(drop_pending_updates=True)
 bot.run_polling(timeout=10)

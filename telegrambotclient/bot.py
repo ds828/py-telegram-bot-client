@@ -21,7 +21,8 @@ logger.setLevel(logging.INFO)
 
 
 class TelegramBot:
-    FORCE_REPLY_KEY_FORMAT = "bot:force_reply:{0}"
+    SESSION_ID_FORMAT = "{0}:{1}"
+    FORCE_REPLY_ID_FORMAT = "force_reply:{0}:{1}"
     __slots__ = ("id", "token", "router", "api", "_storage", "_i18n_source",
                  "last_update_id", "_bot_user")
 
@@ -77,54 +78,47 @@ class TelegramBot:
                          user_id: int,
                          callback: Callable,
                          *force_reply_args,
-                         expires: int = 1800):
+                         expires: int = 60):
         force_reply_callback_name = "{0}.{1}".format(callback.__module__,
                                                      callback.__name__)
         assert self.router.has_force_reply_callback(
             force_reply_callback_name), True
-        field = self.FORCE_REPLY_KEY_FORMAT.format(user_id)
-        with self.session(user_id, expires) as session:
-            if force_reply_args:
-                session[field] = [force_reply_callback_name
-                                  ] + list(force_reply_args)
-            else:
-                session[field] = [force_reply_callback_name]
+        session = self.__get_session(
+            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id), expires)
+        if force_reply_args:
+            session["force_reply"] = [force_reply_callback_name
+                                      ] + list(force_reply_args)
+        else:
+            session["force_reply"] = [force_reply_callback_name]
+        session.save()
 
     def force_reply_done(self, user_id):
-        session = self.get_session(user_id)
-        del session[self.FORCE_REPLY_KEY_FORMAT.format(user_id)]
+        session = self.__get_session(
+            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id))
+        session.clear()
 
     def get_force_reply(self, user_id):
-        session = self.get_session(user_id)
-        force_reply_data = session.get(
-            self.FORCE_REPLY_KEY_FORMAT.format(user_id), None)
+        session = self.__get_session(
+            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id))
+        force_reply_data = session.get("force_reply", None)
         if not force_reply_data:
             return None, None
         return force_reply_data[0], tuple(force_reply_data[1:])
 
-    def get_session(self, user_id: int, expires: int = 1800):
-        return TelegramSession(self.id, user_id, self._storage, expires)
+    def __get_session(self, session_id: str, expires: int = 0):
+        return TelegramSession(session_id, self._storage, expires)
+
+    def get_session(self, user_id: int, expires: int = 0):
+        return self.__get_session(
+            self.SESSION_ID_FORMAT.format(self.id, user_id), expires)
 
     @contextmanager
-    def session(self, user_id: int, expires: int = 1800):
+    def session(self, user_id: int, expires: int = 0):
         session = self.get_session(user_id, expires)
         try:
             yield session
         finally:
             session.save()
-
-    def push_ui(self, user_id: int, message):
-        with self.session(user_id) as session:
-            ui_stack = session.get("_ui_", [])
-            ui_stack.append(message)
-            session["_ui_"] = ui_stack
-
-    def pop_ui(self, user_id: int):
-        session = self.get_session(user_id)
-        ui_data = session.get("_ui_", []).pop()
-        if isinstance(ui_data, dict):
-            return TelegramObject(**ui_data)
-        return ui_data
 
     def get_text(self, language_code: str, text: str):
         if self._i18n_source:
