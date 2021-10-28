@@ -8,6 +8,7 @@ from telegrambotclient.utils import build_callback_data
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
+# create a default router
 router = bot_client.router()
 
 
@@ -71,6 +72,7 @@ def on_callable_match(bot, callback_query, value):
 
 
 print(router)
-bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+# create a bot with the default router
+bot = bot_client.create_bot(token=BOT_TOKEN)
 bot.delete_webhook(drop_pending_updates=True)
 bot.run_polling(timeout=10)

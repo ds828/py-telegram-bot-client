@@ -3,6 +3,9 @@
 A telegram bot API client is written in python 3.5+ and currently compatible with Telegram Bot API 5.3 and later.
 The reason for writing this bot utility is that I wish to run multi telegram bots which could have same or different business logic **(route policy)** in one process . I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 
+# Update 5.3.6.3
+1. optimize codes
+
 # Update 5.3.6.2
 1. remove ui stack
 2. fix bugs
@@ -235,11 +238,6 @@ good way to register one callback on multi routers
 	router2.register_message_handler(callback=on_message, fields=MessageField.TEXT)
 
 ### route for multi message fields
-	@router.message_handler(fields=MessageField.TEXT | MessageField.LOCATION)
-	def on_any_message_fields(bot, message: Message):
-	    # call when a message includes 'text' OR 'location' fields
-	    pass
-
 	@router.message_handler(fields=MessageField.ANIMATION & MessageField.DOCUMENT)
 	def on_animation(bot, message: Message):
 	    # call when a message includes 'animation' AND 'document' fields

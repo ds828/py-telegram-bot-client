@@ -1,7 +1,7 @@
 import random
 import string
 from enum import Enum
-from typing import Any, List, Set, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 try:
     import ujson as json
@@ -87,27 +87,13 @@ class MessageField(str, Enum):
     VOICE_CHAT_SCHEDULED = "voice_chat_scheduled"
     REPLY_MARKUP = "reply_markup"
 
-    __slots__ = ("_field_set", "_fields_or")
-
-    def __init__(self, value) -> None:
+    def __init__(self, value):
         super().__init__()
-        self._fields_or = True
-        self._field_set = {
-            value,
-        }
+        self.fields = {value}
 
-    def __or__(self, other_field):
-        self._field_set.add(other_field.value)
+    def __and__(self, field):
+        self.fields.add(field.value)
         return self
-
-    def __and__(self, other_field):
-        self._fields_or = False
-        self._field_set.add(other_field.value)
-        return self
-
-    @property
-    def fields(self) -> Union[Tuple, Set]:
-        return tuple(self._field_set) if self._fields_or else self._field_set
 
 
 class ParseMode(str, Enum):
@@ -153,6 +139,7 @@ class MIMEType(str, Enum):
     IMAGE_JPEG = "image/jpeg"
     IMAGE_GIF = "image/gif"
     VIDEO_MP4 = "video/mp4"
+    AUIDO_OGG = "audio/ogg"
 
 
 class InputFile:
@@ -169,7 +156,7 @@ class InputFile:
         self._attach_key = None
 
     @property
-    def file_data(self) -> bytes:
+    def file_data(self):
         if isinstance(self._file, str):
             with open(self._file, "rb") as file_obj:
                 return file_obj.read()
@@ -200,28 +187,24 @@ class TelegramObject(dict):
             kwargs["from_user"] = kwargs.pop("from")
         super().__init__(kwargs)
 
-    def __parse__(self, value):
-        if isinstance(value, (TelegramObject, str, int, float, bool)):
-            return value
-        if isinstance(value, dict):
-            return TelegramObject(**value)
-        if isinstance(value, (tuple, list)):
-            return tuple(self.__parse__(_) for _ in value)
-        return None
+    @classmethod
+    def __parse__(cls, value):
+        if value is not None:
+            if isinstance(value, (TelegramObject, str, int, float, bool)):
+                return value
+            if isinstance(value, dict):
+                return TelegramObject(**value)
+            if isinstance(value, (tuple, list)):
+                return tuple(cls.__parse__(_) for _ in value)
+        return value
 
     def __getitem__(self, name: str) -> Any:
-        value = self.get(name, None)
-        if value is None:
-            return None
-        self[name] = self.__parse__(value)
-        return self.get(name, None)
+        value = self.__parse__(self.get(name, None))
+        self[name] = value
+        return value
 
     def __getattr__(self, name: str) -> Any:
         return self[name]
-
-    @property
-    def _data(self):
-        return self
 
 
 Message = (CallbackQuery) = (ChosenInlineResult) = (InlineQuery) = (

@@ -5,8 +5,7 @@ from contextlib import contextmanager
 from typing import Callable, Dict, Tuple
 
 from telegrambotclient.api import TelegramBotAPI
-from telegrambotclient.base import (Message, TelegramBotException,
-                                    TelegramObject)
+from telegrambotclient.base import Message, TelegramBotException
 from telegrambotclient.storage import (MemoryStorage, TelegramSession,
                                        TelegramStorage)
 from telegrambotclient.utils import pretty_format
@@ -23,40 +22,29 @@ logger.setLevel(logging.INFO)
 class TelegramBot:
     SESSION_ID_FORMAT = "{0}:{1}"
     FORCE_REPLY_ID_FORMAT = "force_reply:{0}:{1}"
-    __slots__ = ("id", "token", "router", "api", "_storage", "_i18n_source",
+    __slots__ = ("id", "token", "router", "api", "storage", "i18n_source",
                  "last_update_id", "_bot_user")
 
-    def __init__(
-        self,
-        token: str,
-        router,
-        storage: TelegramStorage = None,
-        i18n_source: Dict = None,
-        bot_api: TelegramBotAPI = None,
-    ):
+    def __init__(self,
+                 token: str,
+                 router,
+                 bot_api: TelegramBotAPI = None,
+                 storage: TelegramStorage = None,
+                 i18n_source: Dict = None):
         try:
             self.id = int(token.split(":")[0])
         except IndexError as error:
             raise TelegramBotException(
-                "wrong token format: {0}".format(token)) from error
+                "⚠️wrong token format: {0}".format(token)) from error
         self.token = token
         self.router = router
-        if storage:
-            assert isinstance(storage, TelegramStorage), True
-        else:
+        self.api = bot_api or TelegramBotAPI()
+        if storage is None:
             logger.warning(
-                "You are using a memory storage which can not be persisted.")
+                "⚠️You are using a memory storage which can not be persisted.")
             storage = MemoryStorage()
-        self._storage = storage
-        self._i18n_source = i18n_source
-        if bot_api:
-            assert isinstance(bot_api, TelegramBotAPI), True
-        else:
-            logger.warning(
-                "Your bot API object is not a TelegramBotAPI instance. A default bot api is using."
-            )
-            bot_api = TelegramBotAPI()
-        self.api = bot_api
+        self.storage = storage
+        self.i18n_source = i18n_source
         self.last_update_id = 0
         self._bot_user = None
 
@@ -74,42 +62,11 @@ class TelegramBot:
     def stop_call(self):
         return self.router.STOP_CALL
 
-    def join_force_reply(self,
-                         user_id: int,
-                         callback: Callable,
-                         *force_reply_args,
-                         expires: int = 60):
-        force_reply_callback_name = "{0}.{1}".format(callback.__module__,
-                                                     callback.__name__)
-        assert self.router.has_force_reply_callback(
-            force_reply_callback_name), True
-        session = self.__get_session(
-            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id), expires)
-        if force_reply_args:
-            session["force_reply"] = [force_reply_callback_name
-                                      ] + list(force_reply_args)
-        else:
-            session["force_reply"] = [force_reply_callback_name]
-        session.save()
-
-    def force_reply_done(self, user_id):
-        session = self.__get_session(
-            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id))
-        session.clear()
-
-    def get_force_reply(self, user_id):
-        session = self.__get_session(
-            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id))
-        force_reply_data = session.get("force_reply", None)
-        if not force_reply_data:
-            return None, None
-        return force_reply_data[0], tuple(force_reply_data[1:])
-
-    def __get_session(self, session_id: str, expires: int = 0):
-        return TelegramSession(session_id, self._storage, expires)
+    def __get_session__(self, session_id: str, expires: int = 0):
+        return TelegramSession(session_id, self.storage, expires)
 
     def get_session(self, user_id: int, expires: int = 0):
-        return self.__get_session(
+        return self.__get_session__(
             self.SESSION_ID_FORMAT.format(self.id, user_id), expires)
 
     @contextmanager
@@ -120,9 +77,40 @@ class TelegramBot:
         finally:
             session.save()
 
+    def join_force_reply(self,
+                         user_id: int,
+                         callback: Callable,
+                         *force_reply_args,
+                         expires: int = 60):
+        force_reply_callback_name = "{0}.{1}".format(callback.__module__,
+                                                     callback.__name__)
+        assert self.router.has_force_reply_callback(
+            force_reply_callback_name), True
+        session = self.__get_session__(
+            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id), expires)
+        if force_reply_args:
+            session["force_reply"] = [force_reply_callback_name
+                                      ] + list(force_reply_args)
+        else:
+            session["force_reply"] = [force_reply_callback_name]
+        session.save()
+
+    def force_reply_done(self, user_id):
+        session = self.__get_session__(
+            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id))
+        session.clear()
+
+    def get_force_reply(self, user_id):
+        session = self.__get_session__(
+            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id))
+        force_reply_data = session.get("force_reply", None)
+        if not force_reply_data:
+            return None, None
+        return force_reply_data[0], tuple(force_reply_data[1:])
+
     def get_text(self, language_code: str, text: str):
-        if self._i18n_source:
-            lang_source = self._i18n_source.get(language_code, None)
+        if self.i18n_source:
+            lang_source = self.i18n_source.get(language_code, None)
             if lang_source:
                 if isinstance(lang_source, dict):
                     return lang_source.get(text, text)
@@ -164,7 +152,7 @@ class TelegramBot:
                     **kwargs):
         if timeout == 0:
             logger.warning(
-                "You are using 0 as timeout in seconds for long polling which should be used for testing purposes only."
+                "⚠️You are using 0 as timeout in seconds for long polling which should be used for testing purposes only."
             )
         while True:
             updates = self.api.get_updates(

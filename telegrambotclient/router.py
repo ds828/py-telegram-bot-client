@@ -26,7 +26,7 @@ from telegrambotclient.utils import pretty_format
 class DefaultRoute:
     __slots__ = ("_root_route", "name")
 
-    def __init__(self, name: str, root_route):
+    def __init__(self, name, root_route):
         self.name = name
         self._root_route = root_route
 
@@ -171,67 +171,47 @@ class MessageRoute(DefaultRoute):
     def add_handler(self, handler: _MessageHandler):
         if self.name not in self._root_route:
             self._root_route[self.name] = {}
-        route = self._root_route[self.name]
-        message_fields = handler.fields
-        if not message_fields:
-            DefaultRoute("all", route).add_handler(handler)
-        elif isinstance(message_fields, str):
-            if "|" not in route:
-                route["|"] = defaultdict(list)
-            DefaultRoute(message_fields, route["|"]).add_handler(handler)
-        elif isinstance(message_fields, tuple):
-            if "|" not in route:
-                route["|"] = defaultdict(list)
-            for field in message_fields:
-                DefaultRoute(field, route["|"]).add_handler(handler)
-        elif isinstance(message_fields, set):
-            DefaultRoute("&", route).add_handler(handler)
+        route = self._root_route[self.name].get("fields", defaultdict(list))
+        if handler.fields:
+            route[handler.fields].append(handler)
+            self._root_route[self.name]["fields"] = route
+        else:
+            route = self._root_route[self.name].get("all", [])
+            route.append(handler)
+            self._root_route[self.name]["all"] = route
 
     def remove_handler(self, handler: _MessageHandler):
         if self.name in self._root_route:
-            route = self._root_route[self.name]
-            message_fields = handler.fields
-            if not message_fields:
-                DefaultRoute("all", route).remove_handler(handler)
-            elif isinstance(message_fields, str) and "|" in route:
-                DefaultRoute(message_fields,
-                             route["|"]).remove_handler(handler)
-            elif isinstance(message_fields, tuple) and "|" in route:
-                for field in message_fields:
-                    DefaultRoute(field, route["|"]).remove_handler(handler)
-            elif isinstance(message_fields, set):
-                DefaultRoute("&", route).remove_handler(handler)
-            if not route:
-                del self._root_route[self.name]
+            handlers = ()
+            if handler.fields:
+                handlers = self._root_route[self.name].get("fields", {}).get(
+                    handler.fields, ())
+            else:
+                handlers = self._root_route[self.name].get("all", ())
+            for idx, _handler in enumerate(handlers):
+                if _handler.name == handler.name:
+                    handlers.remove(idx)
 
     async def call_handlers(self, bot: TelegramBot, message: Message):
         if self.name in self._root_route:
             route = self._root_route[self.name]
-            # call 'and' handlers
-            handlers = route.get("&", None)
-            if handlers:
-                message_fields_set = set(message.keys())
-                for handler in handlers:
-                    if handler.fields <= message_fields_set:
+            for fields in route["fields"]:
+                have_fields = True
+                for field in fields:
+                    if field not in message:
+                        have_fields = False
+                        break
+                if have_fields:
+                    for handler in route["fields"][fields]:
                         if await self.call_handler(handler, bot,
                                                    message) is bot.stop_call:
                             return bot.stop_call
-            # call 'or' handlers
-            handler_dict = route.get("|", None)
-            if handler_dict:
-                for message_field in handler_dict.keys():
-                    if message_field in message:
-                        for handler in handler_dict[message_field]:
-                            if await self.call_handler(
-                                    handler, bot, message) is bot.stop_call:
-                                return bot.stop_call
-            # call 'all' handlers
-            handlers = route.get("all", None)
-            if handlers:
-                for handler in handlers:
-                    if await self.call_handler(handler, bot,
-                                               message) is bot.stop_call:
-                        return bot.stop_call
+
+            for handler in route.get("all", ()):
+                if await self.call_handler(handler, bot,
+                                           message) is bot.stop_call:
+                    return bot.stop_call
+
         return bot.next_call
 
 
@@ -327,12 +307,13 @@ class CallbackQueryRoute(DefaultRoute):
 
 class TelegramRouter:
     __slots__ = ("name", "route_map", "_handler_callers")
+    DEFAULT_NAME = "default-router"
     NEXT_CALL = True
     STOP_CALL = False
     UPDATE_FIELD_VALUES = UpdateField.__members__.values()
 
-    def __init__(self, name: str):
-        self.name = name
+    def __init__(self, name: str = None):
+        self.name = name or self.DEFAULT_NAME
         self.route_map = {}
         self._handler_callers = {
             UpdateField.MESSAGE: self.call_message_handlers,

@@ -66,7 +66,7 @@ class _MessageHandler(UpdateHandler):
                  fields: Union[MessageField, str] = None):
         super().__init__(callback=callback, update_field=update_field)
         if isinstance(fields, MessageField):
-            self.fields = fields.fields
+            self.fields = tuple(fields.fields)
         else:
             self.fields = fields
 
