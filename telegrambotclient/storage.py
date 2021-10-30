@@ -10,8 +10,6 @@ from collections import UserDict
 
 from telegrambotclient.utils import pretty_format
 
-DEFAULT_EXPIRES = 1800
-
 
 class TelegramStorage:
     def get_field(self, key: str, field: str, expires: int):
@@ -271,9 +269,11 @@ class MongoDBStorage(TelegramStorage):
                        for field in fields},
             "$set": update
         })
-        if result.modified_count == 0:
+        count = result.modified_count
+        if count == 0:
             result = self._session.delete_one({"_id": key})
-        return result.modified_count > 0
+            count = result.deleted_count
+        return count > 0
 
     def delete_key(self, key: str) -> bool:
         result = self._session.delete_one({"_id": key})
@@ -302,11 +302,11 @@ class TelegramSession(UserDict):
     def __init__(self,
                  session_id: str,
                  storage: TelegramStorage,
-                 expires: int = DEFAULT_EXPIRES) -> None:
+                 expires: int = 1800) -> None:
         super().__init__({})
         self._storage = storage
         self.id = session_id
-        self.expires = expires if expires > 0 else DEFAULT_EXPIRES
+        self.expires = expires if expires > 0 else 1800
 
     def __getitem__(self, field: str):
         value = self.data.get(field, None)
