@@ -2,7 +2,7 @@
 run: python -m example.callback_query
 """
 from telegrambotclient import bot_client
-from telegrambotclient.base import InlineKeyboardButton
+from telegrambotclient.base import InlineKeyboardButton, InlineKeyboardMarkup
 from telegrambotclient.ui import InlineKeyboard
 from telegrambotclient.utils import build_callback_data
 
@@ -36,16 +36,20 @@ def on_show_items(bot, message):
 def on_static_match(bot, callback_query):
     bot.answer_callback_query(callback_query_id=callback_query.id)
     bot.send_message(chat_id=callback_query.from_user.id,
-                     text="your select matches all text of a callback_data")
+                     text="your select matches all text of a callback_data",
+                     reply_markup=InlineKeyboardMarkup(
+                         inline_keyboard=callback_query.message.reply_markup.
+                         inline_keyboard))
 
 
 @router.callback_query_handler(callback_data_name="a-callback-data-name")
 def on_start_match(bot, callback_query, *values):
     bot.answer_callback_query(callback_query_id=callback_query.id)
-    bot.send_message(
-        chat_id=callback_query.from_user.id,
-        text="a callback data name's value: {0}".format(values),
-    )
+    bot.send_message(chat_id=callback_query.from_user.id,
+                     text="a callback data name's value: {0}".format(values),
+                     reply_markup=InlineKeyboardMarkup(
+                         inline_keyboard=callback_query.message.reply_markup.
+                         inline_keyboard))
 
 
 @router.callback_query_handler(callback_data_regex=(r"^regex-.*", ))
@@ -54,7 +58,9 @@ def on_regex_match(bot, callback_query, result):
     bot.send_message(
         chat_id=callback_query.from_user.id,
         text="you match callback datas with regex: {0}".format(result),
-    )
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=callback_query.message.reply_markup.inline_keyboard
+        ))
 
 
 def parse_callback_data(callback_data: str, data: str):
@@ -68,7 +74,9 @@ def on_callable_match(bot, callback_query, value):
     bot.send_message(
         chat_id=callback_query.from_user.id,
         text="you matche a callback data with a parse: {0}".format(value),
-    )
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=callback_query.message.reply_markup.inline_keyboard
+        ))
 
 
 print(router)

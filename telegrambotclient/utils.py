@@ -88,20 +88,20 @@ def compose_message_entities(text_entities: Union[List, Tuple],
                 buffer_.write(text_entity)
                 buffer_.write(sep)
                 continue
-            text, entity = text_entity
-            entity.offset = buffer_.tell()
+            text, entity = tuple(text_entity)
+            entity["offset"] = buffer_.tell()
             entities.append(entity)
             if isinstance(text, str):
                 buffer_.write(text)
                 buffer_.write(sep)
-                entity.length = len(text)
+                entity["length"] = len(text)
             elif isinstance(text, (list, tuple)):
                 inner_text, inner_entities = compose_message_entities(text)
                 offset = buffer_.tell()
                 for inner_entity in inner_entities:
-                    inner_entity.offset += offset
+                    inner_entity["offset"] += offset
                 buffer_.write(inner_text)
                 buffer_.write(sep)
                 entities += inner_entities
-                entity.length = len(inner_text)
+                entity["length"] = len(inner_text)
         return buffer_.getvalue(), tuple(entities)

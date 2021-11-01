@@ -131,10 +131,11 @@ class TelegramBotAPI:
         files = []
         for field in tuple(api_data.keys()):
             value = api_data[field]
+            if isinstance(value, (str, int, bool, float, list, tuple)):
+                continue
             if isinstance(value, TelegramObject):
                 api_data[field] = value._data
-                continue
-            if isinstance(value, InputFile):
+            elif isinstance(value, InputFile):
                 if field == "thumb":
                     files.append((value.attach_key, value.file_tuple))
                     api_data["thumb"] = value.attach_str

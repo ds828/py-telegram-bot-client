@@ -2,34 +2,23 @@
 run: python -m example.switch
 """
 from telegrambotclient import bot_client
-from telegrambotclient.base import (InlineKeyboardButton, MessageField,
-                                    ParseMode)
-from telegrambotclient.ui import InlineKeyboard, UIHelper
+from telegrambotclient.base import InlineKeyboardButton, MessageField
+from telegrambotclient.ui import InlineKeyboard
+from telegrambotclient.utils import build_callback_data, parse_callback_data
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
-
-
-def on_switch_callback(bot, callback_query, value, status: bool):
-    return {
-        "text":
-        "switch status: {0}, <strong>{1}</strong>".format(value, status),
-        "parse_mode": ParseMode.HTML
-    }
-
-
-switch_name = "my-switch"
-UIHelper.setup_switch(router, switch_name, on_switch_callback)
+emoji = ("✔️", "❌")
 
 
 @router.message_handler(fields=MessageField.TEXT)
 def on_show_keyboard(bot, message):
     keyboard = InlineKeyboard()
     keyboard.add_buttons(
-        UIHelper.build_switch_button(switch_name,
-                                     "my switch", ("abc", 123),
-                                     status=True))
+        InlineKeyboardButton(text="{0}status".format(emoji[0]),
+                             callback_data=build_callback_data(
+                                 "switch", "value", True)))
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(chat_id=message.chat.id,
@@ -38,14 +27,35 @@ def on_show_keyboard(bot, message):
     return bot.stop_call
 
 
+@router.callback_query_handler(callback_data_name="switch")
+def on_change(bot, callback_query, value, selected):
+    keyboard = InlineKeyboard(
+        *callback_query.message.reply_markup.inline_keyboard)
+    new_button = InlineKeyboardButton(
+        text="{0}status".format(emoji[1] if selected else emoji[0]),
+        callback_data=build_callback_data("switch", value, not selected))
+    keyboard.replace(build_callback_data("switch", value, selected),
+                     new_button)
+
+    bot.edit_message_text(chat_id=callback_query.from_user.id,
+                          message_id=callback_query.message.message_id,
+                          text="switch status: {0}".format(not selected),
+                          reply_markup=keyboard.markup())
+    return bot.stop_call
+
+
 @router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
-    status, value = UIHelper.lookup_switch(
-        callback_query.message.reply_markup.inline_keyboard, switch_name)
-    bot.send_message(
-        chat_id=callback_query.from_user.id,
-        text="switch status: {0}, {1}".format(status, value),
-    )
+    keyboard = InlineKeyboard(
+        *callback_query.message.reply_markup.inline_keyboard)
+    for button in keyboard.get_buttons("switch"):
+        value = parse_callback_data(button.callback_data, "switch")
+        value, selected = tuple(value)
+        message_text = "value={0} selected={1}".format(value, selected)
+        bot.send_message(
+            chat_id=callback_query.from_user.id,
+            text=message_text,
+        )
     return bot.stop_call
 
 

@@ -9,8 +9,9 @@ import logging
 from telegrambotclient import bot_client
 from telegrambotclient.base import (BotCommand, InlineKeyboardButton,
                                     LabeledPrice, MessageField, ShippingOption)
-from telegrambotclient.ui import InlineKeyboard, Select, UIHelper
-from telegrambotclient.utils import pretty_print
+from telegrambotclient.ui import InlineKeyboard
+from telegrambotclient.utils import (build_callback_data, parse_callback_data,
+                                     pretty_print)
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
@@ -18,6 +19,13 @@ logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 
 router = bot_client.router()
+emoji = ("✔️" "")
+
+menu = {
+    1: ("4 cup cakes $9.98", 988),
+    2: ("4 egg ta $4.99", 499),
+    3: ("6 inch cake $49.98", 499)
+}
 
 
 @router.command_handler(cmds=("/start", ))
@@ -28,19 +36,15 @@ def on_start(bot, message, *payload):
     return bot.stop_call
 
 
-UIHelper.setup_select(router, "menu")
-
-
 @router.command_handler(cmds=("/menu", ))
 def on_show_menu(bot, message):
-    buttons = UIHelper.build_select_buttons(
-        "menu",
-        ("4 cup cakes $9.98", ("4 cup cake", 998)),
-        ("4 egg ta $4.99", ("4 egg ta", 499)),
-        ("6 inch cake $49.98", ("6 inch cake", 4998)),
-    )
     keyboard = InlineKeyboard()
-    keyboard.add_buttons(*buttons)
+    keyboard.add_buttons(*[
+        InlineKeyboardButton(text=text,
+                             callback_data=build_callback_data(
+                                 "select-item", item_id, False))
+        for item_id, (text, _) in menu.items()
+    ])
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(
@@ -51,28 +55,53 @@ def on_show_menu(bot, message):
     return bot.stop_call
 
 
+@router.callback_query_handler(callback_data_name="select-item")
+def on_select_item(bot, callback_query, item_id, selected):
+    keyboard = InlineKeyboard(
+        *callback_query.message.reply_markup.inline_keyboard)
+    new_button = InlineKeyboardButton(
+        text="{0}{1}".format(emoji[1] if selected else emoji[0],
+                             menu[item_id][0]),
+        callback_data=build_callback_data("select-item", item_id,
+                                          not selected))
+    keyboard.replace(build_callback_data("select-item", item_id, selected),
+                     new_button)
+    bot.edit_message_text(chat_id=callback_query.from_user.id,
+                          message_id=callback_query.message.message_id,
+                          text=callback_query.message.text,
+                          reply_markup=keyboard.markup())
+    return bot.stop_call
+
+
 @router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
-    options = Select.lookup(
-        callback_query.message.reply_markup.inline_keyboard, "menu")
-    if options:
+    keyboard = InlineKeyboard(
+        *callback_query.message.reply_markup.inline_keyboard)
+    selected_items = tuple(
+        (button.text[len(emoji[0]):],
+         menu[parse_callback_data(button.callback_data, "select-item")[0]][1])
+        for button in keyboard.get_buttons("select-item")
+        if button.text.startswith(emoji[0]))
+
+    if selected_items:
         bot.edit_message_reply_markup(
             chat_id=callback_query.from_user.id,
             message_id=callback_query.message.message_id,
             reply_markup=None,
         )
+
         bot.send_invoice(
             chat_id=callback_query.from_user.id,
-            title="order from yummy cake",
-            description="\n ".join([option[0] for option in options]),
+            title="order detail",
+            description="\n".join([text for text, price in selected_items]),
             payload="your-order-id",
             # https://core.telegram.org/bots/payments#getting-a-token
             provider_token="<PAYMENT-TOKEN-BOTFATHER-GIVE-YOUR>",
             start_parameter="random-str-mapping-to-order-id",
             currency="AUD",
             prices=tuple(
-                LabeledPrice(label=option[1][0], amount=option[1][1])
-                for option in options),
+                LabeledPrice(label=text, amount=price)
+                for text, price in selected_items),
             need_name=True,
             need_phone_number=True,
             need_shipping_address=True,

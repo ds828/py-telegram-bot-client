@@ -195,7 +195,7 @@ class TelegramObject(dict):
             if isinstance(value, dict):
                 return TelegramObject(**value)
             if isinstance(value, (tuple, list)):
-                return tuple(cls.__parse__(_) for _ in value)
+                return [cls.__parse__(_) for _ in value]
         return value
 
     def __getitem__(self, name: str) -> Any:
@@ -205,6 +205,10 @@ class TelegramObject(dict):
 
     def __getattr__(self, name: str) -> Any:
         return self[name]
+
+    @property
+    def _data(self):
+        return self
 
 
 Message = (CallbackQuery) = (ChosenInlineResult) = (InlineQuery) = (

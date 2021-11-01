@@ -2,41 +2,31 @@
 run: python -m example.select
 """
 from telegrambotclient import bot_client
-from telegrambotclient.base import (InlineKeyboardButton, MessageField,
-                                    ParseMode)
-from telegrambotclient.ui import InlineKeyboard, UIHelper
+from telegrambotclient.base import InlineKeyboardButton, MessageField
+from telegrambotclient.ui import InlineKeyboard
+from telegrambotclient.utils import build_callback_data, parse_callback_data
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
-# define yourself emoji
-emoji = ("✔️✔️", "")
+emoji = ("✔️" "")
 
-
-def select_callback(bot, callback_query, text, value, selected: bool):
-    # same fields with send_message
-    return {
-        "text":
-        "<strong>{0}</strong> text={1} value={2}".format(
-            "select" if selected else "unselect", text, value),
-        "parse_mode":
-        ParseMode.HTML
-    }
-
-
-select_name = "my-select"
-UIHelper.setup_select(router, select_name, select_callback, emoji=emoji)
+select_options = {
+    1: ("select-text-1", True),  # selected
+    2: ("select-text-2", False),
+    3: ("select-text-3", False),
+}
 
 
 @router.message_handler(fields=MessageField.TEXT)
 def on_show_keyboard(bot, message):
     keyboard = InlineKeyboard()
-    keyboard.add_buttons(*UIHelper.build_select_buttons(
-        select_name,
-        ("select1", "select-value1", True),  # selected
-        ("select2", None),
-        ("select3", ("select-value3", 123)),
-        emoji=emoji))
+    keyboard.add_buttons(*[
+        InlineKeyboardButton(
+            text="{0}{1}".format(emoji[0] if selected else emoji[1], text),
+            callback_data=build_callback_data("select", value, selected))
+        for value, (text, selected) in select_options.items()
+    ])
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(
@@ -47,15 +37,34 @@ def on_show_keyboard(bot, message):
     return bot.stop_call
 
 
+@router.callback_query_handler(callback_data_name="select")
+def on_select(bot, callback_query, value, selected):
+    keyboard = InlineKeyboard(
+        *callback_query.message.reply_markup.inline_keyboard)
+    new_button = InlineKeyboardButton(
+        text="{0}{1}".format(emoji[1] if selected else emoji[0],
+                             select_options[value][0]),
+        callback_data=build_callback_data("select", value, not selected))
+    keyboard.replace(build_callback_data("select", value, selected),
+                     new_button)
+    bot.edit_message_text(chat_id=callback_query.from_user.id,
+                          message_id=callback_query.message.message_id,
+                          text=callback_query.message.text,
+                          reply_markup=keyboard.markup())
+    return bot.stop_call
+
+
 @router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
-    options = UIHelper.lookup_select(
-        callback_query.message.reply_markup.inline_keyboard,
-        select_name,
-        emoji=emoji)
+    keyboard = InlineKeyboard(
+        *callback_query.message.reply_markup.inline_keyboard)
+    buttons = keyboard.get_buttons("select")
+    # filter selected options
     message_text = "\n".join([
-        "you select item: text={0}, option={1}".format(text, option)
-        for text, option in options
+        "text={0}, value={1}".format(text[len(emoji[0]):], value)
+        for text, value in tuple(
+            (button.text, parse_callback_data(button.callback_data, "select"))
+            for button in buttons if button.text.startswith(emoji[0]))
     ])
     bot.send_message(
         chat_id=callback_query.from_user.id,

@@ -195,7 +195,7 @@ class MessageRoute(DefaultRoute):
     async def call_handlers(self, bot: TelegramBot, message: Message):
         if self.name in self._root_route:
             route = self._root_route[self.name]
-            for fields in route["fields"]:
+            for fields in route.get("fields", {}):
                 have_fields = True
                 for field in fields:
                     if field not in message:
