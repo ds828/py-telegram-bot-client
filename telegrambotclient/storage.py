@@ -256,8 +256,7 @@ class MongoDBStorage(TelegramStorage):
                 "_expires": {
                     "$gte": current_time
                 }
-            }, {"$set": mapping},
-            upsert=True)
+            }, {"$set": mapping})
         return result.modified_count > 0 or result.upserted_id != None
 
     def delete_fields(self, key: str, *fields, expires: int) -> bool:
