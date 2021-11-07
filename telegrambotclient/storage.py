@@ -257,6 +257,10 @@ class MongoDBStorage(TelegramStorage):
                     "$gte": current_time
                 }
             }, {"$set": mapping})
+        if result.modified_count == 0:
+            result = self._session.update_one({"_id": key}, {"$set": mapping},
+                                              upsert=True)
+
         return result.modified_count > 0 or result.upserted_id != None
 
     def delete_fields(self, key: str, *fields, expires: int) -> bool:
