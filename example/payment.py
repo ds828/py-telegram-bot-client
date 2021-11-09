@@ -55,7 +55,7 @@ def on_show_menu(bot, message):
     return bot.stop_call
 
 
-@router.callback_query_handler(callback_data_name="select-item")
+@router.callback_query_handler(callback_data="select-item")
 def on_select_item(bot, callback_query, item_id, selected):
     keyboard = InlineKeyboard(
         *callback_query.message.reply_markup.inline_keyboard)
@@ -64,12 +64,12 @@ def on_select_item(bot, callback_query, item_id, selected):
                              menu[item_id][0]),
         callback_data=build_callback_data("select-item", item_id,
                                           not selected))
-    keyboard.replace(build_callback_data("select-item", item_id, selected),
-                     new_button)
-    bot.edit_message_text(chat_id=callback_query.from_user.id,
-                          message_id=callback_query.message.message_id,
-                          text=callback_query.message.text,
-                          reply_markup=keyboard.markup())
+    if keyboard.replace(build_callback_data("select-item", item_id, selected),
+                        new_button):
+        bot.edit_message_text(chat_id=callback_query.from_user.id,
+                              message_id=callback_query.message.message_id,
+                              text=callback_query.message.text,
+                              reply_markup=keyboard.markup())
     return bot.stop_call
 
 
@@ -79,9 +79,9 @@ def on_submit(bot, callback_query):
         *callback_query.message.reply_markup.inline_keyboard)
     selected_items = tuple(
         (button.text[len(emoji[0]):],
-         menu[parse_callback_data(button.callback_data, "select-item")[0]][1])
+         menu[parse_callback_data(button.callback_data)[1][0]][1])
         for button in keyboard.get_buttons("select-item")
-        if button.text.startswith(emoji[0]))
+        if button.text.startswith(emoji[0]) and button.callback_data)
 
     if selected_items:
         bot.edit_message_reply_markup(

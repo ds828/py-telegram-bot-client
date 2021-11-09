@@ -26,11 +26,17 @@ class InlineKeyboard(ReplyKeyboard):
     def markup(self):
         return InlineKeyboardMarkup(inline_keyboard=self.data)
 
-    def replace(self, callback_data: str, new_button):
+    def replace(self, callback_data: str, new_button) -> bool:
+        replaced = False
         for line in self.data:
             for idx, button in enumerate(line):
-                if button.get("callback_data", "") == callback_data:
-                    line[idx] = new_button
+                if "callback_data" in button and button[
+                        "callback_data"] == callback_data:
+                    if button["text"] != new_button.text or button[
+                            "callback_data"] != new_button.callback_data:
+                        line[idx] = new_button
+                        replaced = True
+        return replaced
 
     def get_button(self, callback_data: str):
         for line in self.data:

@@ -20,7 +20,7 @@ def on_animation(bot, message):
     logger.debug(bot.get_file(file_id=message.animation.file_id))
     bot.reply_message(
         message,
-        text="receive a animation from {0}".format(message.chat.first_name),
+        text="a nice animation from {0}".format(message.chat.first_name),
     )
 
 

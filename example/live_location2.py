@@ -41,7 +41,7 @@ def on_live_location(bot, edited_message):
         print(edited_message.location, edited_message.edit_date)
         location = edited_message.location
         offset = random.randrange(1, 9) / 100
-        # use your location to make a dummy location
+        # use your location to make a dummy location and heading
         bot.edit_message_live_location(
             chat_id=edited_message.chat.id,
             message_id=message_id,

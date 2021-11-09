@@ -13,7 +13,7 @@ router = bot_client.router()
 def on_cmd(bot, message):
     bot.send_message(chat_id=message.chat.id,
                      text="on_cmd: {0}".format(message.text))
-    return bot.next_call  # will call on_text which is the next matched handler
+    return bot.next_call  # next_call will call on_text which is the next matched handler
 
 
 @router.message_handler(fields=MessageField.TEXT)

@@ -1,6 +1,8 @@
 """
 run: python -m example.keyboard
 """
+import logging
+
 from telegrambotclient import bot_client
 from telegrambotclient.base import (KeyboardButton, MessageField,
                                     ReplyKeyboardRemove)
@@ -22,22 +24,22 @@ def on_show_keyboard(bot, message):
     # compose keyboards
     keyboard += ReplyKeyboard((btn_text, btn_contact),
                               (btn_location, ))  # lines
-    # add lines
+    # add buttons as 3 lines
     keyboard.add_lines((btn_text, ), (btn_contact, ), (btn_location, ))
 
-    bot.send_message(
+    reply_to_message = bot.send_message(
         chat_id=message.chat.id,
         text=message.text,
         reply_markup=keyboard.markup(selective=True),
     )
-    bot.join_force_reply(user_id=message.from_user.id,
-                         callback=on_reply_button_click)
+    bot.join_force_reply(message.chat.id, reply_to_message,
+                         on_reply_button_click)
     return bot.stop_call
 
 
 @router.force_reply_handler()
 def on_reply_button_click(bot, message):
-    bot.force_reply_done(message.from_user.id)
+    bot.remove_force_reply(message.chat.id)
     if message.text:
         bot.send_message(
             chat_id=message.chat.id,
@@ -61,6 +63,8 @@ def on_reply_button_click(bot, message):
         return bot.stop_call
 
 
+logger = logging.getLogger("telegram-bot-client")
+logger.setLevel(logging.DEBUG)
 bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 bot.delete_webhook(drop_pending_updates=True)
 bot.run_polling(timeout=10)

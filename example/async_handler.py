@@ -17,8 +17,8 @@ async def on_echo_text(bot, message):
     await asyncio.sleep(3)
     bot.reply_message(
         message,
-        text="I receive: <strong>{0}</strong>".format(message.text),
-        parse_mode=ParseMode.HTML,
+        text="I receive: *{0}*".format(message.text),
+        parse_mode=ParseMode.MARKDOWN,
     )
 
 

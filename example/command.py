@@ -14,15 +14,6 @@ logger.setLevel(logging.DEBUG)
 router = bot_client.router()
 
 
-@router.command_handler(("/cmd", ))
-def on_cmd1(bot, message):
-    text = "<a href='{1}'>{2}</a>".format(
-        message.text, bot.get_deep_link(payload="good", startgroup=False),
-        "let's start")
-    bot.reply_message(message, text=text, parse_mode=ParseMode.HTML)
-    return bot.stop_call
-
-
 @router.command_handler(("/start", ))
 def on_start(bot, message, *cmd_args):
     logger.debug(cmd_args)
@@ -30,7 +21,16 @@ def on_start(bot, message, *cmd_args):
     return bot.stop_call
 
 
-print(router)
+@router.command_handler(("/cmd", ))
+def on_cmd1(bot, message):
+    text = "[{0}]({1}) {2}".format(
+        message.text, bot.get_deep_link(payload="good", startgroup=False),
+        "let's start")
+    bot.reply_message(message, text=text, parse_mode=ParseMode.MARKDOWN)
+    return bot.stop_call
+
+
+logger.debug(router)
 bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 bot.delete_webhook(drop_pending_updates=True)
 cmd = BotCommand(command="/cmd", description="cmd")

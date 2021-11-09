@@ -18,7 +18,7 @@ def on_show_keyboard(bot, message):
     keyboard.add_buttons(
         InlineKeyboardButton(text="{0}status".format(emoji[0]),
                              callback_data=build_callback_data(
-                                 "switch", "value", True)))
+                                 "switch", 123, True)))
     keyboard.add_buttons(
         InlineKeyboardButton(text="submit", callback_data="submit"))
     bot.send_message(chat_id=message.chat.id,
@@ -27,20 +27,20 @@ def on_show_keyboard(bot, message):
     return bot.stop_call
 
 
-@router.callback_query_handler(callback_data_name="switch")
+@router.callback_query_handler(callback_data="switch")
 def on_change(bot, callback_query, value, selected):
     keyboard = InlineKeyboard(
         *callback_query.message.reply_markup.inline_keyboard)
     new_button = InlineKeyboardButton(
         text="{0}status".format(emoji[1] if selected else emoji[0]),
         callback_data=build_callback_data("switch", value, not selected))
-    keyboard.replace(build_callback_data("switch", value, selected),
-                     new_button)
+    if keyboard.replace(build_callback_data("switch", value, selected),
+                        new_button):
 
-    bot.edit_message_text(chat_id=callback_query.from_user.id,
-                          message_id=callback_query.message.message_id,
-                          text="switch status: {0}".format(not selected),
-                          reply_markup=keyboard.markup())
+        bot.edit_message_text(chat_id=callback_query.from_user.id,
+                              message_id=callback_query.message.message_id,
+                              text="switch status: {0}".format(not selected),
+                              reply_markup=keyboard.markup())
     return bot.stop_call
 
 
@@ -49,9 +49,10 @@ def on_submit(bot, callback_query):
     keyboard = InlineKeyboard(
         *callback_query.message.reply_markup.inline_keyboard)
     for button in keyboard.get_buttons("switch"):
-        value = parse_callback_data(button.callback_data, "switch")
-        value, selected = tuple(value)
-        message_text = "value={0} selected={1}".format(value, selected)
+        callback_data_name, value, selected = parse_callback_data(
+            button.callback_data)
+        message_text = "callback_data_name={0} value={1} selected={2}".format(
+            callback_data_name, value, selected)
         bot.send_message(
             chat_id=callback_query.from_user.id,
             text=message_text,

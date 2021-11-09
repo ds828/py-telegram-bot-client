@@ -1,7 +1,7 @@
 import pprint
 from functools import wraps
 from io import StringIO
-from typing import Any, Dict, List, Pattern, Tuple, Union
+from typing import Any, List, Pattern, Tuple, Union
 
 from telegrambotclient.base import TelegramBotException
 
@@ -11,10 +11,6 @@ except ImportError:
     import json
 
 
-def exclude_none(**kwargs) -> Dict:
-    return {key: value for key, value in kwargs.items() if value is not None}
-
-
 _pp = pprint.PrettyPrinter(indent=2)
 
 
@@ -22,7 +18,7 @@ def pretty_print(data: Any):
     _pp.pprint(data)
 
 
-def pretty_format(data: Dict) -> str:
+def pretty_format(data: Any) -> str:
     return _pp.pformat(data)
 
 
@@ -60,8 +56,8 @@ def i18n(default_lang_code: str = "en"):
     return decorate
 
 
-def build_callback_data(name: str, *value) -> str:
-    data = "{0}|{1}".format(name, json.dumps(value))
+def build_callback_data(button_name: str, *value) -> str:
+    data = "{0}|{1}".format(button_name, json.dumps(value))
     bytes_len = len(data.encode("utf-8"))
     if bytes_len > 64:
         raise TelegramBotException(
@@ -70,13 +66,10 @@ def build_callback_data(name: str, *value) -> str:
     return data
 
 
-def parse_callback_data(callback_data: str, name: str):
-    callback_name_value = callback_data.split("|")
-    if len(callback_name_value) == 2:
-        callback_name, callback_value = tuple(callback_name_value)
-        if callback_name == name:
-            return tuple(json.loads(callback_value))
-    return (None, )
+def parse_callback_data(callback_data: str):
+    button_name, value = tuple(
+        callback_data.split("|", maxsplit=1))
+    return button_name, *tuple(json.loads((value)))
 
 
 def compose_message_entities(text_entities: Union[List, Tuple],

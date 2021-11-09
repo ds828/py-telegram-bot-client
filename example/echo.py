@@ -28,7 +28,6 @@ def on_pinned_message(bot, message):
     )
 
 
-print(router)
 my_bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 my_bot.delete_webhook(drop_pending_updates=True)
 my_bot.run_polling(timeout=10)

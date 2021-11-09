@@ -37,7 +37,7 @@ def on_show_keyboard(bot, message):
     return bot.stop_call
 
 
-@router.callback_query_handler(callback_data_name="select")
+@router.callback_query_handler(callback_data="select")
 def on_select(bot, callback_query, value, selected):
     keyboard = InlineKeyboard(
         *callback_query.message.reply_markup.inline_keyboard)
@@ -45,12 +45,12 @@ def on_select(bot, callback_query, value, selected):
         text="{0}{1}".format(emoji[1] if selected else emoji[0],
                              select_options[value][0]),
         callback_data=build_callback_data("select", value, not selected))
-    keyboard.replace(build_callback_data("select", value, selected),
-                     new_button)
-    bot.edit_message_text(chat_id=callback_query.from_user.id,
-                          message_id=callback_query.message.message_id,
-                          text=callback_query.message.text,
-                          reply_markup=keyboard.markup())
+    if keyboard.replace(build_callback_data("select", value, selected),
+                        new_button):
+        bot.edit_message_text(chat_id=callback_query.from_user.id,
+                              message_id=callback_query.message.message_id,
+                              text=callback_query.message.text,
+                              reply_markup=keyboard.markup())
     return bot.stop_call
 
 
@@ -61,9 +61,10 @@ def on_submit(bot, callback_query):
     buttons = keyboard.get_buttons("select")
     # filter selected options
     message_text = "\n".join([
-        "text={0}, value={1}".format(text[len(emoji[0]):], value)
-        for text, value in tuple(
-            (button.text, parse_callback_data(button.callback_data, "select"))
+        "text={0}, callback_data_name={1}, value={2}".format(
+            text[len(emoji[0]):], callback_data[0], callback_data[1:])
+        for text, callback_data in tuple(
+            (button.text, parse_callback_data(button.callback_data))
             for button in buttons if button.text.startswith(emoji[0]))
     ])
     bot.send_message(

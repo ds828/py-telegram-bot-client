@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import UserDict, UserList
 from typing import Callable, List, Tuple, Union
 
 try:
@@ -23,297 +23,132 @@ from telegrambotclient.handler import (
 from telegrambotclient.utils import pretty_format
 
 
-class DefaultRoute:
-    __slots__ = ("_root_route", "name")
+async def call_handler(handler: UpdateHandler, *args, **kwargs):
+    return bool(await handler(*args, **kwargs))
 
-    def __init__(self, name, root_route):
-        self.name = name
-        self._root_route = root_route
 
+class ListRoute(UserList):
     def add_handler(self, handler: UpdateHandler):
-        if self.name not in self._root_route:
-            self._root_route[self.name] = []
-        route = self._root_route[self.name]
-        for idx, _handler in enumerate(route):
-            if _handler.name == handler.name:
-                route[idx] = handler
+        for idx, _handler in enumerate(self):
+            if _handler.callback_name == handler.callback_name:
+                self[idx] = handler
                 return
-        route.append(handler)
-
-    def remove_handler(self, handler: UpdateHandler):
-        if self.name in self._root_route:
-            route = self._root_route[self.name]
-            for _handler in route:
-                if _handler.name == handler.name:
-                    route.remove(_handler)
-                    break
-            if not route:
-                del self._root_route[self.name]
+        self.data.append(handler)
+        return self
 
     async def call_handlers(self, bot: TelegramBot, data: TelegramObject):
-        for handler in self._root_route.get(self.name, ()):
-            if await self.call_handler(handler, bot, data) is bot.stop_call:
+        for handler in self:
+            if await call_handler(handler, bot, data) is bot.stop_call:
                 return bot.stop_call
         return bot.next_call
 
-    @staticmethod
-    async def call_handler(handler: UpdateHandler, *args, **kwargs):
-        return bool(await handler(*args, **kwargs))
 
-
-class ErrorRoute(DefaultRoute):
-    def __init__(self, root_route):
-        super().__init__("error", root_route)
-
+class ErrorRoute(ListRoute):
     async def call_handlers(self, bot: TelegramBot, data: TelegramObject,
                             error: Exception) -> bool:
-        for handler in self._root_route.get("error", ()):
-            if isinstance(error, handler.errors) and await self.call_handler(
+        for handler in self:
+            if isinstance(error, handler.errors) and await call_handler(
                     handler, bot, data, error) is bot.stop_call:
                 return bot.stop_call
         return bot.next_call
 
 
-class CommandRoute(DefaultRoute):
-    def __init__(self, root_route):
-        super().__init__("cmd", root_route)
-
+class CommandRoute(UserDict):
     def add_handler(self, handler: CommandHandler):
-        if self.name not in self._root_route:
-            self._root_route[self.name] = {}
-        for cmd_word in handler.cmds:
-            self._root_route[self.name][cmd_word] = handler
-        route = self._root_route.get(UpdateField.MESSAGE.value, {})
-        route[self.name] = True
-        self._root_route[UpdateField.MESSAGE.value] = route
-        route = self._root_route.get(UpdateField.EDITED_MESSAGE.value, {})
-        route[self.name] = True
-        self._root_route[UpdateField.EDITED_MESSAGE.value] = route
-
-    def remove_handler(self, handler: CommandHandler):
-        if self.name in self._root_route:
-            route = self._root_route[self.name]
-            for cmd_word in handler.cmds:
-                if cmd_word in route:
-                    del route[cmd_word]
-            if not route:
-                del self._root_route[self.name]
-                if self.name in self._root_route.get(UpdateField.MESSAGE.value,
-                                                     {}):
-                    del self._root_route[UpdateField.MESSAGE.value][self.name]
-                if self.name in self._root_route.get(
-                        UpdateField.EDITED_MESSAGE.value, {}):
-                    del self._root_route[UpdateField.EDITED_MESSAGE.value][
-                        self.name]
+        for cmd_text in handler.cmds:
+            self[cmd_text] = handler
+        return self
 
     async def call_handlers(self, bot: TelegramBot, message: Message):
-        if not message.text or message.text[
-                0] != '/' or self.name not in self._root_route:
+        if not message.text or message.text[0] != '/':
             return bot.next_call
-        # /start@jobs_bot arg1 arg2
-        cmd, *args = tuple(message.text.split(maxsplit=1))
-        cmd_name, *bot_username = tuple(cmd.split("@"))
-        if bot_username and bot_username != bot.user.username:
+        #for /start@one_bot arg1 arg2 ...
+        cmd_bot, *args = tuple(message.text.split(maxsplit=1))
+        cmd, *bot_username = tuple(cmd_bot.split("@"))
+        if bot_username and bot_username[0] != bot.user.username:
             return bot.stop_call
-        handler = self._root_route.get(self.name, {}).get(cmd_name, None)
+        handler = self.get(cmd, None)
         if handler is None:
             return bot.stop_call
         if args:
-            return await self.call_handler(handler, bot, message,
-                                           *args[0].split(handler.delimiter))
-        return await self.call_handler(handler, bot, message)
+            return await call_handler(handler, bot, message,
+                                      *args[0].split(handler.delimiter))
+        return await call_handler(handler, bot, message)
 
 
-class ForceReplyRoute(DefaultRoute):
-    def __init__(self, root_route):
-        super().__init__("force_reply", root_route)
-
+class ForceReplyRoute(UserDict):
     def add_handler(self, handler: ForceReplyHandler):
-        if self.name not in self._root_route:
-            self._root_route[self.name] = {}
-        self._root_route[self.name][handler.name] = handler
-
-    def remove_handler(self, handler: ForceReplyHandler):
-        if self.name in self._root_route:
-            route = self._root_route[self.name]
-            if handler.name in route:
-                del route[handler.name]
-            if not route:
-                del self._root_route[self.name]
+        self[handler.callback_name] = handler
+        return self
 
     async def call_handlers(self, bot: TelegramBot, message: Message):
-        route = self._root_route.get(self.name, {})
-        if not route:
-            return bot.next_call
-        force_reply_callback_name, force_reply_args = bot.get_force_reply(
+        reply_to_message = bot.get_force_reply(
             message.chat.id if message.chat else message.from_user.
             id if message.from_user else 0)
-        if force_reply_callback_name is None:
+        if not reply_to_message or message.reply_to_message.message_id != reply_to_message[
+                "message_id"]:
             return bot.next_call
-        handler = route.get(force_reply_callback_name, None)
+        handler = self.get(reply_to_message["callback"], None)
         if handler is None:
             raise TelegramBotException(
                 "{0} is not found as a force reply callback".format(
-                    force_reply_callback_name))
-        return await self.call_handler(
-            handler, bot, message, *
-            force_reply_args) if force_reply_args else await self.call_handler(
-                handler, bot, message)
+                    reply_to_message["callback"]))
 
-    def __contains__(self, force_reply_name: str):
-        return force_reply_name in self._root_route.get(self.name, {})
+        return await call_handler(
+            handler, bot, message, *reply_to_message["args"]
+        ) if "args" in reply_to_message else await call_handler(
+            handler, bot, message)
 
 
-class MessageRoute(DefaultRoute):
-    def __init__(self, name: str, root_route):
-        super().__init__(name, root_route)
-
+class MessageRoute(UserList):
     def add_handler(self, handler: _MessageHandler):
-        if self.name not in self._root_route:
-            self._root_route[self.name] = {}
-        route = self._root_route[self.name].get("fields", defaultdict(list))
         if handler.fields:
-            route[handler.fields].append(handler)
-            self._root_route[self.name]["fields"] = route
+            self[0:0] = [(set(handler.fields), handler)]
         else:
-            route = self._root_route[self.name].get("all", [])
-            route.append(handler)
-            self._root_route[self.name]["all"] = route
-
-    def remove_handler(self, handler: _MessageHandler):
-        if self.name in self._root_route:
-            handlers = ()
-            if handler.fields:
-                handlers = self._root_route[self.name].get("fields", {}).get(
-                    handler.fields, ())
-            else:
-                handlers = self._root_route[self.name].get("all", ())
-            for idx, _handler in enumerate(handlers):
-                if _handler.name == handler.name:
-                    handlers.remove(idx)
+            self.append((set(), handler))
+        return self
 
     async def call_handlers(self, bot: TelegramBot, message: Message):
-        if self.name in self._root_route:
-            route = self._root_route[self.name]
-            for fields in route.get("fields", {}):
-                have_fields = True
-                for field in fields:
-                    if field not in message:
-                        have_fields = False
-                        break
-                if have_fields:
-                    for handler in route["fields"][fields]:
-                        if await self.call_handler(handler, bot,
-                                                   message) is bot.stop_call:
-                            return bot.stop_call
-
-            for handler in route.get("all", ()):
-                if await self.call_handler(handler, bot,
-                                           message) is bot.stop_call:
-                    return bot.stop_call
+        message_fields_set = set(message.keys())
+        for fields_set, handler in self:
+            if message_fields_set & fields_set == fields_set and await call_handler(
+                    handler, bot, message) is bot.stop_call:
+                return bot.stop_call
 
         return bot.next_call
 
 
-class CallbackQueryRoute(DefaultRoute):
-    def __init__(self, root_route):
-        super().__init__(UpdateField.CALLBACK_QUERY.value, root_route)
-
+class CallbackQueryRoute(UserDict):
     def add_handler(self, handler: CallbackQueryHandler):
-        if self.name not in self._root_route:
-            self._root_route[self.name] = {}
-        route = self._root_route[self.name]
-        if handler.callback_data:
-            if "data" not in route:
-                route["data"] = {}
-            route["data"][handler.callback_data] = handler
-        if handler.callback_data_name:
-            if "name" not in route:
-                route["name"] = {}
-            route["name"][handler.callback_data_name] = handler
-        if handler.callback_data_patterns:
-            DefaultRoute("regex", route).add_handler(handler)
-        if handler.callback_data_parser:
-            DefaultRoute("parse", route).add_handler(handler)
-        if handler.game_short_name:
-            if "game" not in route:
-                route["name"] = {}
-            route["game"][handler.game_short_name] = handler
-
-    def remove_handler(self, handler: CallbackQueryHandler):
-        if self.name in self._root_route:
-            route = self._root_route[self.name]
-            if handler.callback_data and "data" in route and handler.callback_data in route[
-                    "data"]:
-                del route["data"][handler.callback_data]
-            if handler.callback_data_name and "name" in route and handler.callback_data_name in route[
-                    "name"]:
-                del route["name"][handler.callback_data_name]
-            if handler.callback_data_patterns:
-                DefaultRoute("regex", route).remove_handler(handler)
-            if handler.callback_data_parser:
-                DefaultRoute("parse", route).remove_handler(handler)
-            if handler.game_short_name and "game" in route and handler.game_short_name in route[
-                    "game"]:
-                del route["game"][handler.callback_data_name]
-            if not route:
-                del self._root_route[self.name]
+        self[handler.data] = handler
+        return self
 
     async def call_handlers(self, bot: TelegramBot,
                             callback_query: CallbackQuery):
-        if self.name in self._root_route:
-            route = self._root_route[self.name]
-            if callback_query.data:
-                # for callback_data
-                handler = route.get("data", {}).get(callback_query.data, None)
-                if handler and await self.call_handler(
-                        handler, bot, callback_query) is bot.stop_call:
-                    return bot.stop_call
-                #for callback_data_name
-                if "|" in callback_query.data:
-                    callback_name, callback_data = tuple(
-                        callback_query.data.split("|", maxsplit=1))
-                    if callback_data:
-                        handler = route.get("name",
-                                            {}).get(callback_name, None)
-                        if handler and await self.call_handler(
-                                handler, bot, callback_query,
-                                *json.loads(callback_data)) is bot.stop_call:
-                            return bot.stop_call
-                # for callback_data_regex
-                for handler in route.get("regex", ()):
-                    result = handler.match_callback_data(callback_query)
-                    if result and await self.call_handler(
-                            handler, bot, callback_query,
-                            result) is bot.stop_call:
-                        return bot.stop_call
-                # for callback_data_parse
-                for handler in route.get("parse", ()):
-                    result = handler.parse_callback_data(callback_query)
-                    if result and await self.call_handler(
-                            handler, bot, callback_query,
-                            result) is bot.stop_call:
-                        return bot.stop_call
-            elif callback_query.game_short_name:
-                handler = route.get("game",
-                                    {}).get(callback_query.game_short_name,
-                                            None)
-                if handler and await self.call_handler(
-                        handler, bot, callback_query) is bot.stop_call:
-                    return bot.stop_call
+        handler = self.get(callback_query.data, None)
+        if handler and await call_handler(handler, bot,
+                                          callback_query) is bot.stop_call:
+            return bot.stop_call
+        if "|" in callback_query.data:
+            button_name, value = tuple(
+                callback_query.data.split("|", maxsplit=1))
+            handler = self.get(button_name, None)
+            if handler and await call_handler(
+                    handler, bot, callback_query, *
+                    json.loads(value)) is bot.stop_call:
+                return bot.stop_call
 
         return bot.next_call
 
 
 class TelegramRouter:
     __slots__ = ("name", "route_map", "_handler_callers")
-    DEFAULT_NAME = "default-router"
     NEXT_CALL = True
     STOP_CALL = False
     UPDATE_FIELD_VALUES = UpdateField.__members__.values()
 
-    def __init__(self, name: str = None):
-        self.name = name or self.DEFAULT_NAME
+    def __init__(self, name):
+        self.name = name
         self.route_map = {}
         self._handler_callers = {
             UpdateField.MESSAGE: self.call_message_handlers,
@@ -341,62 +176,45 @@ class TelegramRouter:
     def register_handler(self, handler: UpdateHandler):
         assert isinstance(handler, UpdateHandler), True
         update_field = handler.update_field
-        logger.info("bind a %s handler: '%s@%s'", update_field, handler.name,
-                    self.name)
-        if isinstance(handler, CommandHandler):
-            return CommandRoute(self.route_map).add_handler(handler)
-        if isinstance(handler, ForceReplyHandler):
-            return ForceReplyRoute(self.route_map).add_handler(handler)
-        if isinstance(handler, MessageHandler):
-            return MessageRoute(UpdateField.MESSAGE.value,
-                                self.route_map).add_handler(handler)
-        if isinstance(handler, EditedMessageHandler):
-            return MessageRoute(UpdateField.EDITED_MESSAGE.value,
-                                self.route_map).add_handler(handler)
+        logger.info("bind a %s handler: '%s@%s'", update_field,
+                    handler.callback_name, self.name)
+        route_data = self.route_map.get(update_field, {})
         if isinstance(handler, CallbackQueryHandler):
-            return CallbackQueryRoute(self.route_map).add_handler(handler)
-        if isinstance(handler, ChannelPostHandler):
-            return MessageRoute(UpdateField.CHANNEL_POST.value,
-                                self.route_map).add_handler(handler)
-        if isinstance(handler, EditedChannelPostHandler):
-            return MessageRoute(UpdateField.EDITED_CHANNEL_POST.value,
-                                self.route_map).add_handler(handler)
-        if isinstance(handler, ErrorHandler):
-            return ErrorRoute(self.route_map).add_handler(handler)
-        # for others update handlers
-        return DefaultRoute(update_field, self.route_map).add_handler(handler)
+            self.route_map[update_field] = CallbackQueryRoute(
+                route_data).add_handler(handler)
+            return self
 
-    def remove_handler(self, handler: UpdateHandler):
-        assert isinstance(handler, UpdateHandler), True
-        update_field = handler.update_field
-        logger.info("unbind a %s handler: '%s@%s'", update_field, handler.name,
-                    self.name)
+        if isinstance(handler, (MessageHandler, EditedMessageHandler,
+                                ChannelPostHandler, EditedChannelPostHandler)):
+            self.route_map[update_field] = MessageRoute(
+                route_data).add_handler(handler)
+            return self
+
         if isinstance(handler, CommandHandler):
-            return CommandRoute(self.route_map).remove_handler(handler)
+            self.route_map[update_field] = CommandRoute(
+                route_data).add_handler(handler)
+            return self
+
         if isinstance(handler, ForceReplyHandler):
-            return ForceReplyRoute(self.route_map).remove_handler(handler)
-        if isinstance(handler, MessageHandler):
-            return MessageRoute(UpdateField.MESSAGE.value,
-                                self.route_map).remove_handler(handler)
-        if isinstance(handler, EditedMessageHandler):
-            return MessageRoute(UpdateField.EDITED_MESSAGE.value,
-                                self.route_map).remove_handler(handler)
-        if isinstance(handler, CallbackQueryHandler):
-            return CallbackQueryRoute(self.route_map).remove_handler(handler)
-        if isinstance(handler, ChannelPostHandler):
-            return MessageRoute(UpdateField.CHANNEL_POST.value,
-                                self.route_map).remove_handler(handler)
-        if isinstance(handler, EditedChannelPostHandler):
-            return MessageRoute(UpdateField.EDITED_CHANNEL_POST.value,
-                                self.route_map).add_handler(handler)
+            self.route_map[update_field] = ForceReplyRoute(
+                route_data).add_handler(handler)
+            return self
+
+        route_data = self.route_map[update_field] = self.route_map.get(
+            handler.update_field, [])
+
         if isinstance(handler, ErrorHandler):
-            return ErrorRoute(self.route_map).remove_handler(handler)
-        # for others update handlers
-        return DefaultRoute(update_field,
-                            self.route_map).remove_handler(handler)
+            self.route_map[update_field] = ErrorRoute(route_data).add_handler(
+                handler)
+            return self
+
+        # for others update handlers, using listroute
+        self.route_map[update_field] = ListRoute(route_data).add_handler(
+            handler)
+        return self
 
     def register_error_handler(self, callback: Callable, errors):
-        self.register_handler(
+        return self.register_handler(
             ErrorHandler(callback=callback,
                          errors=tuple(errors) if errors else None))
 
@@ -404,77 +222,72 @@ class TelegramRouter:
                                  callback: Callable,
                                  cmds,
                                  delimiter=" "):
-        self.register_handler(
+        return self.register_handler(
             CommandHandler(callback=callback, cmds=cmds, delimiter=delimiter))
 
     def register_force_reply_handler(self, callback: Callable):
-        self.register_handler(ForceReplyHandler(callback=callback))
+        return self.register_handler(ForceReplyHandler(callback=callback))
 
     def register_message_handler(self,
                                  callback: Callable,
                                  fields: Union[str, MessageField] = None):
-        self.register_handler(MessageHandler(callback=callback, fields=fields))
+        return self.register_handler(
+            MessageHandler(callback=callback, fields=fields))
 
     def register_edited_message_handler(self,
                                         callback: Callable,
                                         fields: Union[str,
                                                       MessageField] = None):
-        self.register_handler(
+        return self.register_handler(
             EditedMessageHandler(callback=callback, fields=fields))
 
     def register_channel_post_handler(self,
                                       callback: Callable,
                                       fields: Union[str, MessageField] = None):
-        self.register_handler(
+        return self.register_handler(
             ChannelPostHandler(callback=callback, fields=fields))
 
     def register_edited_channel_post_handler(self,
                                              callback: Callable,
                                              fields: Union[
                                                  str, MessageField] = None):
-        self.register_handler(
+        return self.register_handler(
             EditedChannelPostHandler(callback=callback, fields=fields))
 
     def register_inline_query_handler(self, callback: Callable):
-        self.register_handler(InlineQueryHandler(callback=callback))
+        return self.register_handler(InlineQueryHandler(callback=callback))
 
     def register_chosen_inline_result_handler(self, callback: Callable):
-        self.register_handler(ChosenInlineResultHandler(callback=callback))
+        return self.register_handler(
+            ChosenInlineResultHandler(callback=callback))
 
     def register_callback_query_handler(self,
                                         callback: Callable,
                                         callback_data: str = None,
-                                        callback_data_name: str = None,
-                                        callback_data_regex: Tuple[str] = None,
-                                        callback_data_parse: Callable = None,
-                                        game_short_name: str = None,
-                                        **kwargs):
-        self.register_handler(
+                                        game_short_name: str = None):
+        return self.register_handler(
             CallbackQueryHandler(callback=callback,
                                  callback_data=callback_data,
-                                 callback_data_name=callback_data_name,
-                                 callback_data_regex=callback_data_regex,
-                                 callback_data_parse=callback_data_parse,
-                                 game_short_name=game_short_name,
-                                 **kwargs))
+                                 game_short_name=game_short_name))
 
     def register_shipping_query_handler(self, callback: Callable):
-        self.register_handler(ShippingQueryHandler(callback=callback))
+        return self.register_handler(ShippingQueryHandler(callback=callback))
 
     def register_pre_checkout_query_handler(self, callback: Callable):
-        self.register_handler(PreCheckoutQueryHandler(callback=callback))
+        return self.register_handler(
+            PreCheckoutQueryHandler(callback=callback))
 
     def register_poll_handler(self, callback: Callable):
-        self.register_handler(PollHandler(callback=callback))
+        return self.register_handler(PollHandler(callback=callback))
 
     def register_poll_answer_handler(self, callback: Callable):
-        self.register_handler(PollAnswerHandler(callback=callback))
+        return self.register_handler(PollAnswerHandler(callback=callback))
 
     def register_my_chat_member_handler(self, callback: Callable):
-        self.register_handler(MyChatMemberHandler(callback=callback))
+        return self.register_handler(MyChatMemberHandler(callback=callback))
 
     def register_chat_member_handler(self, callback: Callable):
-        self.register_handler(ChatMemberHandler(callback=callback))
+        return self.register_handler(ChatMemberHandler(callback=callback))
 
     ###################################################################################
     #
@@ -550,17 +363,10 @@ class TelegramRouter:
 
     def callback_query_handler(self,
                                callback_data: str = None,
-                               callback_data_name: str = None,
-                               callback_data_regex: Tuple[str] = None,
-                               callback_data_parse: Callable = None,
-                               game_short_name: str = None,
-                               **kwargs):
+                               game_short_name: str = None):
         def decorator(callback):
             self.register_callback_query_handler(callback, callback_data,
-                                                 callback_data_name,
-                                                 callback_data_regex,
-                                                 callback_data_parse,
-                                                 game_short_name, **kwargs)
+                                                 game_short_name)
             return callback
 
         return decorator
@@ -607,111 +413,118 @@ class TelegramRouter:
 
         return decorator
 
-    ###################################################################################
+    ##################################################################################
     #
     # handler callers
     #
     ##################################################################################
     @classmethod
-    def parse_update_field_and_data(cls, update):
-        for name, value in update.items():
+    def parse_update_field_and_data(cls, raw_update):
+        for name, value in raw_update.items():
             if name in cls.UPDATE_FIELD_VALUES and value:
                 return name, TelegramObject(**value)
         raise TelegramBotException("unknown update field: {0}".format(
-            pretty_format(update)))
+            pretty_format(raw_update)))
 
-    async def route(self, bot: TelegramBot, update):
-        if update["update_id"] and update["update_id"] > bot.last_update_id:
-            bot.last_update_id = update["update_id"]
-        update_field, data = self.parse_update_field_and_data(update)
+    async def route(self, bot: TelegramBot, raw_update):
+        if "update_id" in raw_update and raw_update[
+                "update_id"] > bot.last_update_id:
+            bot.last_update_id = raw_update["update_id"]
+        update_field, data = self.parse_update_field_and_data(raw_update)
         route = self.route_map.get(update_field, None)
         if route:
             try:
                 await self._handler_callers[update_field](bot, data)
             except Exception as error:
-                await ErrorRoute(self.route_map
+                await ErrorRoute(self.route_map.get("error", [])
                                  ).call_handlers(bot, data, error)
                 raise error
 
     async def call_message_handlers(self, bot: TelegramBot, message: Message):
-        if message.text and await CommandRoute(self.route_map).call_handlers(
-                bot, message) is self.STOP_CALL:
-            return self.STOP_CALL
-        if await ForceReplyRoute(self.route_map).call_handlers(
-                bot, message) is self.STOP_CALL:
+        route = self.route_map.get(UpdateField.MESSAGE.value, {})
+        if message.text and await CommandRoute(
+                self.route_map.get("command", {})).call_handlers(
+                    bot, message) is self.STOP_CALL:
             return self.STOP_CALL
 
-        return await MessageRoute(UpdateField.MESSAGE.value,
-                                  self.route_map).call_handlers(bot, message)
+        if "reply_to_message" in message and await ForceReplyRoute(
+                self.route_map.get("force_reply", {})).call_handlers(
+                    bot, message) is self.STOP_CALL:
+            return self.STOP_CALL
+
+        return await MessageRoute(route).call_handlers(bot, message)
 
     async def call_edited_message_handlers(self, bot: TelegramBot,
                                            edited_message: Message):
-        if edited_message.text:
-            if await CommandRoute(self.route_map).call_handlers(
+        route = self.route_map.get(UpdateField.EDITED_MESSAGE.value, {})
+        if edited_message.text and await CommandRoute(
+                self.route_map.get("command", {})).call_handlers(
                     bot, edited_message) is self.STOP_CALL:
-                return self.STOP_CALL
-            # for a edited message, the fields should be text ONLY for force_reply
-            if await ForceReplyRoute(self.route_map).call_handlers(
+            return self.STOP_CALL
+
+        if "reply_to_message" in edited_message and await ForceReplyRoute(
+                self.route_map.get("force_reply", {})).call_handlers(
                     bot, edited_message) is self.STOP_CALL:
-                return self.STOP_CALL
-        return await MessageRoute(UpdateField.EDITED_MESSAGE.value,
-                                  self.route_map).call_handlers(
-                                      bot, edited_message)
+            return self.STOP_CALL
+        return await MessageRoute(route).call_handlers(bot, edited_message)
 
     async def call_channel_post_handlers(self, bot: TelegramBot,
                                          message: Message):
-        return await MessageRoute(UpdateField.CHANNEL_POST.value,
-                                  self.route_map).call_handlers(bot, message)
+        return await MessageRoute(
+            self.route_map.get(UpdateField.CHANNEL_POST.value,
+                               {})).call_handlers(bot, message)
 
     async def call_edited_channel_post_handlers(self, bot: TelegramBot,
                                                 message: Message):
-        return await MessageRoute(UpdateField.EDITED_CHANNEL_POST.value,
-                                  self.route_map).call_handlers(bot, message)
+        return await MessageRoute(
+            self.route_map.get(UpdateField.EDITED_CHANNEL_POST.value,
+                               {})).call_handlers(bot, message)
 
     async def call_callback_query_handlers(self, bot: TelegramBot,
                                            callback_query: CallbackQuery):
-        return await CallbackQueryRoute(self.route_map
-                                        ).call_handlers(bot, callback_query)
+        return await CallbackQueryRoute(
+            self.route_map.get(UpdateField.CALLBACK_QUERY.value,
+                               {})).call_handlers(bot, callback_query)
 
     async def call_inline_query_handlers(self, bot: TelegramBot,
                                          inline_query: InlineQuery):
-        return await DefaultRoute(UpdateField.INLINE_QUERY.value,
-                                  self.route_map).call_handlers(
-                                      bot, inline_query)
+        return await ListRoute(
+            self.route_map.get(UpdateField.INLINE_QUERY.value,
+                               ())).call_handlers(bot, inline_query)
 
     async def call_chosen_inline_result_handlers(
             self, bot: TelegramBot, chosen_inline_result: ChosenInlineResult):
-        return await DefaultRoute(UpdateField.CHOSEN_INLINE_RESULT.value,
-                                  self.route_map).call_handlers(
-                                      bot, chosen_inline_result)
+        return await ListRoute(
+            self.route_map.get(UpdateField.CHOSEN_INLINE_RESULT.value,
+                               ())).call_handlers(bot, chosen_inline_result)
 
     async def call_shipping_query_handlers(self, bot: TelegramBot,
                                            shipping_query: ShippingQuery):
-        return await DefaultRoute(UpdateField.SHIPPING_QUERY.value,
-                                  self.route_map).call_handlers(
-                                      bot, shipping_query)
+        return await ListRoute(
+            self.route_map.get(UpdateField.SHIPPING_QUERY.value,
+                               ())).call_handlers(bot, shipping_query)
 
     async def call_pre_checkout_query_handlers(
             self, bot: TelegramBot, pre_checkout_query: PreCheckoutQuery):
-        return await DefaultRoute(UpdateField.PRE_CHECKOUT_QUERY.value,
-                                  self.route_map).call_handlers(
-                                      bot, pre_checkout_query)
+        return await ListRoute(
+            self.route_map.get(UpdateField.PRE_CHECKOUT_QUERY.value,
+                               ())).call_handlers(bot, pre_checkout_query)
 
     async def call_poll_handlers(self, bot: TelegramBot, poll: Poll):
-        return await DefaultRoute(UpdateField.POLL.value,
-                                  self.route_map).call_handlers(bot, poll)
+        return await ListRoute(self.route_map.get(UpdateField.POLL.value, ())
+                               ).call_handlers(bot, poll)
 
     async def call_poll_answer_handlers(self, bot: TelegramBot,
                                         poll_answer: PollAnswer):
-        return await DefaultRoute(UpdateField.POLL_ANSWER.value,
-                                  self.route_map).call_handlers(
-                                      bot, poll_answer)
+        return await ListRoute(
+            self.route_map.get(UpdateField.POLL_ANSWER.value,
+                               ())).call_handlers(bot, poll_answer)
 
     async def call_my_chat_member_handlers(
             self, bot: TelegramBot, my_chat_member_updated: ChatMemberUpdated):
-        return await DefaultRoute(UpdateField.MY_CHAT_MEMBER,
-                                  self.route_map).call_handlers(
-                                      bot, my_chat_member_updated)
+        return await ListRoute(
+            self.route_map.get(UpdateField.MY_CHAT_MEMBER.value,
+                               ())).call_handlers(bot, my_chat_member_updated)
 
     async def call_chat_member_handlers(
             self, bot: TelegramBot, chat_member_updated: ChatMemberUpdated):
@@ -719,7 +532,8 @@ class TelegramRouter:
                                                        chat_member_updated)
 
     def has_force_reply_callback(self, force_reply_name: str):
-        return force_reply_name in ForceReplyRoute(self.route_map)
+        return force_reply_name in ForceReplyRoute(
+            self.route_map.get("force_reply", {}))
 
     def __repr__(self):
         return pretty_format(self.route_map)

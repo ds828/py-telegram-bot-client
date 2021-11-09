@@ -11,15 +11,21 @@ import urllib3
 
 from telegrambotclient.base import (BotCommandScope, InputFile, InputMedia,
                                     TelegramBotException, TelegramObject)
-from telegrambotclient.utils import exclude_none
+
+
+def exclude_none(**kwargs):
+    return {key: value for key, value in kwargs.items() if value is not None}
 
 
 class TelegramBotAPIException(TelegramBotException):
-    def __init__(self, ok, description, error_code, parameters={}) -> None:
-        super().__init__(description)
-        self.ok = ok
-        self.error_code = error_code
-        self.parameters = TelegramObject(**parameters)
+    __slots__ = ("ok", "error_code", "parameters")
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(kwargs["description"])
+        self.ok = kwargs["ok"]
+        self.error_code = kwargs["error_code"]
+        self.parameters = TelegramObject(
+            **kwargs["parameters"]) if "parameters" in kwargs else {}
 
 
 class TelegramBotAPI:
@@ -37,7 +43,6 @@ class TelegramBotAPI:
                  **pool_kwargs):
         class _TelegramBotAPICaller:
             __slots__ = ("pool", "api_host")
-            JSON_HEADER = {"Content-Type": "application/json"}
 
             def __init__(self, api_host: str, maxsize: int, block: bool,
                          **connection_pool_kwargs):
@@ -92,7 +97,7 @@ class TelegramBotAPI:
                             "POST",
                             api_url,
                             body=json.dumps(data).encode("utf-8"),
-                            headers=self.JSON_HEADER,
+                            headers={"Content-Type": "application/json"},
                         ))
                 for _ in files:
                     data[_[0]] = _[1]
@@ -134,7 +139,7 @@ class TelegramBotAPI:
             if isinstance(value, (str, int, bool, float, list, tuple)):
                 continue
             if isinstance(value, TelegramObject):
-                api_data[field] = value._data
+                api_data[field] = value.data_
             elif isinstance(value, InputFile):
                 if field == "thumb":
                     files.append((value.attach_key, value.file_tuple))
@@ -175,7 +180,7 @@ class TelegramBotAPI:
         for input_media in media:
             assert isinstance(input_media, InputMedia), True
             all_files.extend(input_media.files)
-            media_group.append(input_media._data)
+            media_group.append(input_media.data_)
         api_data, files = self.__prepare_request_data__(
             chat_id=chat_id, media=json.dumps(media_group), **kwargs)
         return self.call_api(token,
@@ -195,7 +200,7 @@ class TelegramBotAPI:
             chat_id=chat_id,
             message_id=message_id,
             inline_message_id=inline_message_id,
-            media=json.dumps(media._data),
+            media=json.dumps(media.data_),
             **kwargs)
         return self.call_api(token,
                              "editMessageMedia",

@@ -20,9 +20,9 @@ router = bot_client.router()
 
 @router.inline_query_handler()
 def on_query(bot, inline_query: InlineQuery):
-    keyboard = InlineKeyboard(layout=[[
+    keyboard = InlineKeyboard([
         InlineKeyboardButton(text="show this article", callback_data="show"),
-    ]])
+    ])
     results = (InlineQueryResultArticle(
         id="article",
         title=inline_query.query or "article title",

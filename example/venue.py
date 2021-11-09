@@ -11,7 +11,9 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-# when a venue field is set, a location field is set as well
+# https://core.telegram.org/bots/api#message --> venue
+# Message is a venue, information about the venue.
+# For backward compatibility, when this field is set, the location field will also be set
 @router.message_handler(fields=MessageField.VENUE & MessageField.LOCATION)
 def on_venue(bot, message):
     pretty_print(message)

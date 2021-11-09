@@ -3,8 +3,6 @@ try:
 except ImportError:
     import json
 
-import os
-import sqlite3
 import time
 from collections import UserDict
 
@@ -51,8 +49,7 @@ class MemoryStorage(TelegramStorage):
         current_time = int(time.time())
         if session_data.get("_expires", 0) < current_time:
             return self.delete_key(key)
-        else:
-            session_data["_expires"] = current_time + expires
+        session_data["_expires"] = current_time + expires
         for field in fields:
             if field in session_data:
                 del session_data[field]
@@ -77,25 +74,16 @@ class MemoryStorage(TelegramStorage):
 class SQLiteStorage(TelegramStorage):
     __slots__ = ("_db_conn", )
 
-    def __init__(self, db_file: str = None):
-        if db_file is None:
-            self._db_conn = sqlite3.connect(
-                "file:memory?cache=shared&mode=memory", uri=True)
-        else:
-            db_path = os.path.dirname(db_file)
-            if not os.path.exists(db_path):
-                os.mkdir(db_path)
-            self._db_conn = sqlite3.connect(db_file)
-        self._db_conn.row_factory = sqlite3.Row
-        with self._db_conn:
-            self._db_conn.execute("""
-                CREATE TABLE IF NOT EXISTS `t_session` (
-                    `key`        TEXT NOT NULL UNIQUE,
-                    `data`       TEXT NOT NULL,
-                    `expires`    INTEGER NOT NULL,
-                    PRIMARY KEY(`key`)
-                    )
-                """)
+    def __init__(self, db_conn):
+        db_conn.execute("""
+            CREATE TABLE IF NOT EXISTS `t_session` (
+                `key`        TEXT NOT NULL UNIQUE,
+                `data`       TEXT NOT NULL,
+                `expires`    INTEGER NOT NULL,
+                PRIMARY KEY(`key`)
+                )
+            """)
+        self._db_conn = db_conn
 
     def __del__(self):
         self._db_conn.close()
@@ -227,8 +215,8 @@ class RedisStorage(TelegramStorage):
 class MongoDBStorage(TelegramStorage):
     __slots__ = ("_session", )
 
-    def __init__(self, db):
-        self._session = db.session
+    def __init__(self, data_collection):
+        self._session = data_collection
 
     def get_field(self, key: str, field: str, expires: int):
         result = None
@@ -258,10 +246,11 @@ class MongoDBStorage(TelegramStorage):
                 }
             }, {"$set": mapping})
         if result.modified_count == 0:
-            result = self._session.update_one({"_id": key}, {"$set": mapping},
-                                              upsert=True)
+            result = self._session.replace_one({"_id": key},
+                                               mapping,
+                                               upsert=True)
 
-        return result.modified_count > 0 or result.upserted_id != None
+        return result.modified_count > 0 or result.upserted_id is not None
 
     def delete_fields(self, key: str, *fields, expires: int) -> bool:
         current_time = int(time.time())
@@ -292,11 +281,7 @@ class MongoDBStorage(TelegramStorage):
                 }
             }, {"$set": {
                 "_expires": current_time + expires
-            }},
-            projection={
-                "_id": 0,
-                "_expires": 0
-            }) or {}
+            }}) or {}
 
 
 class TelegramSession(UserDict):
@@ -332,6 +317,12 @@ class TelegramSession(UserDict):
     def __delitem__(self, field):
         self.delete(field)
 
+    def __contains__(self, field: str) -> bool:
+        return super().__contains__(field) or bool(self[field])
+
+    def __repr__(self):
+        return pretty_format(self._data)
+
     def pop(self, field: str, default=None):
         value = self[field] or default
         del self[field]
@@ -346,5 +337,6 @@ class TelegramSession(UserDict):
         self.data = {}
         return self._storage.delete_key(self.id)
 
-    def __repr__(self):
-        return pretty_format(self._storage.data(self.id, self.expires))
+    @property
+    def _data(self):
+        return self._storage.data(self.id, self.expires)

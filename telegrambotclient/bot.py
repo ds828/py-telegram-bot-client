@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from typing import Callable, Dict, Tuple
 
 from telegrambotclient.api import TelegramBotAPI
-from telegrambotclient.base import Message, TelegramBotException
+from telegrambotclient.base import Message
 from telegrambotclient.storage import (MemoryStorage, TelegramSession,
                                        TelegramStorage)
 from telegrambotclient.utils import pretty_format
@@ -21,38 +21,30 @@ logger.setLevel(logging.INFO)
 
 class TelegramBot:
     SESSION_ID_FORMAT = "{0}:{1}"
-    FORCE_REPLY_ID_FORMAT = "force_reply:{0}:{1}"
-    __slots__ = ("id", "token", "router", "api", "storage", "i18n_source",
-                 "last_update_id", "_bot_user")
+    __slots__ = ("token", "router", "bot_api", "storage", "i18n_source",
+                 "session_expires", "last_update_id", "user")
 
     def __init__(self,
                  token: str,
                  router,
                  bot_api: TelegramBotAPI = None,
                  storage: TelegramStorage = None,
-                 i18n_source: Dict = None):
-        try:
-            self.id = int(token.split(":")[0])
-        except IndexError as error:
-            raise TelegramBotException(
-                "⚠️wrong token format: {0}".format(token)) from error
+                 i18n_source: Dict = None,
+                 session_expires: int = 1800):
+
         self.token = token
         self.router = router
-        self.api = bot_api or TelegramBotAPI()
+        self.bot_api = bot_api or TelegramBotAPI()
         if storage is None:
             logger.warning(
-                "⚠️You are using a memory storage which can not be persisted.")
+                "You are using a memory session which should be for testing only."
+            )
             storage = MemoryStorage()
         self.storage = storage
         self.i18n_source = i18n_source
+        self.session_expires = session_expires
         self.last_update_id = 0
-        self._bot_user = None
-
-    @property
-    def user(self):
-        if self._bot_user is None:
-            self._bot_user = self.get_me()
-        return self._bot_user
+        self.user = self.get_me()
 
     @property
     def next_call(self):
@@ -62,16 +54,18 @@ class TelegramBot:
     def stop_call(self):
         return self.router.STOP_CALL
 
-    def __get_session__(self, session_id: str, expires: int = 0):
-        return TelegramSession(session_id, self.storage, expires)
-
     def get_session(self, user_id: int, expires: int = 0):
-        return self.__get_session__(
-            self.SESSION_ID_FORMAT.format(self.id, user_id), expires)
+        return TelegramSession(
+            self.SESSION_ID_FORMAT.format(self.user.id, user_id), self.storage,
+            expires or self.session_expires)
+
+    def clear_session(self, user_id: int):
+        session = self.get_session(user_id)
+        session.clear()
 
     @contextmanager
     def session(self, user_id: int, expires: int = 0):
-        session = self.get_session(user_id, expires)
+        session = self.get_session(user_id, expires or self.session_expires)
         try:
             yield session
         finally:
@@ -79,38 +73,46 @@ class TelegramBot:
 
     def join_force_reply(self,
                          user_id: int,
+                         reply_to_message: Message,
                          callback: Callable,
                          *force_reply_args,
-                         expires: int = 60):
+                         expires: int = 0):
         force_reply_callback_name = "{0}.{1}".format(callback.__module__,
                                                      callback.__name__)
         assert self.router.has_force_reply_callback(
             force_reply_callback_name), True
-        session = self.__get_session__(
-            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id), expires)
+        session = self.get_session(user_id, expires or self.session_expires)
         if force_reply_args:
-            session["force_reply"] = [force_reply_callback_name
-                                      ] + list(force_reply_args)
+            session["_reply_to_message"] = {
+                "message_id": reply_to_message.message_id,
+                "callback": force_reply_callback_name,
+                "args": force_reply_args
+            }
         else:
-            session["force_reply"] = [force_reply_callback_name]
+            session["_reply_to_message"] = {
+                "message_id": reply_to_message.message_id,
+                "callback": force_reply_callback_name
+            }
         session.save()
 
-    def force_reply_done(self, user_id):
-        session = self.__get_session__(
-            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id))
-        session.clear()
+    def update_force_reply(self, user_id, reply_to_message, expires: int = 0):
+        session = self.get_session(user_id, expires or self.session_expires)
+        if "_reply_to_message" in session:
+            session["_reply_to_message"].update(
+                {"message_id": reply_to_message.message_id})
+            session.save()
 
-    def get_force_reply(self, user_id):
-        session = self.__get_session__(
-            self.FORCE_REPLY_ID_FORMAT.format(self.id, user_id))
-        force_reply_data = session.get("force_reply", None)
-        if not force_reply_data:
-            return None, None
-        return force_reply_data[0], tuple(force_reply_data[1:])
+    def remove_force_reply(self, user_id, expires: int = 0):
+        session = self.get_session(user_id, expires or self.session_expires)
+        del session["_reply_to_message"]
 
-    def get_text(self, language_code: str, text: str):
+    def get_force_reply(self, user_id, expires: int = 0):
+        session = self.get_session(user_id, expires or self.session_expires)
+        return session.get("_reply_to_message", {})
+
+    def get_text(self, lang_code: str, text: str):
         if self.i18n_source:
-            lang_source = self.i18n_source.get(language_code, None)
+            lang_source = self.i18n_source.get(lang_code, None)
             if lang_source:
                 if isinstance(lang_source, dict):
                     return lang_source.get(text, text)
@@ -122,12 +124,13 @@ class TelegramBot:
         return self.send_message(chat_id=message.chat.id, **kwargs)
 
     def get_file_url(self, file_path: str):
-        return "{0}{1}".format(self.api.host,
-                               self.api.FILE_URL.format(self.token, file_path))
+        return "{0}{1}".format(
+            self.bot_api.host,
+            self.bot_api.FILE_URL.format(self.token, file_path))
 
     def get_file_bytes(self, file_path: str, chunk_size=128):
-        return self.api.api_caller.get_bytes(
-            self.api.FILE_URL.format(self.token, file_path),
+        return self.bot_api.api_caller.get_bytes(
+            self.bot_api.FILE_URL.format(self.token, file_path),
             chunk_size=chunk_size,
         )
 
@@ -139,11 +142,11 @@ class TelegramBot:
             host, self.user.username, "startgroup" if startgroup else "start",
             payload)
 
-    async def dispatch(self, update):
+    async def dispatch(self, raw_update):
         logger.debug(
-            "\n---------------------------- update ---------------------------------\n{0}"
-            .format(pretty_format(update)))
-        await self.router.route(self, update)
+            "\n----------------------------- update ----------------------------------\n%s",
+            pretty_format(raw_update))
+        await self.router.route(self, raw_update)
 
     def run_polling(self,
                     limit: int = None,
@@ -155,7 +158,7 @@ class TelegramBot:
                 "⚠️You are using 0 as timeout in seconds for long polling which should be used for testing purposes only."
             )
         while True:
-            updates = self.api.get_updates(
+            updates = self.bot_api.get_updates(
                 self.token,
                 offset=self.last_update_id + 1,
                 limit=limit,
@@ -165,11 +168,11 @@ class TelegramBot:
             )
             if updates:
                 self.last_update_id = updates[-1]["update_id"]
-                for update in updates:
-                    asyncio.run(self.dispatch(update))
+                for raw_update in updates:
+                    asyncio.run(self.dispatch(raw_update))
 
     def __getattr__(self, api_name):
         def api_method(**kwargs):
-            return getattr(self.api, api_name)(self.token, **kwargs)
+            return getattr(self.bot_api, api_name)(self.token, **kwargs)
 
         return api_method

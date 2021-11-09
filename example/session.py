@@ -1,10 +1,12 @@
 """
 run: python -m example.session
 """
-#from pymongo import MongoClient
+
 from telegrambotclient import bot_client
-from telegrambotclient.storage import (MongoDBStorage, RedisStorage,
-                                       SQLiteStorage)
+from telegrambotclient.utils import pretty_print
+
+# from telegrambotclient.storage import (MongoDBStorage, RedisStorage,
+#                                        SQLiteStorage)
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
@@ -12,9 +14,9 @@ router = bot_client.router()
 
 
 @router.message_handler()
-def on_session_example(bot, message):
+def on_message(bot, message):
     session = bot.get_session(message.chat.id,
-                              expires=60)  # renew a new expires
+                              expires=60)  # set this session a new expires
     session["key1"] = 123  # field, value
     bot.send_message(
         chat_id=message.chat.id,
@@ -30,8 +32,10 @@ def on_session_example(bot, message):
         chat_id=message.chat.id,
         text=str(session.data),
     )
-    print(session)
-    # access session with context manager
+    pretty_print(session)
+    # a dict include all data in the session
+    pretty_print(session._data)
+    # access session with a context manager
     with bot.session(message.chat.id) as session:
         # delete mulit keys
         session.delete("key1", "key2")
@@ -48,11 +52,23 @@ def on_session_example(bot, message):
             chat_id=message.chat.id,
             text=str(session.data),
         )
-        print(session)
+        pretty_print(session)
 
 
-storage = None  # uncomment for memory session
-#storage = SQLiteStorage("/tmp/session.db")
+storage = None  # using memory session
+
+# using sqlite
+# import os
+# import sqlite3
+# db_file = "/tmp/session.db"
+# db_path = os.path.dirname(db_file)
+# if not os.path.exists(db_path):
+#     os.mkdir(db_path)
+# db_conn = sqlite3.connect(db_file)
+# db_conn.row_factory = sqlite3.Row
+# # using memory db
+# # db_conn = sqlite3.connect("file:memory?cache=shared&mode=memory", uri=True)
+# storage = SQLiteStorage(db_conn)
 
 # using redis
 # import redis
@@ -66,8 +82,14 @@ storage = None  # uncomment for memory session
 #    decode_responses=True,
 # )
 # storage = RedisStorage(redis_client)
+
+# using mongodb
+# from pymongo import MongoClient
 # storage = MongoDBStorage(
-#     MongoClient("mongodb://localhost:27017")["session_db"])
-bot = bot_client.create_bot(token=BOT_TOKEN, router=router, storage=storage)
+#     MongoClient("mongodb://localhost:27017")["session_db"]["session"])
+
+bot = bot_client.create_bot(
+    token=BOT_TOKEN, router=router, storage=storage,
+    session_expires=30)  # set 30s as a default session timeout
 bot.delete_webhook(drop_pending_updates=True)
 bot.run_polling(timeout=10)

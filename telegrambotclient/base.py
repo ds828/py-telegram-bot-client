@@ -140,6 +140,7 @@ class MIMEType(str, Enum):
     IMAGE_GIF = "image/gif"
     VIDEO_MP4 = "video/mp4"
     AUIDO_OGG = "audio/ogg"
+    APPLICATION_PDF = "application/pdf"
 
 
 class InputFile:
@@ -207,7 +208,7 @@ class TelegramObject(dict):
         return self[name]
 
     @property
-    def _data(self):
+    def data_(self):
         return self
 
 
@@ -404,7 +405,7 @@ class KeyboardButton(TelegramObject):
 
 class ReplyMarkup(TelegramObject):
     @property
-    def _data(self):
+    def data_(self):
         return json.dumps(self)
 
 
@@ -691,7 +692,7 @@ class MaskPosition(TelegramObject):
                          **kwargs)
 
     @property
-    def param(self):
+    def data_(self):
         return json.dumps(self)
 
 
@@ -735,7 +736,7 @@ class ChatPermissions(TelegramObject):
         )
 
     @property
-    def param(self):
+    def data_(self):
         return json.dumps(self)
 
 
