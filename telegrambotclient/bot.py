@@ -6,8 +6,7 @@ from typing import Callable, Dict, Tuple
 
 from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.base import Message
-from telegrambotclient.storage import (MemoryStorage, TelegramSession,
-                                       TelegramStorage)
+from telegrambotclient.storage import TelegramSession, TelegramStorage
 from telegrambotclient.utils import pretty_format
 
 logger = logging.getLogger("telegram-bot-client")
@@ -39,7 +38,7 @@ class TelegramBot:
             logger.warning(
                 "You are using a memory session which should be for testing only."
             )
-            storage = MemoryStorage()
+            storage = TelegramStorage()
         self.storage = storage
         self.i18n_source = i18n_source
         self.session_expires = session_expires

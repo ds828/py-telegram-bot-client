@@ -1,11 +1,6 @@
 from collections import UserDict, UserList
 from typing import Callable, List, Tuple, Union
 
-try:
-    import ujson as json
-except ImportError:
-    import json
-
 from telegrambotclient.base import (CallbackQuery, ChatMemberUpdated,
                                     ChosenInlineResult, InlineQuery, Message,
                                     MessageField, Poll, PollAnswer,
@@ -20,7 +15,7 @@ from telegrambotclient.handler import (
     MessageHandler, MyChatMemberHandler, PollAnswerHandler, PollHandler,
     PreCheckoutQueryHandler, ShippingQueryHandler, UpdateHandler,
     _MessageHandler)
-from telegrambotclient.utils import pretty_format
+from telegrambotclient.utils import parse_callback_data, pretty_format
 
 
 async def call_handler(handler: UpdateHandler, *args, **kwargs):
@@ -130,12 +125,10 @@ class CallbackQueryRoute(UserDict):
                                           callback_query) is bot.stop_call:
             return bot.stop_call
         if "|" in callback_query.data:
-            button_name, value = tuple(
-                callback_query.data.split("|", maxsplit=1))
+            button_name, args = parse_callback_data(callback_query.data)
             handler = self.get(button_name, None)
-            if handler and await call_handler(
-                    handler, bot, callback_query, *
-                    json.loads(value)) is bot.stop_call:
+            if handler and await call_handler(handler, bot, callback_query, *
+                                              args) is bot.stop_call:
                 return bot.stop_call
 
         return bot.next_call

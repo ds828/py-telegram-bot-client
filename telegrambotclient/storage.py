@@ -5,28 +5,12 @@ except ImportError:
 
 import time
 from collections import UserDict
+from typing import Any
 
 from telegrambotclient.utils import pretty_format
 
 
 class TelegramStorage:
-    def get_field(self, key: str, field: str, expires: int):
-        raise NotImplementedError()
-
-    def update_fields(self, key: str, mapping, expires: int) -> bool:
-        raise NotImplementedError()
-
-    def delete_fields(self, key: str, *field, expires: int) -> bool:
-        raise NotImplementedError()
-
-    def delete_key(self, key: str) -> bool:
-        raise NotImplementedError()
-
-    def data(self, key: str, expires: int):
-        raise NotImplementedError()
-
-
-class MemoryStorage(TelegramStorage):
     __slots__ = ("_data", )
 
     def __init__(self):
@@ -85,9 +69,6 @@ class SQLiteStorage(TelegramStorage):
             """)
         self._db_conn = db_conn
 
-    def __del__(self):
-        self._db_conn.close()
-
     def get_field(self, key: str, field: str, expires):
         with self._db_conn:
             cur = self._db_conn.execute(
@@ -95,12 +76,12 @@ class SQLiteStorage(TelegramStorage):
             row_data = cur.fetchone()
             if row_data:
                 current_time = int(time.time())
-                if row_data["expires"] < current_time:
+                if row_data[1] < current_time:
                     return None
                 self._db_conn.execute(
                     "UPDATE t_session SET expires=? WHERE key=?",
                     (current_time + expires, key))
-                return json.loads(row_data["data"]).get(field, None)
+                return json.loads(row_data[0]).get(field, None)
             return None
 
     def update_fields(self, key: str, mapping, expires: int) -> bool:
@@ -110,15 +91,15 @@ class SQLiteStorage(TelegramStorage):
             row_data = cur.fetchone()
             current_time = int(time.time())
             if row_data:
-                data = json.loads(row_data["data"])
-                if row_data["expires"] >= current_time:
+                data = json.loads(row_data[0])
+                if row_data[1] >= current_time:
                     data.update(mapping)
                 else:
                     data = mapping
                 cur = self._db_conn.execute(
                     "UPDATE t_session SET data=?, expires=? WHERE key=?",
                     (json.dumps(data), current_time + expires, key))
-                return bool(cur.rowcount)
+                return cur.rowcount > 0
 
             cur = self._db_conn.execute(
                 """
@@ -128,7 +109,7 @@ class SQLiteStorage(TelegramStorage):
                     expires
                 ) VALUES (?, ?, ?)
                 """, (key, json.dumps(mapping), current_time + expires))
-            return bool(cur.lastrowid)
+            return cur.lastrowid >= 0
 
     def delete_fields(self, key: str, *fields, expires: int) -> bool:
         with self._db_conn:
@@ -137,22 +118,23 @@ class SQLiteStorage(TelegramStorage):
             row_data = cur.fetchone()
             if row_data:
                 current_time = int(time.time())
-                if row_data["expires"] < current_time:
+                if row_data[1] < current_time:
                     return False
-                data = json.loads(row_data["data"])
+                data = json.loads(row_data[0])
                 for field in fields:
                     if field in data:
                         del data[field]
                 cur = self._db_conn.execute(
                     "UPDATE t_session SET data=?, expires=? WHERE key=?",
                     (json.dumps(data), current_time + expires, key))
-                return bool(cur.rowcount)
+                return cur.rowcount > 0
             return False
 
-    def delete_key(self, key: str):
+    def delete_key(self, key: str) -> bool:
         with self._db_conn:
-            self._db_conn.execute("DELETE from t_session WHERE key=? ",
-                                  (key, ))
+            cur = self._db_conn.execute("DELETE from t_session WHERE key=? ",
+                                        (key, ))
+            return cur.rowcount > 0
 
     def data(self, key: str, expires: int):
         cur = self._db_conn.execute(
@@ -160,12 +142,15 @@ class SQLiteStorage(TelegramStorage):
         row_data = cur.fetchone()
         if row_data:
             current_time = int(time.time())
-            if row_data["expires"] < current_time:
+            if row_data[1] < current_time:
                 return {}
             self._db_conn.execute("UPDATE t_session SET expires=? WHERE key=?",
                                   (current_time + expires, key))
-            return json.loads(row_data["data"])
+            return json.loads(row_data[0])
         return {}
+
+    def __del__(self):
+        self._db_conn.close()
 
 
 class RedisStorage(TelegramStorage):
@@ -215,8 +200,8 @@ class RedisStorage(TelegramStorage):
 class MongoDBStorage(TelegramStorage):
     __slots__ = ("_session", )
 
-    def __init__(self, data_collection):
-        self._session = data_collection
+    def __init__(self, collection):
+        self._session = collection
 
     def get_field(self, key: str, field: str, expires: int):
         result = None
@@ -283,6 +268,9 @@ class MongoDBStorage(TelegramStorage):
                 "_expires": current_time + expires
             }}) or {}
 
+    def __del__(self):
+        self._session.database.client.close()
+
 
 class TelegramSession(UserDict):
     __slots__ = ("_storage", "id", "expires")
@@ -296,14 +284,14 @@ class TelegramSession(UserDict):
         self.id = session_id
         self.expires = expires if expires > 0 else 1800
 
-    def __getitem__(self, field: str):
+    def __getitem__(self, field: str) -> Any:
         value = self.data.get(field, None)
         if value is None:
             value = self._storage.get_field(self.id, field, self.expires)
             self.data[field] = value
         return value
 
-    def get(self, field: str, default=None):
+    def get(self, field: str, default=None) -> Any:
         return self[field] or default
 
     def delete(self, *fields) -> bool:
@@ -323,7 +311,7 @@ class TelegramSession(UserDict):
     def __repr__(self):
         return pretty_format(self._data)
 
-    def pop(self, field: str, default=None):
+    def pop(self, field: str, default=None) -> Any:
         value = self[field] or default
         del self[field]
         return value

@@ -10,7 +10,6 @@ try:
 except ImportError:
     import json
 
-
 _pp = pprint.PrettyPrinter(indent=2)
 
 
@@ -67,9 +66,8 @@ def build_callback_data(button_name: str, *value) -> str:
 
 
 def parse_callback_data(callback_data: str):
-    button_name, value = tuple(
-        callback_data.split("|", maxsplit=1))
-    return button_name, *tuple(json.loads((value)))
+    button_name, value = tuple(callback_data.split("|", maxsplit=1))
+    return button_name, tuple(json.loads(value))
 
 
 def compose_message_entities(text_entities: Union[List, Tuple],

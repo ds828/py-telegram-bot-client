@@ -3,10 +3,9 @@ run: python -m example.session
 """
 
 from telegrambotclient import bot_client
+from telegrambotclient.storage import (MongoDBStorage, RedisStorage,
+                                       SQLiteStorage)
 from telegrambotclient.utils import pretty_print
-
-# from telegrambotclient.storage import (MongoDBStorage, RedisStorage,
-#                                        SQLiteStorage)
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
@@ -27,7 +26,7 @@ def on_message(bot, message):
     key2_data = session["key2"]
     key2_data["foo2"] = 345
     session["key2"] = key2_data
-    session.save()  # save persistently
+    session.save()  # save and write
     bot.send_message(
         chat_id=message.chat.id,
         text=str(session.data),
@@ -35,7 +34,7 @@ def on_message(bot, message):
     pretty_print(session)
     # a dict include all data in the session
     pretty_print(session._data)
-    # access session with a context manager
+    # access a session with a context manager, automaticlly save
     with bot.session(message.chat.id) as session:
         # delete mulit keys
         session.delete("key1", "key2")
@@ -47,7 +46,7 @@ def on_message(bot, message):
                 chat_id=message.chat.id,
                 text=str(session.data),
             )
-        session.clear()
+        session.clear()  # same with bot.clear_session(message.chat.id)
         bot.send_message(
             chat_id=message.chat.id,
             text=str(session.data),
@@ -59,16 +58,16 @@ storage = None  # using memory session
 
 # using sqlite
 # import os
-# import sqlite3
+import sqlite3
+
 # db_file = "/tmp/session.db"
 # db_path = os.path.dirname(db_file)
 # if not os.path.exists(db_path):
 #     os.mkdir(db_path)
 # db_conn = sqlite3.connect(db_file)
-# db_conn.row_factory = sqlite3.Row
-# # using memory db
-# # db_conn = sqlite3.connect("file:memory?cache=shared&mode=memory", uri=True)
-# storage = SQLiteStorage(db_conn)
+# using memory db file
+db_conn = sqlite3.connect("file:memory?cache=shared&mode=memory", uri=True)
+storage = SQLiteStorage(db_conn)
 
 # using redis
 # import redis
