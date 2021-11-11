@@ -30,7 +30,6 @@ class TelegramBotAPIException(TelegramBotException):
 
 class TelegramBotAPI:
 
-    __version__ = "5.3"
     DEFAULT_API_HOST = "https://api.telegram.org"
     API_URL = "/bot{0}/{1}"
     FILE_URL = "/file/bot{0}/{1}"
