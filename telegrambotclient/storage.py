@@ -198,7 +198,7 @@ class RedisStorage(TelegramStorage):
 
 
 class MongoDBStorage(TelegramStorage):
-    __slots__ = ("_session", )
+    __slots__ = ("_session")
 
     def __init__(self, collection):
         self._session = collection
@@ -267,9 +267,6 @@ class MongoDBStorage(TelegramStorage):
             }, {"$set": {
                 "_expires": current_time + expires
             }}) or {}
-
-    def __del__(self):
-        self._session.database.client.close()
 
 
 class TelegramSession(UserDict):
