@@ -155,3 +155,8 @@ class MyChatMemberHandler(UpdateHandler):
 class ChatMemberHandler(UpdateHandler):
     def __init__(self, callback: Callable):
         super().__init__(callback, update_field=UpdateField.CHAT_MEMBER)
+
+
+class ChatJoinRequestHandler(UpdateHandler):
+    def __init__(self, callback: Callable):
+        super().__init__(callback, update_field=UpdateField.CHAT_JOIN_REQUEST)

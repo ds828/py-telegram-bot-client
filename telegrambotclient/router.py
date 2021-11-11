@@ -1,20 +1,20 @@
 from collections import UserDict, UserList
 from typing import Callable, List, Tuple, Union
 
-from telegrambotclient.base import (CallbackQuery, ChatMemberUpdated,
-                                    ChosenInlineResult, InlineQuery, Message,
-                                    MessageField, Poll, PollAnswer,
-                                    PreCheckoutQuery, ShippingQuery,
-                                    TelegramBotException, TelegramObject,
-                                    UpdateField)
+from telegrambotclient.base import (CallbackQuery, ChatJoinRequst,
+                                    ChatMemberUpdated, ChosenInlineResult,
+                                    InlineQuery, Message, MessageField, Poll,
+                                    PollAnswer, PreCheckoutQuery,
+                                    ShippingQuery, TelegramBotException,
+                                    TelegramObject, UpdateField)
 from telegrambotclient.bot import TelegramBot, logger
 from telegrambotclient.handler import (
-    CallbackQueryHandler, ChannelPostHandler, ChatMemberHandler,
-    ChosenInlineResultHandler, CommandHandler, EditedChannelPostHandler,
-    EditedMessageHandler, ErrorHandler, ForceReplyHandler, InlineQueryHandler,
-    MessageHandler, MyChatMemberHandler, PollAnswerHandler, PollHandler,
-    PreCheckoutQueryHandler, ShippingQueryHandler, UpdateHandler,
-    _MessageHandler)
+    CallbackQueryHandler, ChannelPostHandler, ChatJoinRequestHandler,
+    ChatMemberHandler, ChosenInlineResultHandler, CommandHandler,
+    EditedChannelPostHandler, EditedMessageHandler, ErrorHandler,
+    ForceReplyHandler, InlineQueryHandler, MessageHandler, MyChatMemberHandler,
+    PollAnswerHandler, PollHandler, PreCheckoutQueryHandler,
+    ShippingQueryHandler, UpdateHandler, _MessageHandler)
 from telegrambotclient.utils import parse_callback_data, pretty_format
 
 
@@ -282,6 +282,9 @@ class TelegramRouter:
     def register_chat_member_handler(self, callback: Callable):
         return self.register_handler(ChatMemberHandler(callback=callback))
 
+    def register_chat_join_request_handler(self, callback: Callable):
+        return self.register_handler(ChatJoinRequestHandler(callback=callback))
+
     ###################################################################################
     #
     # register handlers with decorators
@@ -406,6 +409,13 @@ class TelegramRouter:
 
         return decorator
 
+    def chat_join_request_handler(self):
+        def decorator(callback):
+            self.register_chat_join_request_handler(callback)
+            return callback
+
+        return decorator
+
     ##################################################################################
     #
     # handler callers
@@ -459,6 +469,7 @@ class TelegramRouter:
                 self.route_map.get("force_reply", {})).call_handlers(
                     bot, edited_message) is self.STOP_CALL:
             return self.STOP_CALL
+
         return await MessageRoute(route).call_handlers(bot, edited_message)
 
     async def call_channel_post_handlers(self, bot: TelegramBot,
@@ -523,6 +534,12 @@ class TelegramRouter:
             self, bot: TelegramBot, chat_member_updated: ChatMemberUpdated):
         return await self.call_my_chat_member_handlers(bot,
                                                        chat_member_updated)
+
+    async def call_chat_join_reqeust_handlers(
+            self, bot: TelegramBot, chat_join_request: ChatJoinRequst):
+        return await ListRoute(
+            self.route_map.get(UpdateField.CHAT_JOIN_REQUEST.value,
+                               ())).call_handlers(bot, chat_join_request)
 
     def has_force_reply_callback(self, force_reply_name: str):
         return force_reply_name in ForceReplyRoute(

@@ -27,6 +27,7 @@ class UpdateField(str, Enum):
     POLL_ANSWER = "poll_answer"
     MY_CHAT_MEMBER = "my_chat_member"
     CHAT_MEMBER = "chat_member"
+    CHAT_JOIN_REQUEST = "chat_join_request"
 
 
 class MessageField(str, Enum):
@@ -81,10 +82,10 @@ class MessageField(str, Enum):
     CONNECTED_WEBSITE = "connected_website"
     PASSPORT_DATA = "passport_data"
     PROXIMITY_ALERT_TRIGGERED = "proximity_alert_triggered"
+    VOICE_CHAT_SCHEDULED = "voice_chat_scheduled"
     VOICE_CHAT_STARTED = "voice_chat_started"
     VOICE_CHAT_ENDED = "voice_chat_ended"
     VOICE_CHAT_PARTICIPANTS_INVITED = "voice_chat_participants_invited"
-    VOICE_CHAT_SCHEDULED = "voice_chat_scheduled"
     REPLY_MARKUP = "reply_markup"
 
     def __init__(self, value):
@@ -126,6 +127,7 @@ class ChatAction(str, Enum):
     FIND_LOCATION = "find_location"
     RECORD_VIDEO_NOTE = "record_video_note"
     UPLOAD_VIDEO_NOTE = "upload_video_note"
+    CHOOSE_STICKER = "choose_sticker"
 
 
 class MaskPoint(str, Enum):
@@ -224,7 +226,7 @@ Message = (CallbackQuery) = (ChosenInlineResult) = (InlineQuery) = (
     CallbackGame
 ) = (
     GameHighScore
-) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = BotCommandScope = ChatMemberUpdated = TelegramObject
+) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = BotCommandScope = ChatMemberUpdated = ChatJoinRequst = TelegramObject
 
 
 class MentionEntity(MessageEntity):
