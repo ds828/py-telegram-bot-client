@@ -43,6 +43,7 @@ class InlineKeyboard(ReplyKeyboard):
             for button in line:
                 if button.get("callback_data", "") == callback_data:
                     return button
+        return None
 
     def get_buttons(self, callback_data_name: str):
         buttons = []

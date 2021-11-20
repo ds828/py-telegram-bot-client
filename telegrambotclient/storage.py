@@ -230,7 +230,7 @@ class MongoDBStorage(TelegramStorage):
                     "$gte": current_time
                 }
             }, {"$set": mapping})
-        if result.modified_count == 0:
+        if result.matched_count == 0:
             result = self._session.replace_one({"_id": key},
                                                mapping,
                                                upsert=True)
