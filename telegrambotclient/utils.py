@@ -1,9 +1,7 @@
 import pprint
 from functools import wraps
 from io import StringIO
-from typing import Any, List, Pattern, Tuple, Union
-
-from telegrambotclient.base import TelegramBotException
+from typing import Any, List, Tuple, Union
 
 try:
     import ujson as json
@@ -21,12 +19,12 @@ def pretty_format(data: Any) -> str:
     return _pp.pformat(data)
 
 
-def regex_match(regex_patterns: Union[List[Pattern], Tuple[Pattern]]):
+def regex_match(*patterns):
     def decorate(method):
         @wraps(method)
         def wrapper(bot, message, *args, **kwargs):
             if message.text:
-                for pattern in regex_patterns:
+                for pattern in patterns:
                     match_result = pattern.match(message.text)
                     if match_result:
                         return method(bot, message, *args, match_result,
@@ -57,11 +55,7 @@ def i18n(default_lang_code: str = "en"):
 
 def build_callback_data(button_name: str, *value) -> str:
     data = "{0}|{1}".format(button_name, json.dumps(value))
-    bytes_len = len(data.encode("utf-8"))
-    if bytes_len > 64:
-        raise TelegramBotException(
-            "callback_data must be 1-64 bytes. {0}/{1}".format(
-                data, bytes_len))
+    assert len(data.encode("utf-8")) <= 64, True
     return data
 
 

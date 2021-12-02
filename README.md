@@ -1,7 +1,13 @@
 # Telegram Bot API Client
 
 A telegram bot API client is written in python 3.5+ and currently compatible with Telegram Bot API 5.3 and later.
-The reason for writing this bot utility is that I wish to run multi telegram bots which could have same or different business logic **(route policy)** in one process . I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
+The reason for writing this bot utility is that I wish to run multi telegram bots which could have same or different business logic **(route policy)** in one process.
+I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
+It is running well for https://t.me/daolebot from https://daole.me
+
+# 5.4.2
+1. change a list of regex patterns of regex_match into *args of regex patterns
+2. add a example/regex_match.py for regex_match's usage
 
 # Update  5.4.1
 Fix bugs
@@ -10,7 +16,7 @@ Fix bugs
 Update for Telegram Bot API 5.4
 
 # Update 5.3.7.5
-1. HOT fix... remove "__del__()" from MongoDBStorage
+1. HOT FIX remove "__del__()" from MongoDBStorage
 
 # Update 5.3.7.4
 1. check and add storage.__del__() for storages
@@ -162,7 +168,7 @@ This is a simple echo bot.
 
 ## Call telegram bot APIs
 
-telegrambotclient has same parameter signatures with official Telegram Bot APIs. Please see [official Telegram Bot API document](https://core.telegram.org/bots/api) when calling telegram bot APIs.
+telegrambotclient has same parameter signatures with the official Telegram Bot APIs. Please see [official Telegram Bot API document](https://core.telegram.org/bots/api) when calling telegram bot APIs.
 
 ### Quick to reply
 
