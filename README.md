@@ -5,7 +5,11 @@ The reason for writing this bot utility is that I wish to run multi telegram bot
 I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 It is running well for https://t.me/daolebot from https://daole.me
 
-# 5.4.2
+# Update 5.5
+Update for the telegram bot api 5.5.
+Actually, I did nothing on codes. It is compatible with the telegram bot api 5.5.
+
+# Update 5.4.2
 1. change a list of regex patterns of regex_match into *args of regex patterns
 2. add a example/regex_match.py for regex_match's usage
 

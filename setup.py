@@ -6,7 +6,7 @@ with open("README.md", 'r') as f:
 
 setup(
     name='py-telegram-bot-client',
-    version="5.4.2",
+    version="5.5",
     description='A Telegram Bot API Python Client',
     long_description_content_type="text/markdown",
     long_description=long_description,
