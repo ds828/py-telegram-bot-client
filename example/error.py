@@ -17,10 +17,16 @@ def on_echo_text(bot, message):
     raise Exception("something wrong")
 
 
-@router.error_handler(errors=(TelegramBotException, ))
+@router.error_handler(TelegramBotException)
 def on_telegrambot_exception(bot, data, error):
     bot.send_message(chat_id=data.from_user.id,
                      text="on_telegrambot_exception: " + str(error))
+
+
+@router.error_handler(ValueError, IndexError)
+def on_many_exceptions(bot, data, error):
+    bot.send_message(chat_id=data.from_user.id,
+                     text="on_many_exceptions: " + str(error))
 
 
 # for all excetions

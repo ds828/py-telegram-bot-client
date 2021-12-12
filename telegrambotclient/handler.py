@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable, Tuple, Union
+from typing import Callable, Union
 
 from telegrambotclient.base import MessageField, UpdateField
 
@@ -30,21 +30,17 @@ class UpdateHandler:
 class ErrorHandler(UpdateHandler):
     __slots__ = ("errors", )
 
-    def __init__(self, callback: Callable, errors=None):
+    def __init__(self, callback: Callable, *errors):
         super().__init__(callback=callback, update_field="error")
         self.errors = errors or (Exception, )
 
 
 class CommandHandler(UpdateHandler):
-    __slots__ = ("cmds", "delimiter")
+    __slots__ = ("cmds", )
 
-    def __init__(self,
-                 callback: Callable,
-                 cmds: Tuple[str],
-                 delimiter: str = " "):
+    def __init__(self, callback: Callable, *cmds):
         super().__init__(callback=callback, update_field="command")
         self.cmds = cmds
-        self.delimiter = delimiter
 
 
 class ForceReplyHandler(UpdateHandler):

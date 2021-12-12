@@ -14,15 +14,15 @@ logger.setLevel(logging.DEBUG)
 router = bot_client.router()
 
 
-@router.command_handler(("/start", ))
-def on_start(bot, message, *cmd_args):
-    logger.debug(cmd_args)
+@router.command_handler("/start")
+def on_start(bot, message, *args):
+    logger.debug(args)
     bot.reply_message(message, text=message.text)
     return bot.stop_call
 
 
-@router.command_handler(("/cmd", ))
-def on_cmd1(bot, message):
+@router.command_handler("/cmd1", "/cmd2")  # support multi commands
+def on_cmd1(bot, message, *args):
     text = "[{0}]({1}) {2}".format(
         message.text, bot.get_deep_link(payload="good", startgroup=False),
         "let's start")
@@ -33,6 +33,7 @@ def on_cmd1(bot, message):
 logger.debug(router)
 bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
 bot.delete_webhook(drop_pending_updates=True)
-cmd = BotCommand(command="/cmd", description="cmd")
-bot.set_my_commands(commands=(cmd, ))
+cmd1 = BotCommand(command="/cmd1", description="cmd1")
+cmd2 = BotCommand(command="/cmd2", description="cmd2")
+bot.set_my_commands(commands=(cmd1, cmd2))
 bot.run_polling(timeout=10)

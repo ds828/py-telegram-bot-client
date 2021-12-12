@@ -51,24 +51,22 @@ class ErrorRoute(ListRoute):
 class CommandRoute(UserDict):
     def add_handler(self, handler: CommandHandler):
         for cmd_text in handler.cmds:
+            print(cmd_text)
             self[cmd_text] = handler
         return self
 
     async def call_handlers(self, bot: TelegramBot, message: Message):
-        if not message.text or message.text[0] != '/':
-            return bot.next_call
+        entity = message.entities[0]
+        bot_command = message.text[entity.offset:entity.length]
+        cmd_text, *bot_username = tuple(bot_command.split("@"))
         #for /start@one_bot arg1 arg2 ...
-        cmd_bot, *args = tuple(message.text.split(maxsplit=1))
-        cmd, *bot_username = tuple(cmd_bot.split("@"))
-        if bot_username and bot_username[0] != bot.user.username:
+        if bot_username and bot_username != bot.user.username:
             return bot.stop_call
-        handler = self.get(cmd, None)
+        handler = self.get(cmd_text, None)
         if handler is None:
             return bot.stop_call
-        if args:
-            return await call_handler(handler, bot, message,
-                                      *args[0].split(handler.delimiter))
-        return await call_handler(handler, bot, message)
+        bot_command, *args = tuple(message.text.split())
+        return await call_handler(handler, bot, message, *args)
 
 
 class ForceReplyRoute(UserDict):
@@ -206,17 +204,11 @@ class TelegramRouter:
             handler)
         return self
 
-    def register_error_handler(self, callback: Callable, errors):
-        return self.register_handler(
-            ErrorHandler(callback=callback,
-                         errors=tuple(errors) if errors else None))
+    def register_error_handler(self, callback: Callable, *errors):
+        return self.register_handler(ErrorHandler(callback, *errors))
 
-    def register_command_handler(self,
-                                 callback: Callable,
-                                 cmds,
-                                 delimiter=" "):
-        return self.register_handler(
-            CommandHandler(callback=callback, cmds=cmds, delimiter=delimiter))
+    def register_command_handler(self, callback: Callable, *cmds):
+        return self.register_handler(CommandHandler(callback, *cmds))
 
     def register_force_reply_handler(self, callback: Callable):
         return self.register_handler(ForceReplyHandler(callback=callback))
@@ -292,7 +284,7 @@ class TelegramRouter:
     ##################################################################################
     def error_handler(
         self,
-        errors: Union[List, Tuple] = None,
+        *errors,
     ):
         def decorator(callback):
             self.register_error_handler(callback, errors)
@@ -307,9 +299,9 @@ class TelegramRouter:
 
         return decorator
 
-    def command_handler(self, cmds: Tuple[str]):
+    def command_handler(self, *cmds):
         def decorator(callback):
-            self.register_command_handler(callback, cmds)
+            self.register_command_handler(callback, *cmds)
             return callback
 
         return decorator
@@ -444,25 +436,25 @@ class TelegramRouter:
                 raise error
 
     async def call_message_handlers(self, bot: TelegramBot, message: Message):
-        route = self.route_map.get(UpdateField.MESSAGE.value, {})
-        if message.text and await CommandRoute(
-                self.route_map.get("command", {})).call_handlers(
-                    bot, message) is self.STOP_CALL:
+        if message.entities and message.entities[
+                0].type == "bot_command" and await CommandRoute(
+                    self.route_map.get("command", {})).call_handlers(
+                        bot, message) is self.STOP_CALL:
             return self.STOP_CALL
 
         if "reply_to_message" in message and await ForceReplyRoute(
                 self.route_map.get("force_reply", {})).call_handlers(
                     bot, message) is self.STOP_CALL:
             return self.STOP_CALL
-
+        route = self.route_map.get(UpdateField.MESSAGE.value, {})
         return await MessageRoute(route).call_handlers(bot, message)
 
     async def call_edited_message_handlers(self, bot: TelegramBot,
                                            edited_message: Message):
-        route = self.route_map.get(UpdateField.EDITED_MESSAGE.value, {})
-        if edited_message.text and await CommandRoute(
-                self.route_map.get("command", {})).call_handlers(
-                    bot, edited_message) is self.STOP_CALL:
+        if edited_message.entities and edited_message.entities[
+                0].type == "bot_command" and await CommandRoute(
+                    self.route_map.get("command", {})).call_handlers(
+                        bot, edited_message) is self.STOP_CALL:
             return self.STOP_CALL
 
         if "reply_to_message" in edited_message and await ForceReplyRoute(
@@ -470,6 +462,7 @@ class TelegramRouter:
                     bot, edited_message) is self.STOP_CALL:
             return self.STOP_CALL
 
+        route = self.route_map.get(UpdateField.EDITED_MESSAGE.value, {})
         return await MessageRoute(route).call_handlers(bot, edited_message)
 
     async def call_channel_post_handlers(self, bot: TelegramBot,
