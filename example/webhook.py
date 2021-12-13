@@ -4,7 +4,7 @@ run: uvicorn example.webhook:app
 """
 from fastapi import FastAPI, Request, status
 from telegrambotclient import bot_client
-from telegrambotclient.base import MessageField, ParseMode
+from telegrambotclient.base import MessageField, ParseMode, TelegramObject
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
@@ -14,9 +14,7 @@ BOT_TOKEN = "<BOT_TOKEN>"
 # replace below with the your https url
 WEBHOOK_URL = "https://5f9d0f13b9fb.au.ngrok.io/{0}"
 
-router = bot_client.router()
-bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
-bot.set_webhook(url=WEBHOOK_URL.format(BOT_TOKEN))
+router = bot_client.router(BOT_TOKEN)
 
 
 @router.message_handler(fields=MessageField.TEXT)
@@ -32,6 +30,13 @@ app = FastAPI()
 
 
 @app.post("/{bot_token}", status_code=status.HTTP_200_OK)
-async def process_telegram_update(bot_token: str, request: Request):
-    await bot_client.dispatch(bot_token, await request.json())
+async def serve_update(bot_token: str, request: Request):
+    bot = bot_client.bots.get(bot_token, None)
+    if bot:
+        router = bot_client.router(BOT_TOKEN)
+        await router.dispatch(bot, TelegramObject(**await request.json()))
     return "OK"
+
+
+bot = bot_client.create_bot(token=BOT_TOKEN)
+bot.set_webhook(url=WEBHOOK_URL.format(BOT_TOKEN))

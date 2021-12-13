@@ -43,6 +43,12 @@ def on_reply_callback(bot, message, value_1, value_2):
 logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 logger.debug(router)
-bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+
+
+async def on_update(bot, update):
+    await router.dispatch(bot, update)
+
+
+bot = bot_client.create_bot(token=BOT_TOKEN)
 bot.delete_webhook(drop_pending_updates=True)
-bot.run_polling(timeout=10)
+bot.run_polling(on_update, timeout=10)

@@ -28,7 +28,7 @@ menu = {
 }
 
 
-@router.command_handler(cmds=("/start", ))
+@router.command_handler("/start")
 def on_start(bot, message, *payload):
     logger.debug(payload)
     # use payload to load goods from the order and automatic place a same order
@@ -36,7 +36,7 @@ def on_start(bot, message, *payload):
     return bot.stop_call
 
 
-@router.command_handler(cmds=("/menu", ))
+@router.command_handler("/menu")
 def on_show_menu(bot, message):
     keyboard = InlineKeyboard()
     keyboard.add_buttons(*[
@@ -149,9 +149,13 @@ def on_successful_payment(bot, message):
     return bot.stop_call
 
 
-bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
-bot.delete_webhook(drop_pending_updates=True)
+async def on_update(bot, update):
+    await router.dispatch(bot, update)
+
+
+bot = bot_client.create_bot(token=BOT_TOKEN)
 cmd_start = BotCommand(command="/start", description="start to buy same goods")
 cmd_menu = BotCommand(command="/menu", description="show menu")
 bot.set_my_commands(commands=(cmd_start, cmd_menu))
-bot.run_polling(timeout=10)
+bot.delete_webhook(drop_pending_updates=True)
+bot.run_polling(on_update, timeout=10)

@@ -5,6 +5,9 @@ The reason for writing this bot utility is that I wish to run multi telegram bot
 I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 It is running well for https://t.me/daolebot from https://daole.me
 
+# Update 5.5.2
+Remove TelegramRouter from TelegramBot. Have a chance to watch a incoming update's content.
+
 # Update 5.5.1
 1. change cmds of CommandHandler into *cmds
 2. change errors of ErrorHandler into *errors
@@ -151,12 +154,12 @@ This is a simple echo bot.
 	from telegrambotclient import bot_client
 	from telegrambotclient.base import MessageField, ParseMode
 
-	# define a unnamed router
+	# define a default router named "default"
 	router = bot_client.router()
 
 	# decorate a handler callback on incoming message updates that have a text field
 	@router.message_handler(fields=MessageField.TEXT)
-	def on_echo_text(bot, message):
+	def on_text_message(bot, message):
 	    # receive and reply
 	    sent_message = bot.send_message(
 		        chat_id=message.chat.id,
@@ -165,13 +168,18 @@ This is a simple echo bot.
 		    )
 	    # pin the sent message
 	    bot.pin_chat_message(chat_id=message.chat.id, message_id=sent_message.message_id)
+	    return bot.stop_call
 
-	# define a bot with the router
-	bot = bot_client.create_bot(token=<BOT_TOKEN>, router=router)
+	# define a callback for incoming updates
+	async def on_update(bot, update):
+	    await router.dispatch(bot, update)
+
+	# define a bot
+	bot = bot_client.create_bot(token=<BOT_TOKEN>)
 	# delete webhook if did or not
 	bot.delete_webhook(drop_pending_updates=True)
 	# run polling to fetch updates in every 10s
-	bot.run_polling(timeout=10)
+	bot.run_polling(on_update, timeout=10)
 
 
 ## Call telegram bot APIs
@@ -187,7 +195,7 @@ For send_message api, it provides a shortcut.
 	        text="I receive: <strong>{0}</strong>".format(message.text),
 	        parse_mode=ParseMode.HTML,
 	    )
-## Multi bots through webhook
+## Serving on webhook
 
 In my case, I use [fastapi](https://fastapi.tiangolo.com/) and [uvicron](https://www.uvicorn.org/) to provide a HTTP interface to receive updates from the official Telegram Bot Server. For development and testing, [ngrok](https://ngrok.com/) give a HTTPs URL on my localhost server with a real-time HTTP traffic tunnel.
 
@@ -203,17 +211,12 @@ source code:
     	# from ngrok's https url, replace it with yours
   	WEBHOOK_URL = "https://5f9d0f13b9fb.au.ngrok.io/bot/{0}"
 
-    	# define a default routers
+	bot_token = "<BOT_TOKEN>"
+    	# define a router
   	router = bot_client.router()
-	# two bots have same router
-	bot1 = bot_client.create_bot(token=<BOT1_TOKEN>, router=router)
-	bot2 = bot_client.create_bot(token=<BOT2_TOKEN>, router=router)
-	bot1.setup_webhook(WEBHOOK_URL.format(<BOT1_TOKEN>))
-	bot2.setup_webhook(WEBHOOK_URL.format(<BOT2_TOKEN>))
-
 	@router.message_handler(fields=MessageField.TEXT)
-	def on_echo_text(bot, message):
-	    bot.reply_message(message, text="I receive: <strong>{0}</strong>".format(message.text), parse_mode=ParseMode.HTML)
+	def on_text_message(bot, message):
+	    bot.reply_message(message, text="I receive: <strong>{0}</strong> from bot1".format(message.text), parse_mode=ParseMode.HTML)
 	    return bot.stop_call
 
 	app = FastAPI()
@@ -221,10 +224,18 @@ source code:
 	# waiting for incoming updates and dispatch them
 	@app.post("/bot/{bot_token}", status_code=status.HTTP_200_OK)
 	async def process_telegram_update(bot_token: str, request: Request):
-	    await bot_client.dispatch(bot_token, await request.json())
+	    bot = bot_client.bots.get(bot_token, None)
+	    if bot:
+		router = bot_client.router()
+		await router.dispatch(bot, TelegramObject(**await request.json()))
 	    return "OK"
 
-## Multi bots and routers play around
+	bot = bot_client.create_bot(token=bot_token)
+	bot.setup_webhook(WEBHOOK_URL.format(bot_token))
+
+
+
+## Serving with multi bots and routers on webhook
 
 	from fastapi import FastAPI, Request, status
 	from telegrambotclient import bot_client
@@ -232,16 +243,16 @@ source code:
 	# from ngrok's https url, replace it with yours
 	WEBHOOK_URL = "https://5f9d0f13b9fb.au.ngrok.io/bot/{0}"
 
-	router1 = bot_client.router("router1")
-	router2 = bot_client.router("router2")
-	bot1 = bot_client.create_bot(token=<BOT1_TOKEN>, router=router1)
-	bot2 = bot_client.create_bot(token=<BOT2_TOKEN>, router=router2)
-	bot1.setup_webhook(WEBHOOK_URL.format(<BOT1_TOKEN>))
-	bot2.setup_webhook(WEBHOOK_URL.format(<BOT2_TOKEN>))
+	bot_token_1 = "<BOT_TOKEN_1>"
+	bot_token_2 = "<BOT_TOKEN_2>"
+
+    	# define 2 default routers
+	router1 = bot_client.router(bot_token_1)
+	router2 = bot_client.router(bot_token_2)
 
 	# bind a handler on router1
 	@router1.message_handler(fields=MessageField.TEXT)
-	def on_router1_echo(bot, message):
+	def on_router1_message(bot, message):
 	    bot.reply_message(
 	        message,
 	        text="I receive: <strong>{0}</strong> from router1".format(message.text),
@@ -250,7 +261,7 @@ source code:
 
 	# bind a handler on router2
 	@router2.message_handler(fields=MessageField.TEXT)
-	def on_router2_echo(bot, message):
+	def on_router2_message(bot, message):
 	    bot.reply_message(
 	        message,
 	        text="I receive: <strong>{0}</strong> from router2".format(message.text),
@@ -261,9 +272,19 @@ source code:
 
 	# waiting for incoming updates and dispatch them
 	@app.post("/bot/{bot_token}", status_code=status.HTTP_200_OK)
-	async def process_telegram_update(bot_token: str, request: Request):
-	    await bot_client.dispatch(bot_token, await request.json())
+	async def serve_update(bot_token: str, request: Request):
+	    bot = bot_client.bots.get(bot_token, None)
+	    if bot:
+		router = bot_client.router(bot_token)
+		await router.dispatch(bot, TelegramObject(**await request.json()))
 	    return "OK"
+
+	bot1 = bot_client.create_bot(token=bot_token_1)
+	bot1.setup_webhook(WEBHOOK_URL.format(bot_token_1))
+
+	bot2 = bot_client.create_bot(token=bot_token_2)
+	bot2.setup_webhook(WEBHOOK_URL.format(bot_token_2))
+
 
 ##  Register handlers
 
@@ -273,7 +294,7 @@ source code:
 		pass
 
 ### function
-good way to register one callback on multi routers
+a good way to register one callback on multi routers
 
 	def on_message(bot, message):
 	    pass
@@ -281,10 +302,11 @@ good way to register one callback on multi routers
 	router1.register_message_handler(callback=on_message, fields=MessageField.TEXT)
 	router2.register_message_handler(callback=on_message, fields=MessageField.TEXT)
 
-### route for multi message fields
+### serve for multi message fields at the same time
+
+	# callback when a message includes 'animation' AND 'document' fields
 	@router.message_handler(fields=MessageField.ANIMATION & MessageField.DOCUMENT)
 	def on_animation(bot, message: Message):
-	    # call when a message includes 'animation' AND 'document' fields
 	    pass
 
 ## [Please try examples for more detail](https://github.com/songdi/py-telegram-bot-client/tree/main/example)

@@ -48,9 +48,13 @@ def on_match_name(bot, callback_query, *values):
                          inline_keyboard))
 
 
+async def on_update(bot, update):
+    await router.dispatch(bot, update)
+
+
 logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
 logger.debug(router)
 bot = bot_client.create_bot(token=BOT_TOKEN)
 bot.delete_webhook(drop_pending_updates=True)
-bot.run_polling(timeout=10)
+bot.run_polling(on_update, timeout=10)

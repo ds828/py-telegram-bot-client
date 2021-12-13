@@ -69,6 +69,7 @@ import sqlite3
 db_conn = sqlite3.connect("file:memory?cache=shared&mode=memory", uri=True)
 storage = SQLiteStorage(db_conn)
 
+
 # using redis
 # import redis
 # from telegrambotclient.storage import RedisStorage
@@ -86,9 +87,12 @@ storage = SQLiteStorage(db_conn)
 # from pymongo import MongoClient
 # storage = MongoDBStorage(
 #     MongoClient("mongodb://localhost:27017")["session_db"]["session"])
+async def on_update(bot, update):
+    await router.dispatch(bot, update)
+
 
 bot = bot_client.create_bot(
-    token=BOT_TOKEN, router=router, storage=storage,
-    session_expires=30)  # set 30s as a default session timeout
+    token=BOT_TOKEN, storage=storage,
+    session_expires=300)  # set 300s as a default session timeout
 bot.delete_webhook(drop_pending_updates=True)
-bot.run_polling(timeout=10)
+bot.run_polling(on_update, timeout=10)

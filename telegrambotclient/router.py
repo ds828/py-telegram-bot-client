@@ -1,5 +1,5 @@
 from collections import UserDict, UserList
-from typing import Callable, List, Tuple, Union
+from typing import Callable, Union
 
 from telegrambotclient.base import (CallbackQuery, ChatJoinRequst,
                                     ChatMemberUpdated, ChosenInlineResult,
@@ -414,18 +414,15 @@ class TelegramRouter:
     #
     ##################################################################################
     @classmethod
-    def parse_update_field_and_data(cls, raw_update):
-        for name, value in raw_update.items():
+    def parse_update_field_and_data(cls, update: TelegramObject):
+        for name, value in update.items():
             if name in cls.UPDATE_FIELD_VALUES and value:
                 return name, TelegramObject(**value)
         raise TelegramBotException("unknown update field: {0}".format(
-            pretty_format(raw_update)))
+            pretty_format(update)))
 
-    async def route(self, bot: TelegramBot, raw_update):
-        if "update_id" in raw_update and raw_update[
-                "update_id"] > bot.last_update_id:
-            bot.last_update_id = raw_update["update_id"]
-        update_field, data = self.parse_update_field_and_data(raw_update)
+    async def dispatch(self, bot: TelegramBot, update: TelegramObject):
+        update_field, data = self.parse_update_field_and_data(update)
         route = self.route_map.get(update_field, None)
         if route:
             try:

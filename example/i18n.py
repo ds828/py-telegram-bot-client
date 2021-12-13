@@ -35,9 +35,11 @@ def on_i18n_reply(bot, message, _):
     bot.reply_message(message, text=_(message.text))
 
 
-bot = bot_client.create_bot(token=BOT_TOKEN,
-                            router=router,
-                            i18n_source=trans_data)
-bot.delete_webhook(drop_pending_updates=True)
+async def on_update(bot, update):
+    await router.dispatch(bot, update)
 
-bot.run_polling(timeout=10)
+
+bot = bot_client.create_bot(token=BOT_TOKEN, i18n_source=trans_data)
+
+bot.delete_webhook(drop_pending_updates=True)
+bot.run_polling(on_update, timeout=10)

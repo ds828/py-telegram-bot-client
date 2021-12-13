@@ -30,10 +30,13 @@ def on_cmd1(bot, message, *args):
     return bot.stop_call
 
 
-logger.debug(router)
-bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+async def on_update(bot, update):
+    await router.dispatch(bot, update)
+
+
+bot = bot_client.create_bot(token=BOT_TOKEN)
 bot.delete_webhook(drop_pending_updates=True)
 cmd1 = BotCommand(command="/cmd1", description="cmd1")
 cmd2 = BotCommand(command="/cmd2", description="cmd2")
 bot.set_my_commands(commands=(cmd1, cmd2))
-bot.run_polling(timeout=10)
+bot.run_polling(on_update, timeout=10)

@@ -69,7 +69,7 @@ def on_submit(bot, callback_query):
     keyboard = InlineKeyboard(
         *callback_query.message.reply_markup.inline_keyboard)
     for button in keyboard.get_buttons("select"):
-        callback_data_name, value, selected = parse_callback_data(
+        callback_data_name, (value, selected) = parse_callback_data(
             button.callback_data)
         if selected:
             # filter selected options
@@ -84,6 +84,10 @@ def on_submit(bot, callback_query):
     return bot.stop_call
 
 
-bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+async def on_update(bot, update):
+    await router.dispatch(bot, update)
+
+
+bot = bot_client.create_bot(token=BOT_TOKEN)
 bot.delete_webhook(drop_pending_updates=True)
-bot.run_polling(timeout=10)
+bot.run_polling(on_update, timeout=10)

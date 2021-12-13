@@ -20,13 +20,16 @@ def on_echo_text(bot, message):
     )
 
 
+async def on_update(bot, update):
+    await router.dispatch(bot, update)
+
+
 # the bot with the offical api
-bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+bot = bot_client.create_bot(token=BOT_TOKEN)
 bot.delete_webhook(drop_pending_updates=True)
 if bot.log_out():
     bot = bot_client.create_bot(
         token=BOT_TOKEN,
-        router=router,
-        # myself api
-        bot_api=TelegramBotAPI(api_host="http://your_local_api_host"))
-    bot.run_polling(timeout=10)
+        bot_api=TelegramBotAPI(
+            api_host="http://your_local_api_host"))  # self-define api provider
+    bot.run_polling(on_update, timeout=10)

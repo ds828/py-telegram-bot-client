@@ -9,7 +9,7 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-@router.command_handler(cmds=("/vote", ))
+@router.command_handler("/vote")
 def on_show_vote_poll(bot, message):
     bot.send_poll(
         chat_id=message.chat.id,
@@ -23,7 +23,7 @@ def on_poll_state(bot, poll: Poll):
     print("receive a vote on {0}".format(poll.options))
 
 
-@router.command_handler(cmds=("/quiz", ))
+@router.command_handler("/quiz")
 def on_show_quiz_poll(bot, message):
     bot.send_poll(
         chat_id=message.chat.id,
@@ -42,6 +42,10 @@ def on_poll_answer(bot, poll_answer):
     print(poll_answer)
 
 
-bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+async def on_update(bot, update):
+    await router.dispatch(bot, update)
+
+
+bot = bot_client.create_bot(token=BOT_TOKEN)
 bot.delete_webhook(drop_pending_updates=True)
-bot.run_polling(timeout=10)
+bot.run_polling(on_update, timeout=10)

@@ -27,6 +27,7 @@ def on_show_keyboard(bot, message):
     # add buttons as 3 lines
     keyboard.add_lines((btn_text, ), (btn_contact, ), (btn_location, ))
     line_1 = keyboard[1]
+    print(line_1)
     reply_to_message = bot.send_message(
         chat_id=message.chat.id,
         text=message.text,
@@ -65,6 +66,12 @@ def on_reply_button_click(bot, message):
 
 logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)
-bot = bot_client.create_bot(token=BOT_TOKEN, router=router)
+
+
+async def on_update(bot, update):
+    await router.dispatch(bot, update)
+
+
+bot = bot_client.create_bot(token=BOT_TOKEN)
 bot.delete_webhook(drop_pending_updates=True)
-bot.run_polling(timeout=10)
+bot.run_polling(on_update, timeout=10)

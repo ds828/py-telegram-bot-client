@@ -5,7 +5,8 @@ from contextlib import contextmanager
 from typing import Callable, Dict, Tuple
 
 from telegrambotclient.api import TelegramBotAPI
-from telegrambotclient.base import Message
+from telegrambotclient.base import Message, TelegramObject
+from telegrambotclient.router import TelegramRouter
 from telegrambotclient.storage import TelegramSession, TelegramStorage
 from telegrambotclient.utils import pretty_format
 
@@ -20,19 +21,17 @@ logger.setLevel(logging.INFO)
 
 class TelegramBot:
     SESSION_ID_FORMAT = "{0}:{1}"
-    __slots__ = ("token", "router", "bot_api", "storage", "i18n_source",
+    __slots__ = ("token", "bot_api", "storage", "i18n_source",
                  "session_expires", "last_update_id", "user")
 
     def __init__(self,
                  token: str,
-                 router,
                  bot_api: TelegramBotAPI = None,
                  storage: TelegramStorage = None,
                  i18n_source: Dict = None,
                  session_expires: int = 1800):
 
         self.token = token
-        self.router = router
         self.bot_api = bot_api or TelegramBotAPI()
         if storage is None:
             logger.warning(
@@ -141,13 +140,8 @@ class TelegramBot:
             host, self.user.username, "startgroup" if startgroup else "start",
             payload)
 
-    async def dispatch(self, raw_update):
-        logger.debug(
-            "\n----------------------------- update ----------------------------------\n%s",
-            pretty_format(raw_update))
-        await self.router.route(self, raw_update)
-
     def run_polling(self,
+                    on_update_callback: Callable,
                     limit: int = None,
                     timeout: int = 10,
                     allowed_updates: Tuple[str] = None,
@@ -168,7 +162,11 @@ class TelegramBot:
             if updates:
                 self.last_update_id = updates[-1]["update_id"]
                 for raw_update in updates:
-                    asyncio.run(self.dispatch(raw_update))
+                    logger.debug(
+                        "\n----------------------------- update ----------------------------------\n%s",
+                        pretty_format(raw_update))
+                    asyncio.run(
+                        on_update_callback(self, TelegramObject(**raw_update)))
 
     def __getattr__(self, api_name):
         def api_method(**kwargs):
