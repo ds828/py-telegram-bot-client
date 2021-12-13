@@ -6,7 +6,6 @@ from typing import Callable, Dict, Tuple
 
 from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.base import Message, TelegramObject
-from telegrambotclient.router import TelegramRouter
 from telegrambotclient.storage import TelegramSession, TelegramStorage
 from telegrambotclient.utils import pretty_format
 
@@ -162,9 +161,6 @@ class TelegramBot:
             if updates:
                 self.last_update_id = updates[-1]["update_id"]
                 for raw_update in updates:
-                    logger.debug(
-                        "\n----------------------------- update ----------------------------------\n%s",
-                        pretty_format(raw_update))
                     asyncio.run(
                         on_update_callback(self, TelegramObject(**raw_update)))
 

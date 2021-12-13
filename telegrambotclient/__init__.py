@@ -1,5 +1,4 @@
 from telegrambotclient.api import TelegramBotAPI
-from telegrambotclient.base import TelegramObject
 from telegrambotclient.bot import TelegramBot
 from telegrambotclient.router import TelegramRouter
 from telegrambotclient.storage import TelegramStorage

@@ -51,7 +51,6 @@ class ErrorRoute(ListRoute):
 class CommandRoute(UserDict):
     def add_handler(self, handler: CommandHandler):
         for cmd_text in handler.cmds:
-            print(cmd_text)
             self[cmd_text] = handler
         return self
 
@@ -422,6 +421,9 @@ class TelegramRouter:
             pretty_format(update)))
 
     async def dispatch(self, bot: TelegramBot, update: TelegramObject):
+        logger.debug(
+            "\n----------------------------- update ----------------------------------\n%s",
+            pretty_format(update))
         update_field, data = self.parse_update_field_and_data(update)
         route = self.route_map.get(update_field, None)
         if route:
