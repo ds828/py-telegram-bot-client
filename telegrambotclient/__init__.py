@@ -17,7 +17,8 @@ class TelegramBotClient:
         router = self.routers.get(name or "default", None)
         if router is None:
             self.routers[name] = TelegramRouter(name)
-        return self.routers[name]
+            return self.routers[name]
+        return router
 
     def create_bot(self,
                    token: str,
