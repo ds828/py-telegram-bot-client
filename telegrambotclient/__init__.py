@@ -7,11 +7,11 @@ from telegrambotclient.storage import TelegramStorage
 class TelegramBotClient:
     __slots__ = ("bots", "routers", "name", "api_callers")
 
-    def __init__(self, name: str = "bot-client") -> None:
+    def __init__(self, name: str = None):
         self.bots = {}
         self.routers = {}
         self.api_callers = {}
-        self.name = name
+        self.name = name or "default"
 
     def router(self, name: str = None) -> TelegramRouter:
         router = self.routers.get(name or "default", None)

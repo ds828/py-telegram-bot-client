@@ -7,7 +7,6 @@ from typing import Callable, Dict, Tuple
 from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.base import Message, TelegramObject
 from telegrambotclient.storage import TelegramSession, TelegramStorage
-from telegrambotclient.utils import pretty_format
 
 logger = logging.getLogger("telegram-bot-client")
 formatter = logging.Formatter(
@@ -20,6 +19,9 @@ logger.setLevel(logging.INFO)
 
 class TelegramBot:
     SESSION_ID_FORMAT = "{0}:{1}"
+    next_call = True
+    stop_call = False
+
     __slots__ = ("token", "bot_api", "storage", "i18n_source",
                  "session_expires", "last_update_id", "user")
 
@@ -42,14 +44,6 @@ class TelegramBot:
         self.session_expires = session_expires
         self.last_update_id = 0
         self.user = self.get_me()
-
-    @property
-    def next_call(self):
-        return self.router.NEXT_CALL
-
-    @property
-    def stop_call(self):
-        return self.router.STOP_CALL
 
     def get_session(self, user_id: int, expires: int = 0):
         return TelegramSession(
