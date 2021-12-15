@@ -70,8 +70,6 @@ class TelegramBot:
                          expires: int = 0):
         force_reply_callback_name = "{0}.{1}".format(callback.__module__,
                                                      callback.__name__)
-        assert self.router.has_force_reply_callback(
-            force_reply_callback_name), True
         session = self.get_session(user_id, expires or self.session_expires)
         if force_reply_args:
             session["_reply_to_message"] = {

@@ -74,12 +74,14 @@ class ForceReplyRoute(UserDict):
         return self
 
     async def call_handlers(self, bot: TelegramBot, message: Message):
-        reply_to_message = bot.get_force_reply(
-            message.chat.id if message.chat else message.from_user.
-            id if message.from_user else 0)
+        chat_id = message.chat.id if message.chat else message.from_user.id if message.from_user else None
+        if chat_id is None:
+            return bot.stop_call
+        reply_to_message = bot.get_force_reply(chat_id)
         if not reply_to_message or message.reply_to_message.message_id != reply_to_message[
                 "message_id"]:
-            return bot.next_call
+            return bot.stop_call
+
         handler = self.get(reply_to_message["callback"], None)
         if handler is None:
             raise TelegramBotException(
@@ -415,6 +417,7 @@ class TelegramRouter:
     @classmethod
     def parse_update_field_and_data(cls, update: TelegramObject):
         for name, value in update.items():
+            # telegram bot api confirmed: At most one of the optional parameters can be present in any given update.
             if name in cls.UPDATE_FIELD_VALUES and value:
                 return name, TelegramObject(**value)
         raise TelegramBotException("unknown update field: {0}".format(
@@ -532,10 +535,6 @@ class TelegramRouter:
         return await ListRoute(
             self.route_map.get(UpdateField.CHAT_JOIN_REQUEST.value,
                                ())).call_handlers(bot, chat_join_request)
-
-    def has_force_reply_callback(self, force_reply_name: str):
-        return force_reply_name in ForceReplyRoute(
-            self.route_map.get("force_reply", {}))
 
     def __repr__(self):
         return pretty_format(self.route_map)

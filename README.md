@@ -5,116 +5,121 @@ The reason for writing this bot utility is that I wish to run multi telegram bot
 I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 It is running well for https://t.me/daolebot from https://daole.me
 
-# Update 5.5.2
-Remove TelegramRouter from TelegramBot. Have a chance to watch a incoming update's content.
+## Update 5.5.3
+fix a bug for force reply
 
-# Update 5.5.1
+## Update 5.5.2
+Remove TelegramRouter from TelegramBot.
+Do a update dispatch as the update's coming.
+Have a chance to use yourself route policy on incoming updates.
+
+## Update 5.5.1
 1. change cmds of CommandHandler into *cmds
 2. change errors of ErrorHandler into *errors
 
-# Update 5.5
+## Update 5.5
 Update for the telegram bot api 5.5.
 Actually, I did nothing on codes. It is compatible with the telegram bot api 5.5.
 
-# Update 5.4.2
+## Update 5.4.2
 1. change a list of regex patterns of regex_match into *args of regex patterns
 2. add a example/regex_match.py for regex_match's usage
 
-# Update  5.4.1
+## Update  5.4.1
 Fix bugs
 
-# Update 5.4
+## Update 5.4
 Update for Telegram Bot API 5.4
 
-# Update 5.3.7.5
+## Update 5.3.7.5
 1. HOT FIX remove "__del__()" from MongoDBStorage
 
-# Update 5.3.7.4
+## Update 5.3.7.4
 1. check and add storage.__del__() for storages
 
-# Update 5.3.7.3
+## Update 5.3.7.3
 1. rewrite force_reply. see detail in example.force_reply
 2. rewrite callback_query. see detail in example.callback_query
 3. add bot.clear_session method
 
-# Update 5.3.7.2
+## Update 5.3.7.2
  too silly to fix bugs right
 
-# Update 5.3.7.1
+## Update 5.3.7.1
  fix bugs
 
-# Update 5.3.7
+## Update 5.3.7
 1. remove UIHelper
 2. fix bugs
 
-# Update 5.3.6.4
+## Update 5.3.6.4
 1. fix bugs
 
-# Update 5.3.6.3
+## Update 5.3.6.3
 1. optimize codes
 
-# Update 5.3.6.2
+## Update 5.3.6.2
 1. remove ui stack
 2. fix bugs
 
-# Update 5.3.6.1
+## Update 5.3.6.1
 
 1. add add_lines in ReplyKeyboard. see example/keyboard.py
 2. fix bugs
 
-# Update 5.3.6
+## Update 5.3.6
 
 1. update ReplyKeyboard in ui. see example/keyboard.py
 2. update UIHelper in ui. see example/select.py
 
-# Update 5.3.5.7
+## Update 5.3.5.7
 
 fix bugs and give the bot a get_file_bytes method to download a file. see example/document.py
 
-# Update 5.3.5.6
+## Update 5.3.5.6
 
 optimize codes and remove setup_webhook
 
-# Update 5.3.5.5
+## Update 5.3.5.5
 
 Fix bugs on ErrorHandler
 
-# Update 5.3.5.4
+## Update 5.3.5.4
 
 1. compose keyboards see example/keyboard.py
 2. fix bugs
 
-# Update 5.3.5.3
+## Update 5.3.5.3
 
 Fix bugs
 
-# Update 5.3.5.2
+## Update 5.3.5.2
 
 Fix bugs and add router.remove_handler. see example/dynamic_handler.py
 
-# Update 5.3.5.1
+## Update 5.3.5.1
 
 1. Refacted and faster than before.
 
 2. Provide a UIHelper in ui for buttons.
 
-# Update 5.3.5
+## Update 5.3.5
 
 A large update. I do not write too many details because no one is using it except myself.
 
-# Update 5.3.4
+## Update 5.3.4
 
 Add: add get_file_url function in bot
 
-# Update 5.3.3
+## Update 5.3.3
 
 Fix bugs and update: support multi emojis for UI buttons
 
-# Update 5.3.2
+## Update 5.3.2
 
 Fix bugs and update: add a UI stack for be back to ahead UI, see example.ui_stack.py
 
-# Update 5.3.1
+## Update 5.3.1
 
 Change: delete multi keys in session using delete function
 
@@ -122,31 +127,31 @@ Change: delete multi keys in session using delete function
 
 Add BotCommandScope Support
 
-# Update 5.2.5.1
+## Update 5.2.5.1
 
 Fix bugs... correct get_file_bytes in TelegramBotAPI
 
-# Update 5.2.5
+## Update 5.2.5
 
 Optimize: add a context manager on session implement
 
-# Update 5.2.4.1
+## Update 5.2.4.1
 
 Fix bugs... correct TelegramBotAPIException
 
-# Update 5.2.4
+## Update 5.2.4
 
 Optimize: make define your local API host easy, and your API host can use 'http://'
 
-# Update 5.2.3
+## Update 5.2.3
 
 Optimize: make all bots call same one TelegramBotAPI instance
 
-# Update 5.2.2
+## Update 5.2.2
 
 Add a confirm in ui
 
-# Quick to go
+## Quick to go
 
 This is a simple echo bot.
 
