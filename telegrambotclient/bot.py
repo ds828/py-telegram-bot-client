@@ -2,10 +2,10 @@ import asyncio
 import logging
 import sys
 from contextlib import contextmanager
-from typing import Callable, Dict, Tuple
+from typing import Callable, Dict
 
 from telegrambotclient.api import TelegramBotAPI
-from telegrambotclient.base import Message, TelegramObject
+from telegrambotclient.base import Message
 from telegrambotclient.storage import TelegramSession, TelegramStorage
 
 logger = logging.getLogger("telegram-bot-client")
@@ -23,7 +23,7 @@ class TelegramBot:
     stop_call = False
 
     __slots__ = ("token", "bot_api", "storage", "i18n_source",
-                 "session_expires", "last_update_id", "user")
+                 "session_expires", "bot_user")
 
     def __init__(self,
                  token: str,
@@ -42,13 +42,12 @@ class TelegramBot:
         self.storage = storage
         self.i18n_source = i18n_source
         self.session_expires = session_expires
-        self.last_update_id = 0
-        self.user = self.get_me()
+        self.bot_user = self.get_me()
 
     def get_session(self, user_id: int, expires: int = 0):
         return TelegramSession(
-            self.SESSION_ID_FORMAT.format(self.user.id, user_id), self.storage,
-            expires or self.session_expires)
+            self.SESSION_ID_FORMAT.format(self.bot_user.id, user_id),
+            self.storage, expires or self.session_expires)
 
     def clear_session(self, user_id: int):
         session = self.get_session(user_id)
@@ -128,33 +127,29 @@ class TelegramBot:
                       host: str = "https://t.me",
                       startgroup: bool = False):
         return "{0}/{1}?{2}={3}".format(
-            host, self.user.username, "startgroup" if startgroup else "start",
-            payload)
+            host, self.bot_user.username,
+            "startgroup" if startgroup else "start", payload)
 
     def run_polling(self,
                     on_update_callback: Callable,
-                    limit: int = None,
+                    offset: int = 0,
+                    limit: int = 100,
                     timeout: int = 10,
-                    allowed_updates: Tuple[str] = None,
-                    **kwargs):
+                    allowed_updates=None):
         if timeout == 0:
             logger.warning(
-                "⚠️You are using 0 as timeout in seconds for long polling which should be used for testing purposes only."
+                "You are using 0 as timeout in long polling which should be used for testing only."
             )
+        last_update_id = offset
         while True:
-            updates = self.bot_api.get_updates(
-                self.token,
-                offset=self.last_update_id + 1,
-                limit=limit,
-                timeout=timeout,
-                allowed_updates=allowed_updates,
-                **kwargs,
-            )
-            if updates:
-                self.last_update_id = updates[-1]["update_id"]
-                for raw_update in updates:
-                    asyncio.run(
-                        on_update_callback(self, TelegramObject(**raw_update)))
+            for update in self.bot_api.get_updates(
+                    self.token,
+                    offset=last_update_id,
+                    limit=limit,
+                    timeout=timeout,
+                    allowed_updates=allowed_updates):
+                last_update_id = update.update_id + 1
+                asyncio.run(on_update_callback(self, update))
 
     def __getattr__(self, api_name):
         def api_method(**kwargs):

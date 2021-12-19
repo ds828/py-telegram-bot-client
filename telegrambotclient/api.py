@@ -81,7 +81,7 @@ class TelegramBotAPI:
                     raise TelegramBotException(response.data)
                 json_response = json.loads(response.data.decode("utf-8"))
                 if response.status == 200 and json_response["ok"]:
-                    result = json_response["result"]
+                    result = json_response.get("result", None)
                     if result and isinstance(result, dict):
                         return TelegramObject(**result)
                     return result
@@ -130,7 +130,7 @@ class TelegramBotAPI:
         return self.api_caller.api_host
 
     @staticmethod
-    def __prepare_request_data__(**kwargs):
+    def __prepare_request_params__(**kwargs):
         api_data = exclude_none(**kwargs)
         files = []
         for field in tuple(api_data.keys()):
@@ -156,19 +156,24 @@ class TelegramBotAPI:
 
     def __getattr__(self, api_name: str):
         def bot_api_method(token: str, **kwargs):
-            api_data, files = self.__prepare_request_data__(**kwargs)
+            api_data, files = self.__prepare_request_params__(**kwargs)
             return self.call_api(token, api_name, data=api_data, files=files)
 
         return bot_api_method
 
     def get_updates(self, token: str, **kwargs):
-        if "allowed_updates" in kwargs:
-            kwargs["allowed_updates"] = json.dumps(kwargs["allowed_updates"])
-        return tuple(self.getUpdates(token, **kwargs))
+        kwargs["allowed_updates"] = json.dumps(
+            kwargs["allowed_updates"]) if kwargs.get("allowed_updates",
+                                                     None) else None
+        return iter([
+            TelegramObject(**raw_update)
+            for raw_update in self.getUpdates(token, **kwargs)
+        ])
 
     def set_webhook(self, token: str, **kwargs):
-        if "allowed_updates" in kwargs:
-            kwargs["allowed_updates"] = json.dumps(kwargs["allowed_updates"])
+        kwargs["allowed_updates"] = json.dumps(
+            kwargs["allowed_updates"]) if kwargs.get("allowed_updates",
+                                                     None) else None
         return self.setWebhook(token, **kwargs)
 
     def send_media_group(self, token: str, chat_id, media: List[InputMedia],
@@ -180,7 +185,7 @@ class TelegramBotAPI:
             assert isinstance(input_media, InputMedia), True
             all_files.extend(input_media.files)
             media_group.append(input_media.data_)
-        api_data, files = self.__prepare_request_data__(
+        api_data, files = self.__prepare_request_params___(
             chat_id=chat_id, media=json.dumps(media_group), **kwargs)
         return self.call_api(token,
                              "sendMediaGroup",
@@ -195,7 +200,7 @@ class TelegramBotAPI:
                            media: InputMedia = None,
                            **kwargs):
         assert isinstance(media, InputMedia), True
-        api_data, files = self.__prepare_request_data__(
+        api_data, files = self.__prepare_request_params__(
             chat_id=chat_id,
             message_id=message_id,
             inline_message_id=inline_message_id,
@@ -212,101 +217,84 @@ class TelegramBotAPI:
                         scope: BotCommandScope = None,
                         language_code: str = None):
         assert len(commands) <= 100, True
-        data = {
-            "commands": json.dumps(commands),
-            "scope": json.dumps(scope) if scope else None,
-            "language_code": language_code
-        }
-        return self.call_api(token, "setmycommands", data=exclude_none(**data))
+        return self.setMyCommands(token,
+                                  commands=json.dumps(commands),
+                                  scope=json.dumps(scope) if scope else None,
+                                  language_code=language_code)
 
     def delete_my_commands(self,
                            token: str,
                            scope: BotCommandScope = None,
                            language_code: str = None):
-        data = {
-            "scope": json.dumps(scope) if scope else None,
-            "language_code": language_code,
-        }
-        return self.call_api(token,
-                             "deletemycommands",
-                             data=exclude_none(**data))
+        return self.deleteMyCommands(
+            token,
+            scope=json.dumps(scope) if scope else None,
+            language_code=language_code)
 
     def get_my_commands(self,
                         token: str,
                         scope: BotCommandScope = None,
                         language_code: str = None):
-        data = {
-            "scope": json.dumps(scope) if scope else None,
-            "language_code": language_code,
-        }
-        return tuple(
-            TelegramObject(**command) for command in self.call_api(
-                token, "getmycommands", data=exclude_none(**data)))
+        return tuple([
+            TelegramObject(**raw_command) for raw_command in
+            self.getMyCommands(token,
+                               scope=json.dumps(scope) if scope else None,
+                               language_code=language_code)
+        ])
 
-    def send_poll(self, token: str, chat_id, question: str, options: List[str],
-                  **kwargs):
+    def send_poll(self, token: str, chat_id, question: str, options, **kwargs):
         assert 2 <= len(options) <= 10, True
-        api_data, files = self.__prepare_request_data__(
-            chat_id=chat_id,
-            question=question,
-            options=json.dumps(options),
-            **kwargs)
-        return self.call_api(token, "sendPoll", data=api_data, files=files)
+        return self.sendPoll(token,
+                             chat_id=chat_id,
+                             question=question,
+                             options=json.dumps(options),
+                             **kwargs)
 
     def answer_inline_query(self, token: str, inline_query_id: str, results,
                             **kwargs):
         assert len(results) <= 50, True
-        api_data, files = self.__prepare_request_data__(
-            inline_query_id=inline_query_id,
-            results=json.dumps(results),
-            **kwargs)
-        return self.call_api(token,
-                             "answerInlineQuery",
-                             data=api_data,
-                             files=files)
+        return self.answerInlineQuery(token,
+                                      inline_query_id=inline_query_id,
+                                      results=json.dumps(results),
+                                      **kwargs)
 
     def send_invoice(self, token: str, chat_id: int, title: str,
                      description: str, payload: str, provider_token: str,
                      currency: str, prices, **kwargs):
-        provider_data = kwargs.get("provider_data", None)
-        if provider_data:
-            kwargs["provider_data"] = json.dumps(provider_data)
-        suggested_tip_amounts = kwargs.get("suggested_tip_amounts", None)
-        if suggested_tip_amounts:
-            kwargs["suggested_tip_amounts"] = json.dumps(suggested_tip_amounts)
-        api_data, files = self.__prepare_request_data__(
-            chat_id=chat_id,
-            title=title,
-            description=description,
-            payload=payload,
-            provider_token=provider_token,
-            currency=currency,
-            prices=json.dumps(prices),
-            **kwargs)
-        return self.call_api(token, "sendInvoice", data=api_data, files=files)
+        kwargs["provider_data"] = json.dumps(
+            kwargs["provider_data"]) if kwargs.get("provider_data",
+                                                   None) else None
+        kwargs["suggested_tip_amounts"] = json.dumps(
+            kwargs["suggested_tip_amounts"]) if kwargs.get(
+                "suggested_tip_amounts", None) else None
+        return self.sendInvoice(token,
+                                chat_id=chat_id,
+                                title=title,
+                                description=description,
+                                payload=payload,
+                                provider_token=provider_token,
+                                currency=currency,
+                                prices=json.dumps(prices),
+                                **kwargs)
 
     def answer_shipping_query(self,
                               token: str,
                               shipping_query_id: str,
                               ok: bool = True,
                               **kwargs):
-
         if ok:
             assert "shipping_options" in kwargs, True
-            kwargs["shipping_options"] = json.dumps(kwargs["shipping_options"])
+            kwargs["shipping_options"] = json.dumps(
+                kwargs["shipping_options"]) if kwargs.get(
+                    "shipping_options", None) else None
         else:
             assert "error_message" in kwargs, True
-        api_data, files = self.__prepare_request_data__(
-            shipping_query_id=shipping_query_id, ok=ok, **kwargs)
-        return self.call_api(token,
-                             "answerShippingQuery",
-                             data=api_data,
-                             files=files)
+        return self.answerShippingQuery(token,
+                                        shipping_query_id=shipping_query_id,
+                                        ok=ok,
+                                        **kwargs)
 
     def set_passport_data_errors(self, token: str, user_id: int, errors):
-        api_data, files = self.__prepare_request_data__(
-            user_id=user_id, errors=json.dumps(errors))
-        return self.call_api(token,
-                             "setPassportDataErrors",
-                             data=api_data,
-                             files=files)
+        return self.setPassportDataErrors(token,
+                                          user_id=user_id,
+                                          errors=json.dumps(errors))

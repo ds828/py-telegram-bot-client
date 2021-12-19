@@ -5,6 +5,10 @@ The reason for writing this bot utility is that I wish to run multi telegram bot
 I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 It is running well for https://t.me/daolebot from https://daole.me
 
+## Update 5.5.4
+1. code optimization
+2. get_updates returns a iter
+
 ## Update 5.5.3
 fix a bug for force reply
 
