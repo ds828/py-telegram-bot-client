@@ -88,14 +88,6 @@ class MessageField(str, Enum):
     VOICE_CHAT_PARTICIPANTS_INVITED = "voice_chat_participants_invited"
     REPLY_MARKUP = "reply_markup"
 
-    def __init__(self, value):
-        super().__init__()
-        self.fields = {value}
-
-    def __and__(self, field):
-        self.fields.add(field.value)
-        return self
-
 
 class ParseMode(str, Enum):
     MARKDOWN_V2 = "MarkdownV2"

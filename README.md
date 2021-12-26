@@ -5,6 +5,9 @@ The reason for writing this bot utility is that I wish to run multi telegram bot
 I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 It is running well for https://t.me/daolebot from https://daole.me
 
+## Update 5.5.5
+modify router.message_handler(fields) to router.message_handler(*fields)
+
 ## Update 5.5.4
 1. code optimization
 2. get_updates returns a iter
@@ -167,7 +170,7 @@ This is a simple echo bot.
 	router = bot_client.router()
 
 	# decorate a handler callback on incoming message updates that have a text field
-	@router.message_handler(fields=MessageField.TEXT)
+	@router.message_handler(MessageField.TEXT)
 	def on_text_message(bot, message):
 	    # receive and reply
 	    sent_message = bot.send_message(
@@ -223,7 +226,7 @@ source code:
 	bot_token = "<BOT_TOKEN>"
     	# define a router
   	router = bot_client.router()
-	@router.message_handler(fields=MessageField.TEXT)
+	@router.message_handler(MessageField.TEXT)
 	def on_text_message(bot, message):
 	    bot.reply_message(message, text="I receive: <strong>{0}</strong> from bot1".format(message.text), parse_mode=ParseMode.HTML)
 	    return bot.stop_call
@@ -260,7 +263,7 @@ source code:
 	router2 = bot_client.router(bot_token_2)
 
 	# bind a handler on router1
-	@router1.message_handler(fields=MessageField.TEXT)
+	@router1.message_handler(MessageField.TEXT)
 	def on_router1_message(bot, message):
 	    bot.reply_message(
 	        message,
@@ -269,7 +272,7 @@ source code:
 	    )
 
 	# bind a handler on router2
-	@router2.message_handler(fields=MessageField.TEXT)
+	@router2.message_handler(MessageField.TEXT)
 	def on_router2_message(bot, message):
 	    bot.reply_message(
 	        message,
@@ -298,7 +301,7 @@ source code:
 ##  Register handlers
 
 ### decorator
-	@router.message_handler(fields=MessageField.TEXT)
+	@router.message_handler(MessageField.TEXT)
 	def on_message(bot, message):
 		pass
 
@@ -308,13 +311,13 @@ a good way to register one callback on multi routers
 	def on_message(bot, message):
 	    pass
 
-	router1.register_message_handler(callback=on_message, fields=MessageField.TEXT)
-	router2.register_message_handler(callback=on_message, fields=MessageField.TEXT)
+	router1.register_message_handler(on_message, MessageField.TEXT)
+	router2.register_message_handler(on_message, MessageField.TEXT)
 
-### serve for multi message fields at the same time
+### serve for multi message fields
 
-	# callback when a message includes 'animation' AND 'document' fields
-	@router.message_handler(fields=MessageField.ANIMATION & MessageField.DOCUMENT)
+	# callback for a animation message that includes 'animation' AND 'document' fields
+	@router.message_handler(MessageField.ANIMATION, MessageField.DOCUMENT)
 	def on_animation(bot, message: Message):
 	    pass
 

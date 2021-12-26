@@ -13,7 +13,7 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-@router.message_handler(fields=MessageField.TEXT)
+@router.message_handler(MessageField.TEXT)
 def on_show_keyboard(bot, message):
     btn_text = KeyboardButton(text="click")
     btn_contact = KeyboardButton(text="contact", request_contact=True)

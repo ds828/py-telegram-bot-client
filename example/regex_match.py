@@ -14,7 +14,7 @@ pattern_waze_url = re.compile(r"^.*(?P<url>https://waze.com/.+)$")
 pattern_google_map_url = re.compile(r"^.*(?P<url>https://maps.app.goo.gl/.+)$")
 
 
-@router.message_handler(fields=MessageField.TEXT)
+@router.message_handler(MessageField.TEXT)
 @regex_match(pattern_waze_url, pattern_google_map_url)
 def on_message(bot, message, result):
     url = result.groupdict().get("url")

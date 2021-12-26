@@ -17,7 +17,7 @@ WEBHOOK_URL = "https://5f9d0f13b9fb.au.ngrok.io/{0}"
 router = bot_client.router(BOT_TOKEN)
 
 
-@router.message_handler(fields=MessageField.TEXT)
+@router.message_handler(MessageField.TEXT)
 def on_echo_text(bot, message):
     bot.reply_message(
         message,

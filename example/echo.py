@@ -9,7 +9,7 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-@router.message_handler(fields=MessageField.TEXT)
+@router.message_handler(MessageField.TEXT)
 def on_echo_text(bot, message):
     sent_message = bot.reply_message(
         message,
@@ -20,7 +20,7 @@ def on_echo_text(bot, message):
                          message_id=sent_message.message_id)
 
 
-@router.message_handler(fields=MessageField.PINNED_MESSAGE)
+@router.message_handler(MessageField.PINNED_MESSAGE)
 def on_pinned_message(bot, message):
     bot.send_message(
         chat_id=message.chat.id,

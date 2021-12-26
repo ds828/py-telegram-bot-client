@@ -15,7 +15,7 @@ def on_text(bot, message):
                      text=bot.get_deep_link(payload="PAYLOAD"))
 
 
-@router.command_handler(("/start", ))
+@router.command_handler("/start")
 def on_start(bot, message, *payload):
     print(payload)
     bot.reply_message(message, text=message.text)

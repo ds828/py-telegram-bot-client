@@ -16,12 +16,12 @@ logger.setLevel(logging.DEBUG)
 router = bot_client.router()
 
 
-@router.message_handler(fields=MessageField.GROUP_CHAT_CREATED)
+@router.message_handler(MessageField.GROUP_CHAT_CREATED)
 def on_group_chat_creted(bot, message):
     bot.reply_message(message, text="Thanks, I am in this group")
 
 
-@router.message_handler(fields=MessageField.TEXT)
+@router.message_handler(MessageField.TEXT)
 def on_text_group_message(bot, message):
     bot.reply_message(
         message,

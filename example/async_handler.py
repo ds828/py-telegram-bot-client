@@ -11,7 +11,7 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-@router.message_handler(fields=MessageField.TEXT)
+@router.message_handler(MessageField.TEXT)
 async def on_echo_text(bot, message):
     bot.reply_message(message, text="I will reply in 3s.")
     await asyncio.sleep(3)

@@ -12,7 +12,7 @@ router = bot_client.router()
 emoji = ("✔️", "❌")
 
 
-@router.message_handler(fields=MessageField.TEXT)
+@router.message_handler(MessageField.TEXT)
 def on_show_keyboard(bot, message):
     keyboard = InlineKeyboard()
     keyboard.add_buttons(

@@ -14,7 +14,7 @@ router = bot_client.router()
 
 
 @router.message_handler()
-def on_reply_media_group(bot, message):
+def on_send_media_group(bot, message):
     thumb = InputFile("sample.jpg", os.path.abspath("./sample/sample.jpg"))
     video = InputMediaVideo(media=InputFile(
         "sample.mp4", os.path.abspath("./sample/sample.mp4")),

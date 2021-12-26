@@ -10,9 +10,9 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-# when a live location start to be shared
+# when a live location starts to be shared
 # the telegram bot server will send a location message which has a 'live_period' field firstly
-@router.message_handler(fields=MessageField.LOCATION)
+@router.message_handler(MessageField.LOCATION)
 def on_share_location(bot, message):
     if "live_period" in message.location:
         # begin to share a live location
@@ -22,7 +22,7 @@ def on_share_location(bot, message):
 
 # next, the bot will receive edited messages as live location updates.
 # if a sharing live location is stopped, the bot will receive a location edited message without a 'live_period' field.
-@router.edited_message_handler(fields=MessageField.LOCATION)
+@router.edited_message_handler(MessageField.LOCATION)
 def on_live_location(bot, edited_message):
     if "live_period" in edited_message.location:
         print(edited_message.location, edited_message.edit_date)

@@ -2,6 +2,7 @@
 run: python -m example.i18n
 """
 from telegrambotclient import bot_client
+from telegrambotclient.base import MessageField
 from telegrambotclient.utils import i18n
 
 BOT_TOKEN = "<BOT_TOKEN>"
@@ -29,7 +30,7 @@ trans_data = {
 router = bot_client.router()
 
 
-@router.message_handler()
+@router.message_handler(MessageField.TEXT)
 @i18n()
 def on_i18n_reply(bot, message, _):
     bot.reply_message(message, text=_(message.text))

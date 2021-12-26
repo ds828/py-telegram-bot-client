@@ -37,7 +37,7 @@ def on_start(bot, message, *payload):
 
 
 @router.command_handler("/menu")
-def on_show_menu(bot, message):
+def on_show_menu(bot, message, *args):
     keyboard = InlineKeyboard()
     keyboard.add_buttons(*[
         InlineKeyboardButton(text=text,
@@ -142,7 +142,7 @@ def on_pre_checkout_query(bot, pre_checkout_query):
     return bot.stop_call
 
 
-@router.message_handler(fields=MessageField.SUCCESSFUL_PAYMENT)
+@router.message_handler(MessageField.SUCCESSFUL_PAYMENT)
 def on_successful_payment(bot, message):
     # Once your bot receives this message, it should proceed with delivering the goods or services purchased by the user.
     pretty_print(message.successful_payment)

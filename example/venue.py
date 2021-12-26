@@ -14,7 +14,7 @@ router = bot_client.router()
 # https://core.telegram.org/bots/api#message --> venue
 # Message is a venue, information about the venue.
 # For backward compatibility, when this field is set, the location field will also be set
-@router.message_handler(fields=MessageField.VENUE & MessageField.LOCATION)
+@router.message_handler(MessageField.VENUE, MessageField.LOCATION)
 def on_venue(bot, message):
     pretty_print(message)
     return bot.stop_call

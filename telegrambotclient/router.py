@@ -1,5 +1,5 @@
 from collections import UserDict, UserList
-from typing import Callable, Union
+from typing import Callable
 
 from telegrambotclient.base import (CallbackQuery, ChatJoinRequst,
                                     ChatMemberUpdated, ChosenInlineResult,
@@ -97,15 +97,18 @@ class ForceReplyRoute(UserDict):
 class MessageRoute(UserList):
     def add_handler(self, handler: _MessageHandler):
         if handler.fields:
-            self[0:0] = [(set(handler.fields), handler)]
+            # must be inserted before processing all message fields' handlers
+            self[0:0] = ((set(
+                field.value if isinstance(field, MessageField) else field
+                for field in handler.fields), handler), )
         else:
             self.append((set(), handler))
         return self
 
     async def call_handlers(self, bot: TelegramBot, message: Message):
-        message_fields_set = set(message.keys())
-        for fields_set, handler in self:
-            if message_fields_set & fields_set == fields_set and await call_handler(
+        incoming_message_fields = set(message.keys())
+        for message_fields, handler in self:
+            if incoming_message_fields & message_fields == message_fields and await call_handler(
                     handler, bot, message) is bot.stop_call:
                 return bot.stop_call
 
@@ -212,40 +215,27 @@ class TelegramRouter:
         return self.register_handler(CommandHandler(callback, *cmds))
 
     def register_force_reply_handler(self, callback: Callable):
-        return self.register_handler(ForceReplyHandler(callback=callback))
+        return self.register_handler(ForceReplyHandler(callback))
 
-    def register_message_handler(self,
-                                 callback: Callable,
-                                 fields: Union[str, MessageField] = None):
-        return self.register_handler(
-            MessageHandler(callback=callback, fields=fields))
+    def register_message_handler(self, callback: Callable, *fields):
+        return self.register_handler(MessageHandler(callback, *fields))
 
-    def register_edited_message_handler(self,
-                                        callback: Callable,
-                                        fields: Union[str,
-                                                      MessageField] = None):
-        return self.register_handler(
-            EditedMessageHandler(callback=callback, fields=fields))
+    def register_edited_message_handler(self, callback: Callable, *fields):
+        return self.register_handler(EditedMessageHandler(callback, *fields))
 
-    def register_channel_post_handler(self,
-                                      callback: Callable,
-                                      fields: Union[str, MessageField] = None):
-        return self.register_handler(
-            ChannelPostHandler(callback=callback, fields=fields))
+    def register_channel_post_handler(self, callback: Callable, *fields):
+        return self.register_handler(ChannelPostHandler(callback, *fields))
 
-    def register_edited_channel_post_handler(self,
-                                             callback: Callable,
-                                             fields: Union[
-                                                 str, MessageField] = None):
+    def register_edited_channel_post_handler(self, callback: Callable,
+                                             *fields):
         return self.register_handler(
-            EditedChannelPostHandler(callback=callback, fields=fields))
+            EditedChannelPostHandler(callback, *fields))
 
     def register_inline_query_handler(self, callback: Callable):
-        return self.register_handler(InlineQueryHandler(callback=callback))
+        return self.register_handler(InlineQueryHandler(callback))
 
     def register_chosen_inline_result_handler(self, callback: Callable):
-        return self.register_handler(
-            ChosenInlineResultHandler(callback=callback))
+        return self.register_handler(ChosenInlineResultHandler(callback))
 
     def register_callback_query_handler(self,
                                         callback: Callable,
@@ -257,26 +247,25 @@ class TelegramRouter:
                                  game_short_name=game_short_name))
 
     def register_shipping_query_handler(self, callback: Callable):
-        return self.register_handler(ShippingQueryHandler(callback=callback))
+        return self.register_handler(ShippingQueryHandler(callback))
 
     def register_pre_checkout_query_handler(self, callback: Callable):
-        return self.register_handler(
-            PreCheckoutQueryHandler(callback=callback))
+        return self.register_handler(PreCheckoutQueryHandler(callback))
 
     def register_poll_handler(self, callback: Callable):
-        return self.register_handler(PollHandler(callback=callback))
+        return self.register_handler(PollHandler(callback))
 
     def register_poll_answer_handler(self, callback: Callable):
-        return self.register_handler(PollAnswerHandler(callback=callback))
+        return self.register_handler(PollAnswerHandler(callback))
 
     def register_my_chat_member_handler(self, callback: Callable):
-        return self.register_handler(MyChatMemberHandler(callback=callback))
+        return self.register_handler(MyChatMemberHandler(callback))
 
     def register_chat_member_handler(self, callback: Callable):
-        return self.register_handler(ChatMemberHandler(callback=callback))
+        return self.register_handler(ChatMemberHandler(callback))
 
     def register_chat_join_request_handler(self, callback: Callable):
-        return self.register_handler(ChatJoinRequestHandler(callback=callback))
+        return self.register_handler(ChatJoinRequestHandler(callback))
 
     ###################################################################################
     #
@@ -307,31 +296,30 @@ class TelegramRouter:
 
         return decorator
 
-    def message_handler(self, fields: Union[str, MessageField] = None):
+    def message_handler(self, *fields):
         def decorator(callback):
-            self.register_message_handler(callback, fields)
+            self.register_message_handler(callback, *fields)
             return callback
 
         return decorator
 
-    def edited_message_handler(self, fields: Union[str, MessageField] = None):
+    def edited_message_handler(self, *fields):
         def decorator(callback):
-            self.register_edited_message_handler(callback, fields)
+            self.register_edited_message_handler(callback, *fields)
             return callback
 
         return decorator
 
-    def channel_post_handler(self, fields: Union[str, MessageField] = None):
+    def channel_post_handler(self, *fields):
         def decorator(callback):
-            self.register_channel_post_handler(callback, fields)
+            self.register_channel_post_handler(callback, *fields)
             return callback
 
         return decorator
 
-    def edited_channel_post_handler(self,
-                                    fields: Union[str, MessageField] = None):
+    def edited_channel_post_handler(self, *fields):
         def decorator(callback):
-            self.register_edited_channel_post_handler(callback, fields)
+            self.register_edited_channel_post_handler(callback, *fields)
             return callback
 
         return decorator

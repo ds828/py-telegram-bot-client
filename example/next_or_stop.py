@@ -16,7 +16,7 @@ def on_cmd(bot, message):
     return bot.next_call  # next_call will call on_text which is the next matched handler
 
 
-@router.message_handler(fields=MessageField.TEXT)
+@router.message_handler(MessageField.TEXT)
 def on_text(bot, message):
     bot.send_message(chat_id=message.chat.id,
                      text="on_text: {0}".format(message.text))

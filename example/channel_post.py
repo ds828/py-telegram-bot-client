@@ -11,7 +11,7 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-@router.channel_post_handler(fields=MessageField.TEXT)
+@router.channel_post_handler(MessageField.TEXT)
 def on_channel_post(bot, message):
     bot.reply_message(
         message,
@@ -22,7 +22,7 @@ def on_channel_post(bot, message):
     return bot.stop_call
 
 
-@router.edited_channel_post_handler(fields=MessageField.TEXT)
+@router.edited_channel_post_handler(MessageField.TEXT)
 def on_edited_channel_post(bot, message):
     bot.reply_message(
         message,

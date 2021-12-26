@@ -12,7 +12,7 @@ router = bot_client.router()
 
 
 # for this testing, a user shares a current location to make the bot share live loctions as well
-@router.message_handler(fields=MessageField.LOCATION)
+@router.message_handler(MessageField.LOCATION)
 def on_share_user_location(bot, message):
     if "live_period" in message.location:
         # we do not need live location messages
@@ -33,7 +33,7 @@ def on_share_user_location(bot, message):
 
 # next, your telegram app will show a sharing locations between you and the bot.
 # if you share live locations, using random locations to simulate the bot's movement
-@router.edited_message_handler(fields=MessageField.LOCATION)
+@router.edited_message_handler(MessageField.LOCATION)
 def on_live_location(bot, edited_message):
     session = bot.get_session(edited_message.chat.id)
     message_id = session["message_id"]

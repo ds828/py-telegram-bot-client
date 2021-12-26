@@ -11,7 +11,7 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-@router.message_handler(fields=MessageField.PHOTO)
+@router.message_handler(MessageField.PHOTO)
 def on_photo_message(bot, message):
     # get the largest photo
     file_id = message.photo[-1].file_id

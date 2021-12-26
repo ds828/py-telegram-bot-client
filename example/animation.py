@@ -15,7 +15,9 @@ logger.setLevel(logging.DEBUG)
 router = bot_client.router()
 
 
-@router.message_handler(fields=MessageField.ANIMATION & MessageField.DOCUMENT)
+# Message is an animation, information about the animation.
+# For backward compatibility, when this field is set, the document field will also be set
+@router.message_handler(MessageField.ANIMATION, MessageField.DOCUMENT)
 def on_animation(bot, message):
     logger.debug(bot.get_file(file_id=message.animation.file_id))
     bot.reply_message(

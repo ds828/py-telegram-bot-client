@@ -11,7 +11,7 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-@router.message_handler(fields=MessageField.TEXT)
+@router.message_handler(MessageField.TEXT)
 def on_force_reply(bot, message):
     reply_to_message = bot.send_message(chat_id=message.chat.id,
                                         text="reply some text",

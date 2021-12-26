@@ -1,7 +1,7 @@
 import asyncio
 from typing import Callable, Union
 
-from telegrambotclient.base import MessageField, UpdateField
+from telegrambotclient.base import UpdateField
 
 
 class UpdateHandler:
@@ -54,48 +54,29 @@ class _MessageHandler(UpdateHandler):
     def __init__(self,
                  callback: Callable,
                  update_field: Union[UpdateField, str] = UpdateField.MESSAGE,
-                 fields: Union[MessageField, str] = None):
+                 *fields):
         super().__init__(callback=callback, update_field=update_field)
-        if isinstance(fields, MessageField):
-            self.fields = tuple(fields.fields)
-        else:
-            self.fields = fields
+        self.fields = fields
 
 
 class MessageHandler(_MessageHandler):
-    def __init__(self,
-                 callback: Callable,
-                 fields: Union[MessageField, str] = None):
-        super().__init__(callback=callback,
-                         update_field=UpdateField.MESSAGE,
-                         fields=fields)
+    def __init__(self, callback: Callable, *fields):
+        super().__init__(callback, UpdateField.MESSAGE, *fields)
 
 
 class EditedMessageHandler(_MessageHandler):
-    def __init__(self,
-                 callback: Callable,
-                 fields: Union[MessageField, str] = None):
-        super().__init__(callback=callback,
-                         update_field=UpdateField.EDITED_MESSAGE,
-                         fields=fields)
+    def __init__(self, callback: Callable, *fields):
+        super().__init__(callback, UpdateField.EDITED_MESSAGE, *fields)
 
 
 class ChannelPostHandler(_MessageHandler):
-    def __init__(self,
-                 callback: Callable,
-                 fields: Union[MessageField, str] = None):
-        super().__init__(callback=callback,
-                         update_field=UpdateField.CHANNEL_POST,
-                         fields=fields)
+    def __init__(self, callback: Callable, *fields):
+        super().__init__(callback, UpdateField.CHANNEL_POST, *fields)
 
 
 class EditedChannelPostHandler(_MessageHandler):
-    def __init__(self,
-                 callback: Callable,
-                 fields: Union[MessageField, str] = None):
-        super().__init__(callback=callback,
-                         update_field=UpdateField.EDITED_CHANNEL_POST,
-                         fields=fields)
+    def __init__(self, callback: Callable, *fields):
+        super().__init__(callback, UpdateField.EDITED_CHANNEL_POST, *fields)
 
 
 class CallbackQueryHandler(UpdateHandler):
@@ -105,54 +86,51 @@ class CallbackQueryHandler(UpdateHandler):
                  callback: Callable,
                  callback_data: str = None,
                  game_short_name: str = None):
-        super().__init__(callback=callback,
-                         update_field=UpdateField.CALLBACK_QUERY)
+        super().__init__(callback, UpdateField.CALLBACK_QUERY)
         self.data = callback_data or game_short_name
         assert bool(self.data), True
 
 
 class InlineQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback=callback,
-                         update_field=UpdateField.INLINE_QUERY)
+        super().__init__(callback, UpdateField.INLINE_QUERY)
 
 
 class ChosenInlineResultHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback,
-                         update_field=UpdateField.CHOSEN_INLINE_RESULT)
+        super().__init__(callback, UpdateField.CHOSEN_INLINE_RESULT)
 
 
 class ShippingQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_field=UpdateField.SHIPPING_QUERY)
+        super().__init__(callback, UpdateField.SHIPPING_QUERY)
 
 
 class PreCheckoutQueryHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_field=UpdateField.PRE_CHECKOUT_QUERY)
+        super().__init__(callback, UpdateField.PRE_CHECKOUT_QUERY)
 
 
 class PollHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_field=UpdateField.POLL)
+        super().__init__(callback, UpdateField.POLL)
 
 
 class PollAnswerHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_field=UpdateField.POLL_ANSWER)
+        super().__init__(callback, UpdateField.POLL_ANSWER)
 
 
 class MyChatMemberHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_field=UpdateField.MY_CHAT_MEMBER)
+        super().__init__(callback, UpdateField.MY_CHAT_MEMBER)
 
 
 class ChatMemberHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_field=UpdateField.CHAT_MEMBER)
+        super().__init__(callback, UpdateField.CHAT_MEMBER)
 
 
 class ChatJoinRequestHandler(UpdateHandler):
     def __init__(self, callback: Callable):
-        super().__init__(callback, update_field=UpdateField.CHAT_JOIN_REQUEST)
+        super().__init__(callback, UpdateField.CHAT_JOIN_REQUEST)
