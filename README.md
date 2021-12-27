@@ -5,6 +5,9 @@ The reason for writing this bot utility is that I wish to run multi telegram bot
 I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 It is running well for https://t.me/daolebot from https://daole.me
 
+## Update 5.5.6
+add remove and where methods for InlineKeyboard. more detail is in example.callback_query
+
 ## Update 5.5.5
 modify router.message_handler(fields) to router.message_handler(*fields)
 

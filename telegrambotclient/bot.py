@@ -140,15 +140,14 @@ class TelegramBot:
             logger.warning(
                 "You are using 0 as timeout in long polling which should be used for testing only."
             )
-        last_update_id = offset
         while True:
             for update in self.bot_api.get_updates(
                     self.token,
-                    offset=last_update_id,
+                    offset=offset,
                     limit=limit,
                     timeout=timeout,
                     allowed_updates=allowed_updates):
-                last_update_id = update.update_id + 1
+                offset = update.update_id + 1
                 asyncio.run(on_update_callback(self, update))
 
     def __getattr__(self, api_name):

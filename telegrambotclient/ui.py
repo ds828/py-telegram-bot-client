@@ -28,28 +28,30 @@ class InlineKeyboard(ReplyKeyboard):
 
     def replace(self, callback_data: str, new_button) -> bool:
         replaced = False
-        for line in self.data:
-            for idx, button in enumerate(line):
+        for row in self.data:
+            for idx, button in enumerate(row):
                 if "callback_data" in button and button[
                         "callback_data"] == callback_data:
                     if button["text"] != new_button.text or button[
                             "callback_data"] != new_button.callback_data:
-                        line[idx] = new_button
+                        row[idx] = new_button
                         replaced = True
         return replaced
 
-    def get_button(self, callback_data: str):
-        for line in self.data:
-            for button in line:
+    def remove(self, callback_data: str):
+        removed = False
+        for row in self.data:
+            for button in row:
                 if button.get("callback_data", "") == callback_data:
-                    return button
-        return None
+                    row.remove(button)
+                    removed = True
+        if [] in self.data:
+            self.data.remove([])
+        return removed
 
-    def get_buttons(self, callback_data_name: str):
-        buttons = []
-        for line in self.data:
-            for button in line:
-                if button.get("callback_data",
-                              "").startswith(callback_data_name):
-                    buttons.append(button)
-        return buttons
+    def where(self, callback_data: str):
+        for row_idx, row in enumerate(self.data):
+            for col_idx, button in enumerate(row):
+                if button.get("callback_data", "") == callback_data:
+                    return row_idx, col_idx
+        raise ValueError("{} is not found".format(callback_data))
