@@ -4,7 +4,6 @@ except ImportError:
     import json
 
 from io import BytesIO
-
 import urllib3
 
 from telegrambotclient.base import (BotCommandScope, InputFile, InputMedia,
@@ -84,6 +83,11 @@ class TelegramBotAPI:
                 raise TelegramBotAPIException(**json_response)
 
             def request(_self, api_url: str, data={}, files=()):
+
+                if not files:
+                    return _self.__format_response__(
+                        _self.pool.request("GET", api_url, fields=data))
+
                 for file in files:
                     data[file[0]] = file[1]
                 return _self.__format_response__(
