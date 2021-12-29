@@ -5,6 +5,12 @@ The reason for writing this bot utility is that I wish to run multi telegram bot
 I reckon it is lightweight, fast, full implement and only **urllib3** dependent.
 It is running well for https://t.me/daolebot from https://daole.me
 
+## Update 5.5.7
+1. code optimization
+2. fix bugs
+3. add group method where methods for InlineKeyboard. more detail is in example.callback_query
+4. change bot.get_file_bytes(file_path, chunk_size) into bot.get_file_bytes(file_obj)
+
 ## Update 5.5.6
 add remove and where methods for InlineKeyboard. more detail is in example.callback_query
 
@@ -241,7 +247,6 @@ source code:
 	async def process_telegram_update(bot_token: str, request: Request):
 	    bot = bot_client.bots.get(bot_token, None)
 	    if bot:
-		router = bot_client.router()
 		await router.dispatch(bot, TelegramObject(**await request.json()))
 	    return "OK"
 
@@ -290,8 +295,9 @@ source code:
 	async def serve_update(bot_token: str, request: Request):
 	    bot = bot_client.bots.get(bot_token, None)
 	    if bot:
-		router = bot_client.router(bot_token)
-		await router.dispatch(bot, TelegramObject(**await request.json()))
+		router = bot_client.routers.get(bot_token, None)
+		if router:
+	  	    await router.dispatch(bot, TelegramObject(**await request.json()))
 	    return "OK"
 
 	bot1 = bot_client.create_bot(token=bot_token_1)

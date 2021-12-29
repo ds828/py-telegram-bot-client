@@ -4,7 +4,7 @@ run: python -m example.poll.py
 from telegrambotclient import bot_client
 from telegrambotclient.base import Poll, PollType
 
-BOT_TOKEN = "<BOT_TOKEN>"
+BOT_TOKEN = "1036521102:AAF2BqcC9QD_yKXlKy4CEBzZKPHXsxnL4Ss"
 
 router = bot_client.router()
 

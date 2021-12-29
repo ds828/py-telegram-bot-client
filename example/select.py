@@ -39,8 +39,9 @@ def on_show_keyboard(bot, message):
 
 @router.callback_query_handler(callback_data="select")
 def on_select(bot, callback_query, value, selected):
+    print(value, not selected)
     keyboard = InlineKeyboard(
-        *callback_query.message.reply_markup.inline_keyboard)
+        callback_query.message.reply_markup.inline_keyboard)
     new_button = InlineKeyboardButton(
         text="{0}{1}".format(emoji[1] if selected else emoji[0],
                              select_options[value][0]),
@@ -57,8 +58,8 @@ def on_select(bot, callback_query, value, selected):
 @router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
     keyboard = InlineKeyboard(
-        *callback_query.message.reply_markup.inline_keyboard)
-    buttons = keyboard.get_buttons("select")
+        callback_query.message.reply_markup.inline_keyboard)
+    buttons = keyboard.group("select")
     # filter selected options
     message_text = "\n".join([
         "text={0}, callback_data_name={1}, value={2}".format(

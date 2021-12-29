@@ -58,7 +58,7 @@ def on_show_menu(bot, message, *args):
 @router.callback_query_handler(callback_data="select-item")
 def on_select_item(bot, callback_query, item_id, selected):
     keyboard = InlineKeyboard(
-        *callback_query.message.reply_markup.inline_keyboard)
+        callback_query.message.reply_markup.inline_keyboard)
     new_button = InlineKeyboardButton(
         text="{0}{1}".format(emoji[1] if selected else emoji[0],
                              menu[item_id][0]),
@@ -76,12 +76,16 @@ def on_select_item(bot, callback_query, item_id, selected):
 @router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
     keyboard = InlineKeyboard(
-        *callback_query.message.reply_markup.inline_keyboard)
-    selected_items = tuple(
-        (button.text[len(emoji[0]):],
-         menu[parse_callback_data(button.callback_data)[1][0]][1])
-        for button in keyboard.get_buttons("select-item")
-        if button.text.startswith(emoji[0]) and button.callback_data)
+        callback_query.message.reply_markup.inline_keyboard)
+    selected_items = []
+    btn_group = keyboard.group("select-item")
+    for button in btn_group:
+        # selected button
+        if button.text.startswith(emoji[0]) and button.callback_data:
+            # title, price
+            selected_items.append(
+                (button.text[len(emoji[0]):],
+                 menu[parse_callback_data(button.callback_data)[1][0]][1]))
 
     if selected_items:
         bot.edit_message_reply_markup(
@@ -93,10 +97,10 @@ def on_submit(bot, callback_query):
         bot.send_invoice(
             chat_id=callback_query.from_user.id,
             title="order detail",
-            description="\n".join([text for text, price in selected_items]),
+            description="\n".join([text for text, _ in selected_items]),
             payload="your-order-id",
             # https://core.telegram.org/bots/payments#getting-a-token
-            provider_token="<PAYMENT-TOKEN-BOTFATHER-GIVE-YOUR>",
+            provider_token="<PAYMENT-TOKEN>",
             start_parameter="random-str-mapping-to-order-id",
             currency="AUD",
             prices=tuple(

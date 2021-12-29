@@ -206,19 +206,9 @@ class TelegramObject(dict):
         return self
 
 
-Message = (CallbackQuery) = (ChosenInlineResult) = (InlineQuery) = (
-    MessageEntity
-) = (File) = (User) = (WebhookInfo) = (PhotoSize) = (StickerSet) = (
-    Location
-) = (ShippingAddress) = (OrderInfo) = (EncryptedPassportElement) = (
-    EncryptedCredentials
-) = (
-    PassportFile
-) = (
-    CallbackGame
-) = (
-    GameHighScore
-) = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = BotCommandScope = ChatMemberUpdated = ChatJoinRequst = TelegramObject
+Message = CallbackQuery = ChosenInlineResult = InlineQuery = File = User = WebhookInfo = PhotoSize = StickerSet = Location = ShippingAddress = OrderInfo = EncryptedPassportElement = EncryptedCredentials = PassportFile = CallbackGame = GameHighScore = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = ChatMemberUpdated = ChatJoinRequst = TelegramObject
+
+MessageEntity = TelegramObject
 
 
 class MentionEntity(MessageEntity):
@@ -296,6 +286,15 @@ class TextMentionEntity(MessageEntity):
         super().__init__(type="text_mention", user=user)
 
 
+class JSONSerializedTelegramObject(TelegramObject):
+    @property
+    def data_(self):
+        return json.dumps(self)
+
+
+BotCommandScope = JSONSerializedTelegramObject
+
+
 class BotCommandScopeDefault(BotCommandScope):
     def __init__(self):
         super().__init__(type="default")
@@ -331,7 +330,7 @@ class BotCommandScopeChatMember(BotCommandScope):
         super().__init__(type="chat_member", chat_id=chat_id, user_id=user_id)
 
 
-class InputMedia(TelegramObject):
+class InputMedia(JSONSerializedTelegramObject):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.files = []
@@ -397,19 +396,16 @@ class KeyboardButton(TelegramObject):
         super().__init__(text=text, **kwargs)
 
 
-class ReplyMarkup(TelegramObject):
-    @property
-    def data_(self):
-        return json.dumps(self)
+ReplyMarkup = JSONSerializedTelegramObject
 
 
 class InlineKeyboardMarkup(ReplyMarkup):
-    def __init__(self, inline_keyboard: List[InlineKeyboardButton]):
+    def __init__(self, inline_keyboard):
         super().__init__(inline_keyboard=inline_keyboard)
 
 
 class ReplyKeyboardMarkup(ReplyMarkup):
-    def __init__(self, keyboard: List[KeyboardButton], **kwargs):
+    def __init__(self, keyboard, **kwargs):
         super().__init__(keyboard=keyboard, **kwargs)
 
 
@@ -421,6 +417,216 @@ class ReplyKeyboardRemove(ReplyMarkup):
 class ForceReply(ReplyMarkup):
     def __init__(self, force_reply: bool = True, **kwargs):
         super().__init__(force_reply=force_reply, **kwargs)
+
+
+class UserProfilePhotos(TelegramObject):
+    def __init__(self, total_count: int, photos: List[List[PhotoSize]]):
+        super().__init__(total_count=total_count, photos=photos)
+
+
+class LoginUrl(TelegramObject):
+    def __init__(self, url: str, **kwargs):
+        super().__init__(url=url, **kwargs)
+
+
+class BotCommand(TelegramObject):
+    def __init__(self, command: str, description: str):
+        super().__init__(command=command, description=description)
+
+
+class Animation(TelegramObject):
+    def __init__(self, file_id: str, file_unique_id: str, width: int,
+                 length: int, duration: int, **kwargs):
+        super().__init__(file_id=file_id,
+                         file_unique_id=file_unique_id,
+                         width=width,
+                         length=length,
+                         duration=duration,
+                         **kwargs)
+
+
+class MaskPosition(TelegramObject):
+    def __init__(self, point: str, x_shift: float, y_shift: float,
+                 scale: float, **kwargs):
+        super().__init__(point=point,
+                         x_shift=x_shift,
+                         y_shift=y_shift,
+                         scale=scale,
+                         **kwargs)
+
+    @property
+    def data_(self):
+        return json.dumps(self)
+
+
+class Sticker(TelegramObject):
+    def __init__(self, file_id: str, file_unique_id: str, width: int,
+                 length: int, **kwargs):
+        super().__init__(file_id=file_id,
+                         file_unique_id=file_unique_id,
+                         width=width,
+                         length=length,
+                         **kwargs)
+
+
+class LabeledPrice(TelegramObject):
+    def __init__(self, label: str, amount: int, **kwargs):
+        super().__init__(label=label, amount=amount, **kwargs)
+
+
+class ShippingOption(TelegramObject):
+    def __init__(self, id: str, title: str, prices: Tuple[LabeledPrice],
+                 **kwargs):
+        super().__init__(id=id, title=title, prices=prices, **kwargs)
+
+
+class ChatPermissions(JSONSerializedTelegramObject):
+    def __init__(
+        self,
+        can_send_messages: bool = True,
+        can_send_media_messages: bool = True,
+        can_send_polls: bool = True,
+        can_send_other_messages: bool = True,
+        can_add_web_page_previews: bool = True,
+        can_change_info: bool = True,
+        can_invite_users: bool = True,
+        can_pin_messages: bool = True,
+    ):
+        super().__init__(
+            can_send_messages=can_send_messages,
+            can_send_media_messages=can_send_media_messages,
+            can_send_polls=can_send_polls,
+            can_send_other_messages=can_send_other_messages,
+            can_add_web_page_previews=can_add_web_page_previews,
+            can_change_info=can_change_info,
+            can_invite_users=can_invite_users,
+            can_pin_messages=can_pin_messages,
+        )
+
+
+class PassportElementType(str, Enum):
+    PERSONAL_DETAILS = "personal_details"
+    PASSPORT = "passport"
+    INTERNAL_PASSPORT = "internal_passport"
+    DRIVER_LICENSE = "driver_license"
+    IDENTITY_CARD = "identity_card"
+    ADDRESS = "address"
+    UTILITY_BILL = "utility_bill"
+    BANK_STATEMENT = "bank_statement"
+    RENTAL_AGREEMENT = "rental_agreement"
+    PASSPORT_REGISTRATION = "passport_registration"
+    TEMPORARY_REGISTRATION = "temporary_registration"
+    PHONE_NUMBER = "phone_number"
+    EMAIL = "email"
+
+
+class PassportElementError(TelegramObject):
+    __slots__ = (
+        "source",
+        "type",
+        "message",
+        "field_name",
+        "data_hash",
+        "file_hash",
+        "file_hashes",
+        "element_hash",
+    )
+
+    def __init__(self, source: str, type: Union[str, PassportElementType],
+                 **kwargs):
+        super().__init__(
+            source=source,
+            type=type.value if isinstance(type, PassportElementType) else type,
+            **kwargs)
+
+
+class PassportElementErrorDataField(PassportElementError):
+    def __init__(
+        self,
+        type: Union[str, PassportElementType],
+        field_name: str,
+        data_hash: str,
+        message: str,
+    ):
+        super().__init__("data",
+                         type,
+                         field_name=field_name,
+                         data_hash=data_hash,
+                         message=message)
+
+
+class PassportElementErrorFrontSide(PassportElementError):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
+                 message: str):
+        super().__init__("front_side",
+                         type,
+                         file_hash=file_hash,
+                         message=message)
+
+
+class PassportElementErrorReverseSide(PassportElementError):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
+                 message: str):
+        super().__init__("reverse_side",
+                         type,
+                         file_hash=file_hash,
+                         message=message)
+
+
+class PassportElementErrorSelfie(PassportElementError):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
+                 message: str):
+        super().__init__("selfie", type, file_hash=file_hash, message=message)
+
+
+class PassportElementErrorFile(PassportElementError):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
+                 message: str):
+        super().__init__("file", type, file_hash=file_hash, message=message)
+
+
+class PassportElementErrorFiles(PassportElementError):
+    def __init__(
+        self,
+        type: Union[str, PassportElementType],
+        file_hashes: Union[List[str], Tuple[str]],
+        message: str,
+    ):
+        super().__init__("files",
+                         type,
+                         file_hashes=file_hashes,
+                         message=message)
+
+
+class PassportElementErrorTranslationFile(PassportElementError):
+    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
+                 message: str):
+        super().__init__("translation_file",
+                         type,
+                         file_hash=file_hash,
+                         message=message)
+
+
+class PassportElementErrorTranslationFiles(PassportElementError):
+    def __init__(
+        self,
+        type: Union[str, PassportElementType],
+        file_hashes: Union[List[str], Tuple[str]],
+        message: str,
+    ):
+        super().__init__("translation_files",
+                         type,
+                         file_hashes=file_hashes,
+                         message=message)
+
+
+class PassportElementErrorUnspecified(PassportElementError):
+    def __init__(self, type: Union[str, PassportElementType],
+                 element_hash: str, message: str):
+        super().__init__("unspecified",
+                         type,
+                         element_hash=element_hash,
+                         message=message)
 
 
 InputMessageContent = TelegramObject
@@ -451,11 +657,6 @@ class InputContactMessageContent(InputMessageContent):
         super().__init__(phone_number=phone_number,
                          first_name=first_name,
                          **kwargs)
-
-
-class LabeledPrice(TelegramObject):
-    def __init__(self, label: str, amount: int, **kwargs):
-        super().__init__(label=label, amount=amount, **kwargs)
 
 
 class InputInvoiceMessageContent(InputMessageContent):
@@ -648,212 +849,3 @@ class InlineQueryResultCachedAudio(TelegramObject):
                          id=id,
                          audio_file_id=audio_file_id,
                          **kwargs)
-
-
-class UserProfilePhotos(TelegramObject):
-    def __init__(self, total_count: int, photos: List[List[PhotoSize]]):
-        super().__init__(total_count=total_count, photos=photos)
-
-
-class LoginUrl(TelegramObject):
-    def __init__(self, url: str, **kwargs):
-        super().__init__(url=url, **kwargs)
-
-
-class BotCommand(TelegramObject):
-    def __init__(self, command: str, description: str):
-        super().__init__(command=command, description=description)
-
-
-class Animation(TelegramObject):
-    def __init__(self, file_id: str, file_unique_id: str, width: int,
-                 length: int, duration: int, **kwargs):
-        super().__init__(file_id=file_id,
-                         file_unique_id=file_unique_id,
-                         width=width,
-                         length=length,
-                         duration=duration,
-                         **kwargs)
-
-
-class MaskPosition(TelegramObject):
-    def __init__(self, point: str, x_shift: float, y_shift: float,
-                 scale: float, **kwargs):
-        super().__init__(point=point,
-                         x_shift=x_shift,
-                         y_shift=y_shift,
-                         scale=scale,
-                         **kwargs)
-
-    @property
-    def data_(self):
-        return json.dumps(self)
-
-
-class Sticker(TelegramObject):
-    def __init__(self, file_id: str, file_unique_id: str, width: int,
-                 length: int, **kwargs):
-        super().__init__(file_id=file_id,
-                         file_unique_id=file_unique_id,
-                         width=width,
-                         length=length,
-                         **kwargs)
-
-
-class ShippingOption(TelegramObject):
-    def __init__(self, id: str, title: str, prices: Tuple[LabeledPrice],
-                 **kwargs):
-        super().__init__(id=id, title=title, prices=prices, **kwargs)
-
-
-class ChatPermissions(TelegramObject):
-    def __init__(
-        self,
-        can_send_messages: bool = True,
-        can_send_media_messages: bool = True,
-        can_send_polls: bool = True,
-        can_send_other_messages: bool = True,
-        can_add_web_page_previews: bool = True,
-        can_change_info: bool = True,
-        can_invite_users: bool = True,
-        can_pin_messages: bool = True,
-    ):
-        super().__init__(
-            can_send_messages=can_send_messages,
-            can_send_media_messages=can_send_media_messages,
-            can_send_polls=can_send_polls,
-            can_send_other_messages=can_send_other_messages,
-            can_add_web_page_previews=can_add_web_page_previews,
-            can_change_info=can_change_info,
-            can_invite_users=can_invite_users,
-            can_pin_messages=can_pin_messages,
-        )
-
-    @property
-    def data_(self):
-        return json.dumps(self)
-
-
-class PassportElementType(str, Enum):
-    PERSONAL_DETAILS = "personal_details"
-    PASSPORT = "passport"
-    INTERNAL_PASSPORT = "internal_passport"
-    DRIVER_LICENSE = "driver_license"
-    IDENTITY_CARD = "identity_card"
-    ADDRESS = "address"
-    UTILITY_BILL = "utility_bill"
-    BANK_STATEMENT = "bank_statement"
-    RENTAL_AGREEMENT = "rental_agreement"
-    PASSPORT_REGISTRATION = "passport_registration"
-    TEMPORARY_REGISTRATION = "temporary_registration"
-    PHONE_NUMBER = "phone_number"
-    EMAIL = "email"
-
-
-class PassportElementError(TelegramObject):
-    __slots__ = (
-        "source",
-        "type",
-        "message",
-        "field_name",
-        "data_hash",
-        "file_hash",
-        "file_hashes",
-        "element_hash",
-    )
-
-    def __init__(self, source: str, type: Union[str, PassportElementType],
-                 **kwargs):
-        super().__init__(
-            source=source,
-            type=type.value if isinstance(type, PassportElementType) else type,
-            **kwargs)
-
-
-class PassportElementErrorDataField(PassportElementError):
-    def __init__(
-        self,
-        type: Union[str, PassportElementType],
-        field_name: str,
-        data_hash: str,
-        message: str,
-    ):
-        super().__init__("data",
-                         type,
-                         field_name=field_name,
-                         data_hash=data_hash,
-                         message=message)
-
-
-class PassportElementErrorFrontSide(PassportElementError):
-    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
-                 message: str):
-        super().__init__("front_side",
-                         type,
-                         file_hash=file_hash,
-                         message=message)
-
-
-class PassportElementErrorReverseSide(PassportElementError):
-    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
-                 message: str):
-        super().__init__("reverse_side",
-                         type,
-                         file_hash=file_hash,
-                         message=message)
-
-
-class PassportElementErrorSelfie(PassportElementError):
-    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
-                 message: str):
-        super().__init__("selfie", type, file_hash=file_hash, message=message)
-
-
-class PassportElementErrorFile(PassportElementError):
-    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
-                 message: str):
-        super().__init__("file", type, file_hash=file_hash, message=message)
-
-
-class PassportElementErrorFiles(PassportElementError):
-    def __init__(
-        self,
-        type: Union[str, PassportElementType],
-        file_hashes: Union[List[str], Tuple[str]],
-        message: str,
-    ):
-        super().__init__("files",
-                         type,
-                         file_hashes=file_hashes,
-                         message=message)
-
-
-class PassportElementErrorTranslationFile(PassportElementError):
-    def __init__(self, type: Union[str, PassportElementType], file_hash: str,
-                 message: str):
-        super().__init__("translation_file",
-                         type,
-                         file_hash=file_hash,
-                         message=message)
-
-
-class PassportElementErrorTranslationFiles(PassportElementError):
-    def __init__(
-        self,
-        type: Union[str, PassportElementType],
-        file_hashes: Union[List[str], Tuple[str]],
-        message: str,
-    ):
-        super().__init__("translation_files",
-                         type,
-                         file_hashes=file_hashes,
-                         message=message)
-
-
-class PassportElementErrorUnspecified(PassportElementError):
-    def __init__(self, type: Union[str, PassportElementType],
-                 element_hash: str, message: str):
-        super().__init__("unspecified",
-                         type,
-                         element_hash=element_hash,
-                         message=message)

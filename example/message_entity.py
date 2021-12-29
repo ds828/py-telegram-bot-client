@@ -4,19 +4,19 @@ run: python -m example.message_entity
 from telegrambotclient import bot_client
 from telegrambotclient.base import (
     BoldEntity, BotCommandEntity, CashTagEntity, CodeEntity, EmailEntity,
-    HashTagEntity, ItalicEntity, MentionEntity, PhoneNumberEntity, PreEntity,
-    StrikeThroughEntity, TextLinkEntity, TextMentionEntity, UnderLineEntity,
-    URLEntity)
-from telegrambotclient.utils import compose_message_entities, pretty_print
+    HashTagEntity, ItalicEntity, MentionEntity, MessageField,
+    PhoneNumberEntity, PreEntity, StrikeThroughEntity, TextLinkEntity,
+    TextMentionEntity, UnderLineEntity, URLEntity)
+from telegrambotclient.utils import compose_message_entities
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
 
 
-@router.message_handler()
+@router.message_handler(MessageField.TEXT)
 def on_message(bot, message):
-    text_entities1 = (
+    text_entities = (
         "plain text",
         ("strong text", BoldEntity()),
         ("do-not-reply@telegram.org", EmailEntity()),
@@ -37,10 +37,9 @@ def on_message(bot, message):
         (("this is a", ("inner bold text", BoldEntity()),
           "and something behind"), ItalicEntity()),
     )
-    text, entities = compose_message_entities(text_entities1, sep="\n")
-    print(text)
-    pretty_print(entities)
+    text, entities = compose_message_entities(text_entities, sep="\n")
     bot.send_message(chat_id=message.chat.id, text=text, entities=entities)
+    return bot.stop_call
 
 
 async def on_update(bot, update):

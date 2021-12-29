@@ -14,7 +14,8 @@ class TelegramBotClient:
         self.name = name or "default"
 
     def router(self, name: str = None) -> TelegramRouter:
-        router = self.routers.get(name or "default", None)
+        name = name or "default"
+        router = self.routers.get(name, None)
         if router is None:
             self.routers[name] = TelegramRouter(name)
             return self.routers[name]
@@ -28,7 +29,7 @@ class TelegramBotClient:
                    session_expires: int = 1800) -> TelegramBot:
 
         bot_api = self.api_callers.get(
-            bot_api.host if bot_api else TelegramBotAPI.DEFAULT_API_HOST, None)
+            bot_api.host if bot_api else "https://api.telegram.org", None)
         if bot_api is None:
             bot_api = TelegramBotAPI()
             self.api_callers[bot_api.host] = bot_api
@@ -38,7 +39,7 @@ class TelegramBotClient:
         return bot
 
 
-# default bot proxy
+# a default client
 bot_client = TelegramBotClient()
 
-__all__ = ("bot_client", )
+__all__ = ("bot_client", "TelegramBotClient", "TelegramBotAPI", "TelegramBot")

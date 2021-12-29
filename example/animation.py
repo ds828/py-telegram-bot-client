@@ -2,15 +2,11 @@
 run: python -m example.animation
 A animation file is GIF or H.264/MPEG-4 AVC video without sound
 """
-import logging
-
 from telegrambotclient import bot_client
 from telegrambotclient.base import MessageField
+from telegrambotclient.utils import pretty_print
 
 BOT_TOKEN = "<BOT_TOKEN>"
-
-logger = logging.getLogger("telegram-bot-client")
-logger.setLevel(logging.DEBUG)
 
 router = bot_client.router()
 
@@ -19,7 +15,7 @@ router = bot_client.router()
 # For backward compatibility, when this field is set, the document field will also be set
 @router.message_handler(MessageField.ANIMATION, MessageField.DOCUMENT)
 def on_animation(bot, message):
-    logger.debug(bot.get_file(file_id=message.animation.file_id))
+    pretty_print(bot.get_file(file_id=message.animation.file_id))
     bot.reply_message(
         message,
         text="a nice animation from {0}".format(message.chat.first_name),

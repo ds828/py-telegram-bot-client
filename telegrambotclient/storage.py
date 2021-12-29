@@ -306,7 +306,7 @@ class TelegramSession(UserDict):
         return super().__contains__(field) or bool(self[field])
 
     def __repr__(self):
-        return pretty_format(self._data)
+        return pretty_format(self.__data__)
 
     def pop(self, field: str, default=None) -> Any:
         value = self[field] or default
@@ -323,5 +323,5 @@ class TelegramSession(UserDict):
         return self._storage.delete_key(self.id)
 
     @property
-    def _data(self):
+    def __data__(self):
         return self._storage.data(self.id, self.expires)

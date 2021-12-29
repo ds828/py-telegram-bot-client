@@ -17,7 +17,7 @@ router = bot_client.router()
 
 
 @router.message_handler(MessageField.GROUP_CHAT_CREATED)
-def on_group_chat_creted(bot, message):
+def on_group_chat_created(bot, message):
     bot.reply_message(message, text="Thanks, I am in this group")
 
 

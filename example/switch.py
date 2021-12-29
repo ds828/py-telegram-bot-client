@@ -30,7 +30,7 @@ def on_show_keyboard(bot, message):
 @router.callback_query_handler(callback_data="switch")
 def on_change(bot, callback_query, value, selected):
     keyboard = InlineKeyboard(
-        *callback_query.message.reply_markup.inline_keyboard)
+        callback_query.message.reply_markup.inline_keyboard)
     new_button = InlineKeyboardButton(
         text="{0}status".format(emoji[1] if selected else emoji[0]),
         callback_data=build_callback_data("switch", value, not selected))
@@ -47,8 +47,9 @@ def on_change(bot, callback_query, value, selected):
 @router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
     keyboard = InlineKeyboard(
-        *callback_query.message.reply_markup.inline_keyboard)
-    for button in keyboard.get_buttons("switch"):
+        callback_query.message.reply_markup.inline_keyboard)
+    buttons = keyboard.group("switch")
+    for button in buttons:
         callback_data_name, (value, selected) = parse_callback_data(
             button.callback_data)
         message_text = "callback_data_name={0} value={1} selected={2}".format(

@@ -34,6 +34,7 @@ router = bot_client.router()
 @i18n()
 def on_i18n_reply(bot, message, _):
     bot.reply_message(message, text=_(message.text))
+    return bot.stop_call
 
 
 async def on_update(bot, update):

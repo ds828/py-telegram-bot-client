@@ -1,7 +1,7 @@
 """
 first, add your bot into a channel
 run in terminal: python -m example.channel_post
-then send some text from the channel
+then send some text in the channel
 """
 from telegrambotclient import bot_client
 from telegrambotclient.base import MessageField, ParseMode

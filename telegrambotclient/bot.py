@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from typing import Callable, Dict
 
 from telegrambotclient.api import TelegramBotAPI
-from telegrambotclient.base import Message
+from telegrambotclient.base import File, Message, TelegramObject
 from telegrambotclient.storage import TelegramSession, TelegramStorage
 
 logger = logging.getLogger("telegram-bot-client")
@@ -23,7 +23,7 @@ class TelegramBot:
     stop_call = False
 
     __slots__ = ("token", "bot_api", "storage", "i18n_source",
-                 "session_expires", "bot_user")
+                 "session_expires", "user")
 
     def __init__(self,
                  token: str,
@@ -42,12 +42,12 @@ class TelegramBot:
         self.storage = storage
         self.i18n_source = i18n_source
         self.session_expires = session_expires
-        self.bot_user = self.get_me()
+        self.user = self.get_me()
 
     def get_session(self, user_id: int, expires: int = 0):
         return TelegramSession(
-            self.SESSION_ID_FORMAT.format(self.bot_user.id, user_id),
-            self.storage, expires or self.session_expires)
+            self.SESSION_ID_FORMAT.format(self.user.id, user_id), self.storage,
+            expires or self.session_expires)
 
     def clear_session(self, user_id: int):
         session = self.get_session(user_id)
@@ -116,10 +116,10 @@ class TelegramBot:
             self.bot_api.host,
             self.bot_api.FILE_URL.format(self.token, file_path))
 
-    def get_file_bytes(self, file_path: str, chunk_size=128):
+    def get_file_bytes(self, file_obj: File):
         return self.bot_api.api_caller.get_bytes(
-            self.bot_api.FILE_URL.format(self.token, file_path),
-            chunk_size=chunk_size,
+            self.bot_api.FILE_URL.format(self.token, file_obj.file_path),
+            chunk_size=file_obj.file_size or 1024,
         )
 
     def get_deep_link(self,
@@ -127,8 +127,8 @@ class TelegramBot:
                       host: str = "https://t.me",
                       startgroup: bool = False):
         return "{0}/{1}?{2}={3}".format(
-            host, self.bot_user.username,
-            "startgroup" if startgroup else "start", payload)
+            host, self.user.username, "startgroup" if startgroup else "start",
+            payload)
 
     def run_polling(self,
                     on_update_callback: Callable,
@@ -141,12 +141,12 @@ class TelegramBot:
                 "You are using 0 as timeout in long polling which should be used for testing only."
             )
         while True:
-            for update in self.bot_api.get_updates(
-                    self.token,
+            for raw_update in self.get_updates(
                     offset=offset,
                     limit=limit,
                     timeout=timeout,
                     allowed_updates=allowed_updates):
+                update = TelegramObject(**raw_update)
                 offset = update.update_id + 1
                 asyncio.run(on_update_callback(self, update))
 

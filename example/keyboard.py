@@ -22,12 +22,12 @@ def on_show_keyboard(bot, message):
     keyboard.add_buttons(btn_text, btn_contact, btn_location, col=2)
     keyboard.append((btn_location, ))  # add a line
     # compose keyboards
-    keyboard += ReplyKeyboard((btn_text, btn_contact),
-                              (btn_location, ))  # 2 lines
+    keyboard += ReplyKeyboard([[btn_text, btn_contact],
+                               [btn_location]])  # 2 lines
     # add buttons as 3 lines
-    keyboard.add_lines((btn_text, ), (btn_contact, ), (btn_location, ))
-    line_1 = keyboard[1]
-    print(line_1)
+    keyboard.add_rows((btn_text, ), (btn_contact, ), (btn_location, ))
+    row_1 = keyboard[1]
+    print(row_1)
     reply_to_message = bot.send_message(
         chat_id=message.chat.id,
         text=message.text,

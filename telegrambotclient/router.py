@@ -138,8 +138,6 @@ class CallbackQueryRoute(UserDict):
 
 class TelegramRouter:
     __slots__ = ("name", "route_map", "_handler_callers")
-    NEXT_CALL = True
-    STOP_CALL = False
     UPDATE_FIELD_VALUES = UpdateField.__members__.values()
 
     def __init__(self, name):
@@ -173,21 +171,17 @@ class TelegramRouter:
         update_field = handler.update_field
         logger.info("bind a %s handler: '%s@%s'", update_field,
                     handler.callback_name, self.name)
+
         route_data = self.route_map.get(update_field, {})
         if isinstance(handler, CallbackQueryHandler):
             self.route_map[update_field] = CallbackQueryRoute(
                 route_data).add_handler(handler)
             return self
-
-        if isinstance(handler, (MessageHandler, EditedMessageHandler,
-                                ChannelPostHandler, EditedChannelPostHandler)):
-            self.route_map[update_field] = MessageRoute(
-                route_data).add_handler(handler)
-            return self
-
         if isinstance(handler, CommandHandler):
             self.route_map[update_field] = CommandRoute(
                 route_data).add_handler(handler)
+            if UpdateField.MESSAGE.value not in self.route_map:
+                self.route_map[UpdateField.MESSAGE.value] = []
             return self
 
         if isinstance(handler, ForceReplyHandler):
@@ -195,8 +189,12 @@ class TelegramRouter:
                 route_data).add_handler(handler)
             return self
 
-        route_data = self.route_map[update_field] = self.route_map.get(
-            handler.update_field, [])
+        route_data = self.route_map.get(update_field, [])
+        if isinstance(handler, (MessageHandler, EditedMessageHandler,
+                                ChannelPostHandler, EditedChannelPostHandler)):
+            self.route_map[update_field] = MessageRoute(
+                route_data).add_handler(handler)
+            return self
 
         if isinstance(handler, ErrorHandler):
             self.route_map[update_field] = ErrorRoute(route_data).add_handler(
@@ -403,7 +401,7 @@ class TelegramRouter:
     #
     ##################################################################################
     @classmethod
-    def parse_update_field_and_data(cls, update: TelegramObject):
+    def __parse_update_field_and_data__(cls, update: TelegramObject):
         for name, value in update.items():
             # telegram bot api confirmed: At most one of the optional parameters can be present in any given update.
             if name in cls.UPDATE_FIELD_VALUES and value:
@@ -415,9 +413,9 @@ class TelegramRouter:
         logger.debug(
             "\n----------------------------- update ----------------------------------\n%s",
             pretty_format(update))
-        update_field, data = self.parse_update_field_and_data(update)
+        update_field, data = self.__parse_update_field_and_data__(update)
         route = self.route_map.get(update_field, None)
-        if route:
+        if route is not None:
             try:
                 await self._handler_callers[update_field](bot, data)
             except Exception as error:
@@ -429,13 +427,13 @@ class TelegramRouter:
         if message.entities and message.entities[
                 0].type == "bot_command" and await CommandRoute(
                     self.route_map.get("command", {})).call_handlers(
-                        bot, message) is self.STOP_CALL:
-            return self.STOP_CALL
+                        bot, message) is bot.stop_call:
+            return bot.stop_call
 
         if "reply_to_message" in message and await ForceReplyRoute(
                 self.route_map.get("force_reply", {})).call_handlers(
-                    bot, message) is self.STOP_CALL:
-            return self.STOP_CALL
+                    bot, message) is bot.stop_call:
+            return bot.stop_call
         route = self.route_map.get(UpdateField.MESSAGE.value, {})
         return await MessageRoute(route).call_handlers(bot, message)
 
@@ -444,13 +442,13 @@ class TelegramRouter:
         if edited_message.entities and edited_message.entities[
                 0].type == "bot_command" and await CommandRoute(
                     self.route_map.get("command", {})).call_handlers(
-                        bot, edited_message) is self.STOP_CALL:
-            return self.STOP_CALL
+                        bot, edited_message) is bot.stop_call:
+            return bot.stop_call
 
         if "reply_to_message" in edited_message and await ForceReplyRoute(
                 self.route_map.get("force_reply", {})).call_handlers(
-                    bot, edited_message) is self.STOP_CALL:
-            return self.STOP_CALL
+                    bot, edited_message) is bot.stop_call:
+            return bot.stop_call
 
         route = self.route_map.get(UpdateField.EDITED_MESSAGE.value, {})
         return await MessageRoute(route).call_handlers(bot, edited_message)

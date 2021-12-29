@@ -7,7 +7,7 @@ from telegrambotclient.storage import (MongoDBStorage, RedisStorage,
                                        SQLiteStorage)
 from telegrambotclient.utils import pretty_print
 
-BOT_TOKEN = "<BOT_TOKEN>"
+BOT_TOKEN = "1036521102:AAF2BqcC9QD_yKXlKy4CEBzZKPHXsxnL4Ss"
 
 router = bot_client.router()
 
@@ -32,8 +32,6 @@ def on_message(bot, message):
         text=str(session.data),
     )
     pretty_print(session)
-    # a dict include all data in the session
-    pretty_print(session._data)
     # access a session with a context manager, automaticlly save
     with bot.session(message.chat.id) as session:
         # delete mulit keys
@@ -46,6 +44,9 @@ def on_message(bot, message):
                 chat_id=message.chat.id,
                 text=str(session.data),
             )
+        session.save()
+        # print data in saved session
+        pretty_print(session.__data__)
         session.clear()  # same with bot.clear_session(message.chat.id)
         bot.send_message(
             chat_id=message.chat.id,
@@ -93,6 +94,6 @@ async def on_update(bot, update):
 
 bot = bot_client.create_bot(
     token=BOT_TOKEN, storage=storage,
-    session_expires=300)  # set 300s as a default session timeout
+    session_expires=300)  # set 300s as a session timeout
 bot.delete_webhook(drop_pending_updates=True)
 bot.run_polling(on_update, timeout=10)

@@ -39,18 +39,20 @@ def on_show_keyboard(bot, message):
 
 @router.callback_query_handler(callback_data="select")
 def on_select(bot, callback_query, value, selected):
+    print(value, not selected)
     if selected:
         bot.answer_callback_query(callback_query_id=callback_query.id)
     else:
         keyboard = InlineKeyboard(
-            *callback_query.message.reply_markup.inline_keyboard)
-        for button, (value_, (text, _)) in zip(keyboard.get_buttons("select"),
-                                               select_options.items()):
+            callback_query.message.reply_markup.inline_keyboard)
+        buttons = keyboard.group("select")
+        for idx, button in enumerate(buttons, start=1):
+            text, _ = select_options[idx]
             keyboard.replace(
                 button.callback_data,
                 InlineKeyboardButton(text="{0}{1}".format(emoji[1], text),
                                      callback_data=build_callback_data(
-                                         "select", value_, False)))
+                                         "select", idx, False)))
         new_button = InlineKeyboardButton(
             text="{0}{1}".format(emoji[0], select_options[value][0]),
             callback_data=build_callback_data("select", value, True))
@@ -67,8 +69,9 @@ def on_select(bot, callback_query, value, selected):
 @router.callback_query_handler(callback_data="submit")
 def on_submit(bot, callback_query):
     keyboard = InlineKeyboard(
-        *callback_query.message.reply_markup.inline_keyboard)
-    for button in keyboard.get_buttons("select"):
+        callback_query.message.reply_markup.inline_keyboard)
+    for row in keyboard[:-1]:  # no submit button
+        button = row[0]
         callback_data_name, (value, selected) = parse_callback_data(
             button.callback_data)
         if selected:

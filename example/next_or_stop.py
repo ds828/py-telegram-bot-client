@@ -9,15 +9,16 @@ BOT_TOKEN = "<BOT_TOKEN>"
 router = bot_client.router()
 
 
-@router.command_handler(("/cmd", ))
+@router.command_handler("/cmd")
 def on_cmd(bot, message):
     bot.send_message(chat_id=message.chat.id,
                      text="on_cmd: {0}".format(message.text))
-    return bot.next_call  # next_call will call on_text which is the next matched handler
+    return bot.next_call  # next_call will call on_text which is the next matched message handler
 
 
 @router.message_handler(MessageField.TEXT)
 def on_text(bot, message):
+    # here, you will receive a /cmd text
     bot.send_message(chat_id=message.chat.id,
                      text="on_text: {0}".format(message.text))
     return bot.stop_call
