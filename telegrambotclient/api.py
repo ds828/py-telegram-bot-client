@@ -86,8 +86,11 @@ class TelegramBotAPI:
 
                 if not files:
                     return _self.__format_response__(
-                        _self.pool.request("GET", api_url, fields=data))
-
+                        _self.pool.request(
+                            "POST",
+                            api_url,
+                            body=json.dumps(data),
+                            headers={'Content-Type': 'application/json'}))
                 for file in files:
                     data[file[0]] = file[1]
                 return _self.__format_response__(
