@@ -18,6 +18,7 @@ def on_echo_text(bot, message):
     )
     bot.pin_chat_message(chat_id=message.chat.id,
                          message_id=sent_message.message_id)
+    return bot.stop_call
 
 
 @router.message_handler(MessageField.PINNED_MESSAGE)
@@ -26,6 +27,7 @@ def on_pinned_message(bot, message):
         chat_id=message.chat.id,
         text="{0} pinned a message".format(message.chat.first_name),
     )
+    return bot.stop_call
 
 
 async def on_update(bot, update):

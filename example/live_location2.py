@@ -32,7 +32,7 @@ def on_share_user_location(bot, message):
 
 
 # next, your telegram app will show a sharing locations between you and the bot.
-# if you share live locations, using random locations to simulate the bot's movement
+# if a live location you shared, using a random location to simulate the bot's movement
 @router.edited_message_handler(MessageField.LOCATION)
 def on_live_location(bot, edited_message):
     session = bot.get_session(edited_message.chat.id)

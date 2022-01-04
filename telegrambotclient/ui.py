@@ -1,6 +1,7 @@
 from collections import UserList
 
 from telegrambotclient.base import InlineKeyboardMarkup, ReplyKeyboardMarkup
+from telegrambotclient.utils import parse_callback_data
 
 
 class ReplyKeyboard(UserList):
@@ -56,6 +57,9 @@ class InlineKeyboard(ReplyKeyboard):
         buttons = []
         for row in self.data:
             for button in row:
-                if button.get("callback_data", "").startswith(callback_data):
-                    buttons.append(button)
+                if button.get("callback_data", None):
+                    callback_data_name, _ = parse_callback_data(
+                        button["callback_data"])
+                    if callback_data_name == callback_data:
+                        buttons.append(button)
         return tuple(buttons)

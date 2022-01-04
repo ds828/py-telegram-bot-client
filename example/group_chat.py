@@ -19,6 +19,7 @@ router = bot_client.router()
 @router.message_handler(MessageField.GROUP_CHAT_CREATED)
 def on_group_chat_created(bot, message):
     bot.reply_message(message, text="Thanks, I am in this group")
+    return bot.stop_call
 
 
 @router.message_handler(MessageField.TEXT)
@@ -28,6 +29,7 @@ def on_text_group_message(bot, message):
         text="I receive a text message: <strong>{0}</strong>".format(
             message.text),
         parse_mode=ParseMode.HTML)
+    return bot.stop_call
 
 
 async def on_update(bot, update):

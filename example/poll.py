@@ -4,7 +4,7 @@ run: python -m example.poll.py
 from telegrambotclient import bot_client
 from telegrambotclient.base import Poll, PollType
 
-BOT_TOKEN = "1036521102:AAF2BqcC9QD_yKXlKy4CEBzZKPHXsxnL4Ss"
+BOT_TOKEN = "<BOT_TOKEN>"
 
 router = bot_client.router()
 
@@ -16,11 +16,13 @@ def on_show_vote_poll(bot, message):
         question="regular vote",
         options=("option 1", "option 2", "option 3"),
     )
+    return bot.stop_call
 
 
 @router.poll_handler()
 def on_poll_state(bot, poll: Poll):
     print("receive a vote on {0}".format(poll.options))
+    return bot.stop_call
 
 
 @router.command_handler("/quiz")
@@ -33,6 +35,7 @@ def on_show_quiz_poll(bot, message):
         type=PollType.QUIZ,
         correct_option_id=2,
     )
+    return bot.stop_call
 
 
 @router.poll_answer_handler()
@@ -40,6 +43,7 @@ def on_poll_answer(bot, poll_answer):
     bot.send_message(chat_id=poll_answer.user.id,
                      text="you select: {0}".format(poll_answer.option_ids))
     print(poll_answer)
+    return bot.stop_call
 
 
 async def on_update(bot, update):

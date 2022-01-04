@@ -6,7 +6,7 @@ import logging
 from telegrambotclient import bot_client
 from telegrambotclient.base import BotCommand, BotCommandScopeChat, ParseMode
 
-BOT_TOKEN = "1036521102:AAF2BqcC9QD_yKXlKy4CEBzZKPHXsxnL4Ss"
+BOT_TOKEN = "<BOT_TOKEN>"
 
 logger = logging.getLogger("telegram-bot-client")
 logger.setLevel(logging.DEBUG)

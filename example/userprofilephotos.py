@@ -19,6 +19,7 @@ def on_example(bot, message):
                     photo=photo.file_id,
                     caption="{0}x{1}".format(photo.height, photo.width),
                 )
+    return bot.stop_call
 
 
 async def on_update(bot, update):

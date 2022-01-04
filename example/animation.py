@@ -20,6 +20,7 @@ def on_animation(bot, message):
         message,
         text="a nice animation from {0}".format(message.chat.first_name),
     )
+    return bot.stop_call
 
 
 async def on_update(bot, update):

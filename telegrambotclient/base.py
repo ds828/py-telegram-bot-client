@@ -201,6 +201,9 @@ class TelegramObject(dict):
     def __getattr__(self, name: str) -> Any:
         return self[name]
 
+    def __setattr__(self, name: str, value):
+        self[name] = value
+
     @property
     def data_(self):
         return self

@@ -26,6 +26,7 @@ def on_show_items(bot, message):
     bot.send_message(chat_id=message.chat.id,
                      text="select one",
                      reply_markup=keyboard.markup())
+    return bot.stop_call
 
 
 @router.callback_query_handler(callback_data="some data")

@@ -4,7 +4,7 @@ run: python -m example.photo
 import os
 
 from telegrambotclient import bot_client
-from telegrambotclient.base import InputFile, InputMediaPhoto, MessageField, ParseMode
+from telegrambotclient.base import ChatAction, InputFile, InputMediaPhoto, MessageField, ParseMode
 
 BOT_TOKEN = "<BOT_TOKEN>"
 
@@ -13,6 +13,8 @@ router = bot_client.router()
 
 @router.message_handler(MessageField.PHOTO)
 def on_photo_message(bot, message):
+    bot.send_chat_action(chat_id=message.chat.id,
+                         action=ChatAction.UPLOAD_PHOTO)
     # get the largest photo
     file_id = message.photo[-1].file_id
     # get the File object

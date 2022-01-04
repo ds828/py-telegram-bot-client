@@ -15,7 +15,7 @@ router = bot_client.router()
 @router.message_handler(MessageField.LOCATION)
 def on_share_location(bot, message):
     if "live_period" in message.location:
-        # begin to share a live location
+        # begin to share live locations
         print("start to share live locations")
     return bot.stop_call
 

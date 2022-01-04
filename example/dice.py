@@ -13,6 +13,7 @@ router = bot_client.router()
 def on_example(bot, message):
     for _ in Emoji.__members__.values():
         bot.send_dice(chat_id=message.chat.id, emoji=_)
+    return bot.stop_call
 
 
 async def on_update(bot, update):

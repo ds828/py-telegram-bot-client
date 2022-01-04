@@ -21,18 +21,21 @@ def on_echo_text(bot, message):
 def on_telegrambot_exception(bot, data, error):
     bot.send_message(chat_id=data.from_user.id,
                      text="on_telegrambot_exception: " + str(error))
+    return bot.stop_call
 
 
 @router.error_handler(ValueError, IndexError)
 def on_many_exceptions(bot, data, error):
     bot.send_message(chat_id=data.from_user.id,
                      text="on_many_exceptions: " + str(error))
+    return bot.stop_call
 
 
 # for all excetions
 @router.error_handler()
 def on_exception(bot, data, error):
     bot.send_message(chat_id=data.chat.id, text="on_exception: " + str(error))
+    return bot.stop_call
 
 
 async def on_update(bot, update):

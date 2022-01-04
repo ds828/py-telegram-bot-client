@@ -20,6 +20,7 @@ async def on_echo_text(bot, message):
         text="I receive: *{0}*".format(message.text),
         parse_mode=ParseMode.MARKDOWN,
     )
+    return bot.stop_call
 
 
 async def on_update(bot, update):

@@ -13,12 +13,14 @@ router = bot_client.router()
 def on_text(bot, message):
     bot.send_message(chat_id=message.chat.id,
                      text=bot.get_deep_link(payload="PAYLOAD"))
+    return bot.stop_call
 
 
 @router.command_handler("/start")
 def on_start(bot, message, *payload):
     print(payload)
     bot.reply_message(message, text=message.text)
+    return bot.stop_call
 
 
 async def on_update(bot, update):
