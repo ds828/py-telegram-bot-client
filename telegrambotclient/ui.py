@@ -57,9 +57,8 @@ class InlineKeyboard(ReplyKeyboard):
         buttons = []
         for row in self.data:
             for button in row:
-                if button.get("callback_data", None):
-                    callback_data_name, _ = parse_callback_data(
-                        button["callback_data"])
-                    if callback_data_name == callback_data:
-                        buttons.append(button)
+                if button.get("callback_data",
+                              None) and button["callback_data"].split(
+                                  "|", maxsplit=1)[0] == callback_data:
+                    buttons.append(button)
         return tuple(buttons)
