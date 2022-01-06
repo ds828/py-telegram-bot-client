@@ -289,6 +289,11 @@ class TextMentionEntity(MessageEntity):
         super().__init__(type="text_mention", user=user)
 
 
+class SpoilerEntity(MessageEntity):
+    def __init__(self):
+        super().__init__(type="spoiler")
+
+
 class JSONSerializedTelegramObject(TelegramObject):
     @property
     def data_(self):

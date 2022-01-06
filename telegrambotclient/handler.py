@@ -1,4 +1,5 @@
 import asyncio
+from asyncio.tasks import create_task
 from typing import Callable, Union
 
 from telegrambotclient.base import UpdateField
@@ -22,9 +23,12 @@ class UpdateHandler:
         return self.callback_name
 
     async def __call__(self, *args, **kwargs):
-        return await self.callback(
-            *args, **kwargs) if asyncio.iscoroutinefunction(
-                self.callback) else self.callback(*args, **kwargs)
+        if asyncio.iscoroutinefunction(self.callback):
+            return await self.callback(*args, **kwargs)
+        else:
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(None, self.callback, *args,
+                                              **kwargs)
 
 
 class ErrorHandler(UpdateHandler):
