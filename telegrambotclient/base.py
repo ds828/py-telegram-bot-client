@@ -1,7 +1,7 @@
 import random
 import string
 from enum import Enum
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 try:
     import ujson as json
@@ -140,10 +140,8 @@ class MIMEType(str, Enum):
 class InputFile:
     __slots__ = ("file_name", "_file", "mime_type", "_attach_key")
 
-    def __init__(self,
-                 file_name: str,
-                 file: Union[str, bytes],
-                 mime_type: str = None):
+    def __init__(self, file_name: str, file: Union[str, bytes],
+                 mime_type: Optional[str]):
         self.file_name = file_name
         assert isinstance(file, (str, bytes)), True
         self._file = file
@@ -358,34 +356,26 @@ class InputMediaPhoto(InputMedia):
 
 
 class InputMediaVideo(InputMedia):
-    def __init__(self,
-                 media: Union[InputFile, str],
-                 thumb: Union[InputFile, str] = None,
-                 **kwargs):
+    def __init__(self, media: Union[InputFile, str],
+                 thumb: Optional[Union[InputFile, str]], **kwargs):
         super().__init__(type="video", media=media, thumb=thumb, **kwargs)
 
 
 class InputMediaAnimation(InputMedia):
-    def __init__(self,
-                 media: Union[InputFile, str],
-                 thumb: Union[InputFile, str] = None,
-                 **kwargs):
+    def __init__(self, media: Union[InputFile, str],
+                 thumb: Optional[Union[InputFile, str]], **kwargs):
         super().__init__(type="animation", media=media, thumb=thumb, **kwargs)
 
 
 class InputMediaAudio(InputMedia):
-    def __init__(self,
-                 media: Union[InputFile, str],
-                 thumb: Union[InputFile, str] = None,
-                 **kwargs):
+    def __init__(self, media: Union[InputFile, str],
+                 thumb: Optional[Union[InputFile, str]], **kwargs):
         super().__init__(type="audio", media=media, thumb=thumb, **kwargs)
 
 
 class InputMediaDocument(InputMedia):
-    def __init__(self,
-                 media: Union[InputFile, str],
-                 thumb: Union[InputFile, str] = None,
-                 **kwargs):
+    def __init__(self, media: Union[InputFile, str],
+                 thumb: Optional[Union[InputFile, str]], **kwargs):
         super().__init__(type="document", media=media, thumb=thumb, **kwargs)
 
 

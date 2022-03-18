@@ -4,6 +4,7 @@ except ImportError:
     import json
 
 from io import BytesIO
+from typing import Optional, Union
 import urllib3
 
 from telegrambotclient.base import (BotCommandScope, InputFile, InputMedia,
@@ -31,7 +32,7 @@ class TelegramBotAPI:
     __slots__ = ("api_caller", "host")
 
     def __init__(self,
-                 host: str = None,
+                 host: str = "https://api.telegram.org",
                  maxsize: int = 10,
                  block: bool = True,
                  **pool_kwargs):
@@ -110,7 +111,7 @@ class TelegramBotAPI:
                 finally:
                     response.release_conn()
 
-        self.host = host or "https://api.telegram.org"
+        self.host = host
         self.api_caller = _TelegramBotAPICaller(maxsize=maxsize,
                                                 block=block,
                                                 **pool_kwargs)
@@ -160,13 +161,11 @@ class TelegramBotAPI:
                              data=api_data,
                              files=media_files + files)
 
-    def edit_message_media(self,
-                           token: str,
-                           chat_id=None,
-                           message_id: int = None,
-                           inline_message_id: int = None,
-                           media: InputMedia = None,
-                           **kwargs):
+    def edit_message_media(self, token: str, chat_id: Optional[Union[int,
+                                                                     str]],
+                           message_id: Optional[int],
+                           inline_message_id: Optional[int],
+                           media: Optional[InputMedia], **kwargs):
         assert isinstance(media, InputMedia), True
         api_data, files = self.__prepare_request_params__(
             chat_id=chat_id,
@@ -179,10 +178,8 @@ class TelegramBotAPI:
                              data=api_data,
                              files=media.files + files)
 
-    def get_my_commands(self,
-                        token: str,
-                        scope: BotCommandScope = None,
-                        language_code: str = None):
+    def get_my_commands(self, token: str, scope: Optional[BotCommandScope],
+                        language_code: Optional[str]):
         return tuple([
             TelegramObject(**raw_command) for raw_command in
             self.getMyCommands(token, scope=scope, language_code=language_code)

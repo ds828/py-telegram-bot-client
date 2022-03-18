@@ -2,7 +2,7 @@ import asyncio
 import logging
 import sys
 from contextlib import contextmanager
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.base import File, Message, TelegramObject
@@ -27,9 +27,9 @@ class TelegramBot:
 
     def __init__(self,
                  token: str,
-                 bot_api: TelegramBotAPI = None,
-                 storage: TelegramStorage = None,
-                 i18n_source: Dict = None,
+                 bot_api: Optional[TelegramBotAPI],
+                 storage: Optional[TelegramStorage],
+                 i18n_source: Optional[Dict],
                  session_expires: int = 1800):
 
         self.token = token

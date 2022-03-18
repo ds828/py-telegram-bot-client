@@ -1,6 +1,5 @@
 import asyncio
-from asyncio.tasks import create_task
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 from telegrambotclient.base import UpdateField
 
@@ -86,10 +85,8 @@ class EditedChannelPostHandler(_MessageHandler):
 class CallbackQueryHandler(UpdateHandler):
     __slots__ = ("data", )
 
-    def __init__(self,
-                 callback: Callable,
-                 callback_data: str = None,
-                 game_short_name: str = None):
+    def __init__(self, callback: Callable, callback_data: Optional[str],
+                 game_short_name: Optional[str]):
         super().__init__(callback, UpdateField.CALLBACK_QUERY)
         self.data = callback_data or game_short_name
         assert bool(self.data), True

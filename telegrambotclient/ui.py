@@ -1,7 +1,6 @@
 from collections import UserList
 
 from telegrambotclient.base import InlineKeyboardMarkup, ReplyKeyboardMarkup
-from telegrambotclient.utils import parse_callback_data
 
 
 class ReplyKeyboard(UserList):

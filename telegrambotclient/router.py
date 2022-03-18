@@ -1,5 +1,5 @@
 from collections import UserDict, UserList
-from typing import Callable
+from typing import Callable, Optional
 
 from telegrambotclient.base import (CallbackQuery, ChatJoinRequst,
                                     ChatMemberUpdated, ChosenInlineResult,
@@ -42,6 +42,7 @@ class ErrorRoute(ListRoute):
     async def call_handlers(self, bot: TelegramBot, data: TelegramObject,
                             error: Exception) -> bool:
         for handler in self:
+            print(error, handler.errors)
             if isinstance(error, handler.errors) and await call_handler(
                     handler, bot, data, error) is bot.stop_call:
                 return bot.stop_call
@@ -235,10 +236,9 @@ class TelegramRouter:
     def register_chosen_inline_result_handler(self, callback: Callable):
         return self.register_handler(ChosenInlineResultHandler(callback))
 
-    def register_callback_query_handler(self,
-                                        callback: Callable,
-                                        callback_data: str = None,
-                                        game_short_name: str = None):
+    def register_callback_query_handler(self, callback: Callable,
+                                        callback_data: Optional[str],
+                                        game_short_name: Optional[str]):
         return self.register_handler(
             CallbackQueryHandler(callback=callback,
                                  callback_data=callback_data,
@@ -275,7 +275,7 @@ class TelegramRouter:
         *errors,
     ):
         def decorator(callback):
-            self.register_error_handler(callback, errors)
+            self.register_error_handler(callback, *errors)
             return callback
 
         return decorator
@@ -336,9 +336,8 @@ class TelegramRouter:
 
         return decorator
 
-    def callback_query_handler(self,
-                               callback_data: str = None,
-                               game_short_name: str = None):
+    def callback_query_handler(self, callback_data: Optional[str],
+                               game_short_name: Optional[str]):
         def decorator(callback):
             self.register_callback_query_handler(callback, callback_data,
                                                  game_short_name)

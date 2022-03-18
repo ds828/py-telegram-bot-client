@@ -8,7 +8,7 @@ try:
 except ImportError:
     import json
 
-_pp = pprint.PrettyPrinter(indent=2)
+_pp = pprint.PrettyPrinter(indent=2, width=128)
 
 
 def pretty_print(data: Any):
