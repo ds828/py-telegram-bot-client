@@ -107,9 +107,9 @@ class MessageRoute(UserList):
         return self
 
     async def call_handlers(self, bot: TelegramBot, message: Message):
-        incoming_message_fields = set(message.keys())
-        for message_fields, handler in self:
-            if incoming_message_fields & message_fields == message_fields and await call_handler(
+        message_fields = set(message.keys())
+        for watching_message_fields, handler in self:
+            if message_fields & watching_message_fields == watching_message_fields and await call_handler(
                     handler, bot, message) is bot.stop_call:
                 return bot.stop_call
 

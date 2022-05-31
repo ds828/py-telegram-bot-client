@@ -82,11 +82,17 @@ class MessageField(str, Enum):
     CONNECTED_WEBSITE = "connected_website"
     PASSPORT_DATA = "passport_data"
     PROXIMITY_ALERT_TRIGGERED = "proximity_alert_triggered"
+    VIDEO_CHAT_SCHEDULED = "video_chat_scheduled"
+    VIDEO_CHAT_STARTED = "video_chat_started"
+    VIDEO_CHAT_ENDED = "video_chat_ended"
+    VIDEO_CHAT_PARTICIPANTS_INVITED = "video_chat_participants_invited"
+    WEB_APP_DATA = "web_app_data"
+    REPLY_MARKUP = "reply_markup"
+    # The old fields will remain temporarily available.
     VOICE_CHAT_SCHEDULED = "voice_chat_scheduled"
     VOICE_CHAT_STARTED = "voice_chat_started"
     VOICE_CHAT_ENDED = "voice_chat_ended"
     VOICE_CHAT_PARTICIPANTS_INVITED = "voice_chat_participants_invited"
-    REPLY_MARKUP = "reply_markup"
 
 
 class ParseMode(str, Enum):
@@ -140,8 +146,10 @@ class MIMEType(str, Enum):
 class InputFile:
     __slots__ = ("file_name", "_file", "mime_type", "_attach_key")
 
-    def __init__(self, file_name: str, file: Union[str, bytes],
-                 mime_type: Optional[str]):
+    def __init__(self,
+                 file_name: str,
+                 file: Union[str, bytes],
+                 mime_type: Optional[str] = None):
         self.file_name = file_name
         assert isinstance(file, (str, bytes)), True
         self._file = file
@@ -207,7 +215,7 @@ class TelegramObject(dict):
         return self
 
 
-Message = CallbackQuery = ChosenInlineResult = InlineQuery = File = User = WebhookInfo = PhotoSize = StickerSet = Location = ShippingAddress = OrderInfo = EncryptedPassportElement = EncryptedCredentials = PassportFile = CallbackGame = GameHighScore = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = ChatMemberUpdated = ChatJoinRequst = TelegramObject
+Message = CallbackQuery = ChosenInlineResult = InlineQuery = File = User = WebhookInfo = PhotoSize = StickerSet = Location = ShippingAddress = OrderInfo = EncryptedPassportElement = EncryptedCredentials = PassportFile = CallbackGame = GameHighScore = VCard = ShippingQuery = PreCheckoutQuery = Poll = PollAnswer = ChatMemberUpdated = ChatJoinRequst = WebAppInfo = TelegramObject
 
 MessageEntity = TelegramObject
 
@@ -677,7 +685,7 @@ class InputInvoiceMessageContent(InputMessageContent):
                          **kwargs)
 
 
-InlineQueryResult = TelegramObject
+InlineQueryResult = JSONSerializedTelegramObject
 
 
 class InlineQueryResultArticle(InlineQueryResult):
@@ -846,4 +854,50 @@ class InlineQueryResultCachedAudio(TelegramObject):
         super().__init__(type="audio",
                          id=id,
                          audio_file_id=audio_file_id,
+                         **kwargs)
+
+
+MenuButton = JSONSerializedTelegramObject
+
+
+class MenuButtonCommands(MenuButton):
+    def __init__(self):
+        super().__init__(type="commands")
+
+
+class MenuButtonWebApp(MenuButton):
+    def __init__(self, text: str, web_app: WebAppInfo):
+        super().__init__(type="web_app", text=text, web_app=web_app)
+
+
+class MenuButtonDefault(MenuButton):
+    def __init__(self):
+        super().__init__(type="default")
+
+
+class ChatAdministratorRights(JSONSerializedTelegramObject):
+    def __init__(self,
+                 is_anonymous: bool = True,
+                 can_manage_chat: bool = True,
+                 can_delete_messages: bool = True,
+                 can_manage_video_chats: bool = True,
+                 can_restrict_members: bool = True,
+                 can_promote_members: bool = True,
+                 can_change_info: bool = True,
+                 can_invite_users: bool = True,
+                 can_post_messages: Optional[bool] = False,
+                 can_edit_messages: Optional[bool] = False,
+                 can_pin_messages: Optional[bool] = False,
+                 **kwargs):
+        super().__init__(is_anonymous=is_anonymous,
+                         can_manage_chat=can_manage_chat,
+                         can_delete_messages=can_delete_messages,
+                         can_manage_video_chats=can_manage_video_chats,
+                         can_restrict_members=can_restrict_members,
+                         can_promote_members=can_promote_members,
+                         can_change_info=can_change_info,
+                         can_invite_users=can_invite_users,
+                         can_post_messages=can_post_messages,
+                         can_edit_messages=can_edit_messages,
+                         can_pin_messages=can_pin_messages,
                          **kwargs)

@@ -83,7 +83,7 @@ class TelegramBotAPI:
                     return result
                 raise TelegramBotAPIException(**json_response)
 
-            def request(_self, api_url: str, data={}, files=()):
+            def request(_self, api_url: str, data: dict, files: list):
 
                 if not files:
                     return _self.__format_response__(
@@ -139,7 +139,11 @@ class TelegramBotAPI:
                     del api_data[field]
         return api_data, files
 
-    def call_api(self, token: str, api_name: str, data, files):
+    def call_api(self,
+                 token: str,
+                 api_name: str,
+                 data: dict = {},
+                 files: list = []):
         return self.api_caller.request(
             self.API_URL.format(token,
                                 api_name.replace("_", "").lower()), data,

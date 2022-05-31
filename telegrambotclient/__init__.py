@@ -1,3 +1,4 @@
+from typing import Optional
 from telegrambotclient.api import TelegramBotAPI
 from telegrambotclient.bot import TelegramBot
 from telegrambotclient.router import TelegramRouter
@@ -7,14 +8,13 @@ from telegrambotclient.storage import TelegramStorage
 class TelegramBotClient:
     __slots__ = ("bots", "routers", "name", "api_callers")
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: str = "default"):
         self.bots = {}
         self.routers = {}
         self.api_callers = {}
-        self.name = name or "default"
+        self.name = name
 
-    def router(self, name: str = None) -> TelegramRouter:
-        name = name or "default"
+    def router(self, name: str = "default") -> TelegramRouter:
         router = self.routers.get(name, None)
         if router is None:
             self.routers[name] = TelegramRouter(name)
@@ -23,8 +23,8 @@ class TelegramBotClient:
 
     def create_bot(self,
                    token: str,
-                   bot_api: TelegramBotAPI = None,
-                   storage: TelegramStorage = None,
+                   bot_api: Optional[TelegramBotAPI],
+                   storage: Optional[TelegramStorage],
                    i18n_source=None,
                    session_expires: int = 1800) -> TelegramBot:
 
