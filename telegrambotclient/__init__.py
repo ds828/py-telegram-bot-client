@@ -23,8 +23,8 @@ class TelegramBotClient:
 
     def create_bot(self,
                    token: str,
-                   bot_api: Optional[TelegramBotAPI],
-                   storage: Optional[TelegramStorage],
+                   bot_api: Optional[TelegramBotAPI] = None,
+                   storage: Optional[TelegramStorage] = None,
                    i18n_source=None,
                    session_expires: int = 1800) -> TelegramBot:
 

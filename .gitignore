@@ -133,3 +133,4 @@ dmypy.json
 pyrightconfig.json
 .pylintrc
 .github
+.vscode
